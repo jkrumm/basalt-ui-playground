@@ -36,7 +36,16 @@ export default defineConfig({
       }),
     },
     tsConfigPaths(),
-    tanstackStart(),
+    tanstackStart({
+      // crawlLinks discovers all blog posts and doc pages by following links from
+      // the listing/index pages. The landing page (/) is excluded via filter since
+      // it fetches live CBBI data and should not be snapshotted as static HTML.
+      prerender: {
+        enabled: true,
+        crawlLinks: true,
+        filter: ({ path }) => path !== '/',
+      },
+    }),
     // 2. React plugin must declare MDX as JSX-containing for HMR
     viteReact({ include: /\.(jsx|js|mdx|md|tsx|ts)$/ }),
     // 3. React Compiler processes MDX-compiled output the same as .tsx

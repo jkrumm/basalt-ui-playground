@@ -1,17 +1,20 @@
-import type { BlogFrontmatter, BlogModule } from '../../lib/content'
-import { NonIdealState, Spinner } from '@blueprintjs/core'
+import type { BlogFrontmatter, BlogPost } from '../../lib/content'
+import { NonIdealState } from '@blueprintjs/core'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { Suspense, useEffect, useState } from 'react'
-import readingTime from 'reading-time'
 import { BlogLayout } from '../../components/content/BlogLayout'
+import { RelatedPosts } from '../../components/content/RelatedPosts'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { blogMeta, blogModules } from '../../lib/content'
+import { blogMeta, blogModules, getBlogList, getRelatedPosts, getSeriesPosts } from '../../lib/content'
+
+const BASE_URL = 'https://cbbi.jkrumm.com'
 
 interface PostLoaderData {
   slug: string
   frontmatter: BlogFrontmatter
   readingTime: string
+  related: BlogPost[]
+  seriesPosts: BlogPost[]
 }
 
 const getBlogPostFn = createServerFn({ method: 'GET' })
@@ -25,81 +28,68 @@ const getBlogPostFn = createServerFn({ method: 'GET' })
     const fm = blogMeta[key]
     if (!fm)
       throw notFound()
-    const rawModules = import.meta.glob<string>(
-      '../../content/blog/*.mdx',
-      { query: '?raw', import: 'default', eager: true },
-    )
-    const raw = rawModules[`../../content/blog/${slug}.mdx`] ?? ''
-    return { slug, frontmatter: fm, readingTime: readingTime(raw).text }
+
+    const all = getBlogList()
+    const post = all.find(p => p.slug === slug)
+
+    return {
+      slug,
+      frontmatter: fm,
+      readingTime: post?.readingTime ?? '1 min read',
+      related: getRelatedPosts(slug),
+      seriesPosts: fm.series ? getSeriesPosts(fm.series) : [],
+    }
   })
 
 export const Route = createFileRoute('/blog/$slug')({
   loader: ({ params }) => getBlogPostFn({ data: params.slug }),
-  head: ({ loaderData: ld }) => ({
-    meta: [
-      { title: `${ld?.frontmatter.title ?? 'Blog'} — CBBI Blueprint` },
-      { name: 'description', content: ld?.frontmatter.description },
-      { property: 'og:title', content: ld?.frontmatter.title },
-      { property: 'og:type', content: 'article' },
-      { name: 'article:published_time', content: ld?.frontmatter.publishedAt },
-    ],
-  }),
+  head: ({ loaderData: ld }) => {
+    if (!ld)
+      return {}
+    const fm = ld.frontmatter
+    const url = `${BASE_URL}/blog/${ld.slug}`
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      'headline': fm.title,
+      'description': fm.description,
+      'datePublished': fm.publishedAt,
+      'dateModified': fm.updatedAt ?? fm.publishedAt,
+      'author': { '@type': 'Person', 'name': fm.author },
+      ...(fm.image ? { image: fm.image.startsWith('http') ? fm.image : `${BASE_URL}${fm.image}` } : {}),
+      url,
+      'keywords': fm.tags.join(', '),
+    }
+    return {
+      meta: [
+        { title: `${fm.title} — CBBI Blueprint` },
+        { name: 'description', content: fm.description },
+        { property: 'og:title', content: fm.title },
+        { property: 'og:description', content: fm.description },
+        { property: 'og:type', content: 'article' },
+        { property: 'og:url', content: url },
+        ...(fm.image ? [{ property: 'og:image', content: fm.image.startsWith('http') ? fm.image : `${BASE_URL}${fm.image}` }] : []),
+        { name: 'article:published_time', content: fm.publishedAt },
+        ...(fm.updatedAt ? [{ name: 'article:modified_time', content: fm.updatedAt }] : []),
+        ...fm.tags.map(tag => ({ name: 'article:tag', content: tag })),
+      ],
+      links: [{ rel: 'canonical', href: url }],
+      scripts: [{ type: 'application/ld+json', children: JSON.stringify(jsonLd) }],
+    }
+  },
   component: BlogPostPage,
 })
 
-// Wrap the component in an object to prevent React treating it as a state updater
-interface ContentState {
-  Component: React.ComponentType<{ components: typeof mdxComponents }>
-}
-
-function useMDXContent(slug: string) {
-  const [state, setState] = useState<ContentState | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const key = `../content/blog/${slug}.mdx`
-    const loader = blogModules[key]
-    const load = loader
-      ? loader()
-      : Promise.reject(new Error(`Post not found: ${slug}`))
-    load
-      .then((mod: BlogModule) => {
-        setState({ Component: mod.default as React.ComponentType<{ components: typeof mdxComponents }> })
-      })
-      .catch((err: unknown) => {
-        setError(String(err))
-      })
-  }, [slug])
-
-  return { state, error }
-}
-
 function BlogPostPage() {
-  const loaderData = Route.useLoaderData()
-  const { slug, frontmatter, readingTime: rt } = loaderData as PostLoaderData
-  const { state, error } = useMDXContent(slug)
+  const { slug, frontmatter, readingTime: rt, related, seriesPosts } = Route.useLoaderData()
+  const MdxContent = blogModules[`../content/blog/${slug}.mdx`]?.default
 
   return (
-    <BlogLayout frontmatter={frontmatter} readingTime={rt}>
-      {error
-        ? (
-            <NonIdealState
-              icon="error"
-              title="Failed to load post"
-              description={error}
-            />
-          )
-        : !state
-            ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-                  <Spinner size={40} />
-                </div>
-              )
-            : (
-                <Suspense fallback={<Spinner size={40} />}>
-                  <state.Component components={mdxComponents} />
-                </Suspense>
-              )}
+    <BlogLayout frontmatter={frontmatter} readingTime={rt} seriesPosts={seriesPosts} currentSlug={slug}>
+      {MdxContent
+        ? <MdxContent components={mdxComponents} />
+        : <NonIdealState icon="error" title="Failed to load post" />}
+      {related.length > 0 && <RelatedPosts posts={related} />}
     </BlogLayout>
   )
 }

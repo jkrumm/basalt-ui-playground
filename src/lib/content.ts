@@ -1,29 +1,43 @@
+import type { Static } from '@sinclair/typebox'
 import type { MDXComponents } from 'mdx/types'
 import type * as React from 'react'
-import readingTime from 'reading-time'
+import { Type } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 
-const INDEX_SUFFIX_RE = /\/index$/
+export const INDEX_SUFFIX_RE = /\/index$/
+const RT_FRONTMATTER_RE = /^---[\s\S]*?---\n?/
+const RT_IMPORT_RE = /^(import|export)\s.*/gm
+const RT_JSX_TAG_RE = /<[^>]+>/g
+const RT_FENCED_CODE_RE = /```[\s\S]*?```/g
+const RT_INLINE_CODE_RE = /`[^`]*`/g
+const RT_WHITESPACE_RE = /\s+/
 
 // ---------------------------------------------------------------------------
-// Frontmatter types
+// TypeBox schemas — runtime + compile-time validation
 // ---------------------------------------------------------------------------
 
-export interface BlogFrontmatter {
-  title: string
-  description: string
-  publishedAt: string // ISO: "2026-01-15"
-  updatedAt?: string
-  tags: string[]
-  author: string
-  draft?: boolean
-}
+export const BlogFrontmatterSchema = Type.Object({
+  title: Type.String(),
+  description: Type.String(),
+  publishedAt: Type.String(),
+  updatedAt: Type.Optional(Type.String()),
+  tags: Type.Array(Type.String()),
+  author: Type.String(),
+  draft: Type.Optional(Type.Boolean()),
+  image: Type.Optional(Type.String()),
+  series: Type.Optional(Type.String()),
+  seriesOrder: Type.Optional(Type.Number()),
+})
 
-export interface DocsFrontmatter {
-  title: string
-  description?: string
-  order?: number // sidebar sort within section
-  section?: string // sidebar group label
-}
+export const DocsFrontmatterSchema = Type.Object({
+  title: Type.String(),
+  description: Type.Optional(Type.String()),
+  order: Type.Optional(Type.Number()),
+  section: Type.Optional(Type.String()),
+})
+
+export type BlogFrontmatter = Static<typeof BlogFrontmatterSchema>
+export type DocsFrontmatter = Static<typeof DocsFrontmatterSchema>
 
 // ---------------------------------------------------------------------------
 // Module shapes
@@ -43,29 +57,48 @@ export interface DocsModule {
 // Glob imports
 // ---------------------------------------------------------------------------
 
-// Frontmatter-only (import: 'frontmatter') — used for listings and sidebar.
-// Only the named `frontmatter` export is loaded; no JSX tree in the bundle.
 export const blogMeta = import.meta.glob<BlogFrontmatter>(
   '../content/blog/*.mdx',
   { eager: true, import: 'frontmatter' },
 )
 
-// Raw sources — used for reading-time computation
 const blogRaw = import.meta.glob<string>(
   '../content/blog/*.mdx',
   { eager: true, query: '?raw', import: 'default' },
 )
 
-// Full modules — used for rendering a specific post
-export const blogModules = import.meta.glob<BlogModule>('../content/blog/*.mdx')
+// Eager: all MDX components are included in the bundle for synchronous SSR rendering.
+// No async loading needed — content pages are few and benefit from instant render.
+export const blogModules = import.meta.glob<BlogModule>(
+  '../content/blog/*.mdx',
+  { eager: true },
+)
 
 export const docsMeta = import.meta.glob<DocsFrontmatter>(
   '../content/docs/**/*.mdx',
   { eager: true, import: 'frontmatter' },
 )
 
-// Full modules — used for rendering a specific doc page
-export const docsModules = import.meta.glob<DocsModule>('../content/docs/**/*.mdx')
+export const docsModules = import.meta.glob<DocsModule>(
+  '../content/docs/**/*.mdx',
+  { eager: true },
+)
+
+// ---------------------------------------------------------------------------
+// Inline reading-time (no Node.js deps, works browser + server)
+// ---------------------------------------------------------------------------
+
+function computeReadingTime(raw: string): string {
+  const text = raw
+    .replace(RT_FRONTMATTER_RE, '')
+    .replace(RT_IMPORT_RE, '')
+    .replace(RT_JSX_TAG_RE, ' ')
+    .replace(RT_FENCED_CODE_RE, ' ')
+    .replace(RT_INLINE_CODE_RE, ' ')
+  const words = text.trim().split(RT_WHITESPACE_RE).filter(w => w.length > 0).length
+  const minutes = Math.max(1, Math.round(words / 200))
+  return `${minutes} min read`
+}
 
 // ---------------------------------------------------------------------------
 // Derived types
@@ -82,6 +115,27 @@ export interface SitemapEntry {
   lastmod?: string
 }
 
+export interface SearchDocument {
+  type: 'blog' | 'docs'
+  slug: string
+  title: string
+  description: string
+  tags?: string[]
+  section?: string
+}
+
+// ---------------------------------------------------------------------------
+// Validation helper
+// ---------------------------------------------------------------------------
+
+function assertBlogFrontmatter(path: string, fm: unknown): BlogFrontmatter {
+  if (import.meta.env.DEV && !Value.Check(BlogFrontmatterSchema, fm)) {
+    const errors = [...Value.Errors(BlogFrontmatterSchema, fm)]
+    console.warn(`[content] Invalid blog frontmatter in ${path}:`, errors)
+  }
+  return fm as BlogFrontmatter
+}
+
 // ---------------------------------------------------------------------------
 // Content collection builders
 // ---------------------------------------------------------------------------
@@ -94,8 +148,8 @@ export function getBlogList(): BlogPost[] {
       const raw = blogRaw[path] ?? ''
       return {
         slug,
-        frontmatter: fm!,
-        readingTime: readingTime(raw).text,
+        frontmatter: assertBlogFrontmatter(path, fm),
+        readingTime: computeReadingTime(raw),
       }
     })
     .sort((a, b) => b.frontmatter.publishedAt.localeCompare(a.frontmatter.publishedAt))
@@ -106,7 +160,7 @@ export function getBlogFrontmatter(slug: string): BlogFrontmatter {
   const fm = blogMeta[key]
   if (!fm)
     throw new Error(`Blog post not found: ${slug}`)
-  return fm
+  return assertBlogFrontmatter(key, fm)
 }
 
 export function getDocsFrontmatter(key: string): DocsFrontmatter {
@@ -140,7 +194,6 @@ export function getDocsSidebar(): DocNavSection[] {
     sections.get(section)!.push({ slug, label: fm.title, frontmatter: fm })
   }
 
-  // Sort items within each section by order, then by title
   const sorted: DocNavSection[] = []
   for (const [section, items] of sections.entries()) {
     sorted.push({
@@ -154,6 +207,66 @@ export function getDocsSidebar(): DocNavSection[] {
   }
 
   return sorted.toSorted((a, b) => a.section.localeCompare(b.section))
+}
+
+// ---------------------------------------------------------------------------
+// Related posts — tag-based similarity
+// ---------------------------------------------------------------------------
+
+export function getRelatedPosts(slug: string, limit = 3): BlogPost[] {
+  const currentKey = `../content/blog/${slug}.mdx`
+  const current = blogMeta[currentKey]
+  if (!current)
+    return []
+
+  return getBlogList()
+    .filter(p => p.slug !== slug)
+    .map(p => ({
+      post: p,
+      score: p.frontmatter.tags.filter(t => current.tags.includes(t)).length,
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ post }) => post)
+}
+
+// ---------------------------------------------------------------------------
+// Series — ordered multi-part articles
+// ---------------------------------------------------------------------------
+
+export function getSeriesPosts(series: string): BlogPost[] {
+  return getBlogList()
+    .filter(p => p.frontmatter.series === series)
+    .sort((a, b) => (a.frontmatter.seriesOrder ?? 0) - (b.frontmatter.seriesOrder ?? 0))
+}
+
+// ---------------------------------------------------------------------------
+// Search index for Fuse.js
+// ---------------------------------------------------------------------------
+
+export function getSearchIndex(): SearchDocument[] {
+  const blog: SearchDocument[] = Object.entries(blogMeta)
+    .filter(([, fm]) => fm && !fm.draft)
+    .map(([path, fm]) => ({
+      type: 'blog' as const,
+      slug: path.replace('../content/blog/', '').replace('.mdx', ''),
+      title: fm!.title,
+      description: fm!.description,
+      tags: fm!.tags,
+    }))
+
+  const docs: SearchDocument[] = Object.entries(docsMeta)
+    .filter(([, fm]) => !!fm)
+    .map(([path, fm]) => ({
+      type: 'docs' as const,
+      slug: path.replace('../content/docs/', '').replace('.mdx', ''),
+      title: fm!.title,
+      description: fm!.description ?? '',
+      section: fm!.section,
+    }))
+
+  return [...blog, ...docs]
 }
 
 // ---------------------------------------------------------------------------

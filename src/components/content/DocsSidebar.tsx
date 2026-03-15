@@ -1,19 +1,10 @@
 import type { DocNavSection } from '../../lib/content'
 import { Menu, MenuDivider, MenuItem } from '@blueprintjs/core'
 import { Link, useRouterState } from '@tanstack/react-router'
-
-const INDEX_SUFFIX_RE = /\/index$/
+import { INDEX_SUFFIX_RE } from '../../lib/content'
 
 interface DocsSidebarProps {
   sections: DocNavSection[]
-}
-
-function resolveDocHref(slug: string): string {
-  // "index" → "/docs", "getting-started/index" → "/docs/getting-started"
-  if (slug === 'index')
-    return '/docs'
-  const clean = slug.replace(INDEX_SUFFIX_RE, '')
-  return `/docs/${clean}`
 }
 
 export function DocsSidebar({ sections }: DocsSidebarProps) {
@@ -26,17 +17,21 @@ export function DocsSidebar({ sections }: DocsSidebarProps) {
           {i > 0 && <MenuDivider />}
           <MenuDivider title={section.section} />
           {section.items.map((item) => {
-            const href = resolveDocHref(item.slug)
-            const isActive = location === href
-            return (
-              <Link key={item.slug} to={href as never} style={{ textDecoration: 'none' }}>
-                <MenuItem
-                  text={item.label}
-                  active={isActive}
-                  style={{ borderRadius: 4 }}
-                />
-              </Link>
-            )
+            const isRoot = item.slug === 'index'
+            const cleanSlug = item.slug.replace(INDEX_SUFFIX_RE, '')
+            const isActive = isRoot ? location === '/docs' : location === `/docs/${cleanSlug}`
+
+            return isRoot
+              ? (
+                  <Link key={item.slug} to="/docs" style={{ textDecoration: 'none' }}>
+                    <MenuItem text={item.label} active={isActive} style={{ borderRadius: 4 }} />
+                  </Link>
+                )
+              : (
+                  <Link key={item.slug} to="/docs/$" params={{ _splat: cleanSlug }} style={{ textDecoration: 'none' }}>
+                    <MenuItem text={item.label} active={isActive} style={{ borderRadius: 4 }} />
+                  </Link>
+                )
           })}
         </div>
       ))}

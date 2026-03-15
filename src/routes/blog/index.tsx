@@ -26,12 +26,13 @@ export const Route = createFileRoute('/blog/')({
       { title: 'Blog — CBBI Blueprint' },
       { name: 'description', content: 'Articles on TanStack Start, Blueprint, and on-chain analytics.' },
     ],
+    links: [{ rel: 'canonical', href: 'https://cbbi.jkrumm.com/blog' }],
   }),
   component: BlogListingPage,
 })
 
 function BlogListingPage() {
-  const posts = Route.useLoaderData() as BlogPost[]
+  const posts = Route.useLoaderData()
 
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 64 }}>
@@ -58,7 +59,14 @@ function BlogListingPage() {
           : (
               <div className="cbbi-grid">
                 {posts.map(post => (
-                  <BlogPostCard key={post.slug} post={post} />
+                  <Link
+                    key={post.slug}
+                    to="/blog/$slug"
+                    params={{ slug: post.slug }}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <BlogPostCard post={post} />
+                  </Link>
                 ))}
               </div>
             )}

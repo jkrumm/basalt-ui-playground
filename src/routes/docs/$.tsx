@@ -1,8 +1,7 @@
-import type { DocsFrontmatter, DocsModule } from '../../lib/content'
-import { NonIdealState, Spinner } from '@blueprintjs/core'
+import type { DocsFrontmatter } from '../../lib/content'
+import { NonIdealState } from '@blueprintjs/core'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { Suspense, useEffect, useState } from 'react'
 import { DocsLayout } from '../../components/content/DocsLayout'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
 import { docsMeta, docsModules, getDocsSidebar } from '../../lib/content'
@@ -45,60 +44,29 @@ const getDocsPageFn = createServerFn({ method: 'GET' })
 
 export const Route = createFileRoute('/docs/$')({
   loader: ({ params }) => getDocsPageFn({ data: params._splat ?? '' }),
-  head: ({ loaderData: ld }) => ({
-    meta: [
-      { title: `${(ld as DocsPageData).frontmatter.title} — CBBI Blueprint` },
-      { name: 'description', content: (ld as DocsPageData).frontmatter.description },
-    ],
-  }),
+  head: ({ loaderData: ld, params }) => {
+    if (!ld)
+      return {}
+    return {
+      meta: [
+        { title: `${ld.frontmatter.title} — CBBI Blueprint` },
+        { name: 'description', content: ld.frontmatter.description },
+      ],
+      links: [{ rel: 'canonical', href: `https://cbbi.jkrumm.com/docs/${params._splat ?? ''}` }],
+    }
+  },
   component: DocsPage,
 })
 
-interface ContentState {
-  Component: React.ComponentType<{ components: typeof mdxComponents }>
-}
-
-function useDocsContent(moduleKey: string) {
-  const [state, setState] = useState<ContentState | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    const loader = docsModules[moduleKey]
-    const load = loader
-      ? loader()
-      : Promise.reject(new Error(`Doc page not found: ${moduleKey}`))
-    load
-      .then((mod: DocsModule) => {
-        setState({ Component: mod.default as React.ComponentType<{ components: typeof mdxComponents }> })
-      })
-      .catch((err: unknown) => setError(String(err)))
-  }, [moduleKey])
-
-  return { state, error }
-}
-
 function DocsPage() {
-  const loaderData = Route.useLoaderData() as DocsPageData
-  const { moduleKey, sections } = loaderData
-  const { state, error } = useDocsContent(moduleKey)
+  const { moduleKey, sections } = Route.useLoaderData()
+  const MdxContent = docsModules[moduleKey]?.default
 
   return (
     <DocsLayout sections={sections}>
-      {error
-        ? (
-            <NonIdealState icon="error" title="Failed to load page" description={error} />
-          )
-        : !state
-            ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}>
-                  <Spinner size={40} />
-                </div>
-              )
-            : (
-                <Suspense fallback={<Spinner size={40} />}>
-                  <state.Component components={mdxComponents} />
-                </Suspense>
-              )}
+      {MdxContent
+        ? <MdxContent components={mdxComponents} />
+        : <NonIdealState icon="error" title="Page not found" />}
     </DocsLayout>
   )
 }
