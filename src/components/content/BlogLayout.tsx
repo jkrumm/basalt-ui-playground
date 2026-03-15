@@ -1,21 +1,53 @@
-import type { BlogFrontmatter, BlogPost } from '../../lib/content'
+import type { BlogFrontmatter, BlogPost, PrevNext } from '../../lib/content'
 import { Alignment, Button, Callout, Classes, Divider, H1, Navbar, NavbarGroup, Tag } from '@blueprintjs/core'
-import { IconArrowLeft } from '@tabler/icons-react'
+import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react'
 import { Link } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import { ThemeToggle } from '../ThemeToggle'
 import { TableOfContents } from './TableOfContents'
+
+function useReadingProgress() {
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    const onScroll = () => {
+      const scrolled = window.scrollY
+      const total = document.documentElement.scrollHeight - window.innerHeight
+      setProgress(total > 0 ? Math.min(100, (scrolled / total) * 100) : 0)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return progress
+}
 
 interface BlogLayoutProps {
   frontmatter: BlogFrontmatter
   currentSlug: string
   readingTime: string
   seriesPosts?: BlogPost[]
+  prevNext?: PrevNext
   children: React.ReactNode
 }
 
-export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts = [], children }: BlogLayoutProps) {
+export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts = [], prevNext, children }: BlogLayoutProps) {
+  const progress = useReadingProgress()
+
   return (
     <div style={{ minHeight: '100vh', paddingBottom: 64 }}>
+      {/* Reading progress bar */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: 2,
+          width: `${progress}%`,
+          backgroundColor: '#2D72D2',
+          zIndex: 9999,
+          transition: 'width 0.05s linear',
+          pointerEvents: 'none',
+        }}
+      />
       <Navbar>
         <NavbarGroup align={Alignment.LEFT}>
           <Link to="/blog" style={{ textDecoration: 'none' }}>
@@ -129,6 +161,52 @@ export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts 
           <div className={`${Classes.RUNNING_TEXT} mdx-content`}>
             {children}
           </div>
+
+          {/* Prev / Next navigation */}
+          {prevNext && (prevNext.prev || prevNext.next) && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                marginTop: '3rem',
+                paddingTop: '1.5rem',
+                borderTop: '1px solid rgba(255,255,255,0.08)',
+              }}
+            >
+              {prevNext.prev
+                ? (
+                    <Link to="/blog/$slug" params={{ slug: prevNext.prev.slug }} style={{ textDecoration: 'none', flex: 1 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5f6b7c' }}>
+                          <IconArrowLeft size={13} />
+                          Previous
+                        </span>
+                        <span style={{ fontWeight: 600, fontSize: 14 }}>{prevNext.prev.frontmatter.title}</span>
+                        {prevNext.prev.frontmatter.tags[0] && (
+                          <Tag minimal style={{ fontSize: 11, width: 'fit-content' }}>{prevNext.prev.frontmatter.tags[0]}</Tag>
+                        )}
+                      </div>
+                    </Link>
+                  )
+                : <div style={{ flex: 1 }} />}
+
+              {prevNext.next && (
+                <Link to="/blog/$slug" params={{ slug: prevNext.next.slug }} style={{ textDecoration: 'none', flex: 1, textAlign: 'right' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5f6b7c' }}>
+                      Next
+                      <IconArrowRight size={13} />
+                    </span>
+                    <span style={{ fontWeight: 600, fontSize: 14 }}>{prevNext.next.frontmatter.title}</span>
+                    {prevNext.next.frontmatter.tags[0] && (
+                      <Tag minimal style={{ fontSize: 11, width: 'fit-content' }}>{prevNext.next.frontmatter.tags[0]}</Tag>
+                    )}
+                  </div>
+                </Link>
+              )}
+            </div>
+          )}
         </div>
 
         {/* TOC sidebar — shown via CSS on wide viewports */}

@@ -316,9 +316,12 @@ function CBBIDashboard() {
           <Link to="/docs" style={{ textDecoration: 'none' }}>
             <Button variant="minimal" icon={<IconBook size={16} />} text="Docs" />
           </Link>
-          <Link to="/search" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconSearch size={16} />} text="Search" />
-          </Link>
+          <Button
+            variant="minimal"
+            icon={<IconSearch size={16} />}
+            text="Search"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}
+          />
           <Button
             variant="minimal"
             icon={<IconFileText size={16} />}

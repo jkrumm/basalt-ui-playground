@@ -3,6 +3,7 @@ import { Classes, FocusStyleManager } from '@blueprintjs/core'
 import geistFont from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
 import jbMonoFont from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2?url'
 /// <reference types="vite/client" />
+import { useHotkey } from '@tanstack/react-hotkeys'
 import {
   createRootRoute,
   HeadContent,
@@ -11,6 +12,7 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
+import { SearchModal } from '../components/content/SearchModal'
 import { ThemeContext, useSystemTheme } from '../context/theme-context'
 import { getThemeFn, setThemeFn } from '../lib/theme'
 import appCss from '../styles/app.css?url'
@@ -38,6 +40,15 @@ function RootComponent() {
   // Optimistic override during theme change — null means "use loader value"
   const [pendingTheme, setPendingTheme] = useState<Theme | null>(null)
   const theme = pendingTheme ?? loaderTheme
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  useHotkey('Mod+K', () => setSearchOpen(true), { preventDefault: true })
+  // Allow any page's navbar to open the modal via a custom event
+  useEffect(() => {
+    const handler = () => setSearchOpen(true)
+    window.addEventListener('open-search', handler)
+    return () => window.removeEventListener('open-search', handler)
+  }, [])
 
   // Resolve 'system' to actual dark/light via OS preference.
   // Always called (hooks must not be conditional); result used only for 'system'.
@@ -72,6 +83,7 @@ function RootComponent() {
           className={effectiveTheme === 'dark' ? Classes.DARK : undefined}
           suppressHydrationWarning
         >
+          <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
           <Outlet />
           <Scripts />
         </body>

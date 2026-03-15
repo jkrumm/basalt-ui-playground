@@ -216,6 +216,40 @@ export function getSeriesPosts(series: string): BlogPost[] {
 }
 
 // ---------------------------------------------------------------------------
+// Docs next page — next item in sidebar order for "What's next" footer
+// ---------------------------------------------------------------------------
+
+export function getNextDocPage(currentSlug: string): DocNavItem | null {
+  const flat = getDocsSidebar().flatMap(s => s.items)
+  const idx = flat.findIndex((item) => {
+    const clean = item.slug.replace(INDEX_SUFFIX_RE, '')
+    return clean === currentSlug || item.slug === currentSlug
+  })
+  return idx !== -1 ? (flat[idx + 1] ?? null) : null
+}
+
+// ---------------------------------------------------------------------------
+// Prev/Next — adjacent posts by date for blog post navigation
+// ---------------------------------------------------------------------------
+
+export interface PrevNext {
+  prev: BlogPost | null
+  next: BlogPost | null
+}
+
+export function getPrevNextPosts(slug: string): PrevNext {
+  const posts = getBlogList() // already sorted newest-first
+  const idx = posts.findIndex(p => p.slug === slug)
+  if (idx === -1)
+    return { prev: null, next: null }
+  // "prev" = older post (higher index), "next" = newer post (lower index)
+  return {
+    prev: posts[idx + 1] ?? null,
+    next: posts[idx - 1] ?? null,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Search index for Fuse.js
 // ---------------------------------------------------------------------------
 

@@ -87,26 +87,36 @@ export function TableOfContents({ contentSelector = '.mdx-content' }: TableOfCon
         On this page
       </p>
       <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-        {items.map(item => (
-          <li key={item.id} style={{ paddingLeft: item.depth === 3 ? 12 : 0 }}>
-            <a
-              href={`#${item.id}`}
-              className={item.id === activeId ? undefined : Classes.TEXT_MUTED}
+        {items.map((item) => {
+          const isActive = item.id === activeId
+          return (
+            <li
+              key={item.id}
               style={{
-                display: 'block',
-                fontSize: 13,
-                lineHeight: 1.4,
-                padding: '3px 0',
-                textDecoration: 'none',
-                color: item.id === activeId ? `var(--${Classes.INTENT_PRIMARY})` : undefined,
-                fontWeight: item.id === activeId ? 500 : undefined,
-                transition: 'color 0.15s',
+                paddingLeft: item.depth === 3 ? 12 : 0,
+                borderLeft: isActive ? '2px solid #2D72D2' : '2px solid transparent',
+                transition: 'border-color 0.15s',
               }}
             >
-              {item.text}
-            </a>
-          </li>
-        ))}
+              <a
+                href={`#${item.id}`}
+                className={isActive ? undefined : Classes.TEXT_MUTED}
+                style={{
+                  display: 'block',
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                  padding: '3px 6px',
+                  textDecoration: 'none',
+                  color: isActive ? '#2D72D2' : undefined,
+                  fontWeight: isActive ? 500 : undefined,
+                  transition: 'color 0.15s',
+                }}
+              >
+                {item.text}
+              </a>
+            </li>
+          )
+        })}
       </ul>
     </nav>
   )

@@ -1,10 +1,10 @@
-import type { BlogFrontmatter, BlogPost } from '../../lib/content'
+import type { BlogFrontmatter, BlogPost, PrevNext } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { BlogLayout } from '../../components/content/BlogLayout'
 import { RelatedPosts } from '../../components/content/RelatedPosts'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { blogMeta, blogModules, getBlogList, getRelatedPosts, getSeriesPosts } from '../../lib/content'
+import { blogMeta, blogModules, getBlogList, getPrevNextPosts, getRelatedPosts, getSeriesPosts } from '../../lib/content'
 
 const BASE_URL = 'https://cbbi.jkrumm.com'
 
@@ -14,6 +14,7 @@ interface PostLoaderData {
   readingTime: string
   related: BlogPost[]
   seriesPosts: BlogPost[]
+  prevNext: PrevNext
 }
 
 export const Route = createFileRoute('/blog/$slug')({
@@ -31,6 +32,7 @@ export const Route = createFileRoute('/blog/$slug')({
       readingTime: post?.readingTime ?? '1 min read',
       related: getRelatedPosts(slug),
       seriesPosts: fm.series ? getSeriesPosts(fm.series) : [],
+      prevNext: getPrevNextPosts(slug),
     }
   },
   head: ({ loaderData: ld }) => {
@@ -71,11 +73,11 @@ export const Route = createFileRoute('/blog/$slug')({
 })
 
 function BlogPostPage() {
-  const { slug, frontmatter, readingTime: rt, related, seriesPosts } = Route.useLoaderData()
+  const { slug, frontmatter, readingTime: rt, related, seriesPosts, prevNext } = Route.useLoaderData()
   const MdxContent = blogModules[`../content/blog/${slug}.mdx`]?.default
 
   return (
-    <BlogLayout frontmatter={frontmatter} readingTime={rt} seriesPosts={seriesPosts} currentSlug={slug}>
+    <BlogLayout frontmatter={frontmatter} readingTime={rt} seriesPosts={seriesPosts} currentSlug={slug} prevNext={prevNext}>
       {MdxContent
         ? <MdxContent components={mdxComponents} />
         : <NonIdealState icon="error" title="Failed to load post" />}

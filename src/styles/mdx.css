@@ -198,11 +198,34 @@
 }
 
 .mdx-content {
-  /* Spacing for prose content */
+  /* Improved reading typography for long-form content */
+  line-height: 1.75;
 }
 
 .mdx-content > * + * {
   margin-top: 1rem;
+}
+
+/* Heading scale — stronger contrast between levels */
+.mdx-content h1 {
+  font-size: 2.25rem;
+  line-height: 1.2;
+}
+
+.mdx-content h2 {
+  font-size: 1.5rem;
+  line-height: 1.3;
+}
+
+.mdx-content h3 {
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
+/* Code blocks — darker than card background for depth hierarchy */
+.mdx-content .mdx-pre pre,
+.mdx-pre pre {
+  background-color: #1c2127 !important; /* Blueprint Dark Gray 1 */
 }
 
 /* ── Mermaid diagram ────────────────────────────────────────────────────── */

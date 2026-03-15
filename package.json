@@ -25,6 +25,7 @@
     "@shikijs/transformers": "^4.0.2",
     "@sinclair/typebox": "^0.34.48",
     "@tabler/icons-react": "^3.40.0",
+    "@tanstack/react-hotkeys": "^0.4.1",
     "@tanstack/react-router": "^1.167.0",
     "@tanstack/react-start": "^1.166.11",
     "@tanstack/react-table": "^8.21.3",
