@@ -13,7 +13,7 @@ import {
   NavbarHeading,
   Tag,
 } from '@blueprintjs/core'
-import { IconArrowLeft, IconSearch } from '@tabler/icons-react'
+import { IconArrowLeft } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import Fuse from 'fuse.js'
 import { useMemo, useState } from 'react'
@@ -77,7 +77,7 @@ function SearchPage() {
 
         <InputGroup
           large
-          leftIcon={<IconSearch size={18} />}
+          leftIcon="search"
           placeholder="Search blog posts and docs…"
           value={query}
           onChange={e => setQuery(e.target.value)}
