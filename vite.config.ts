@@ -13,15 +13,20 @@ import { defineConfig } from 'vite'
 import { blueprintDarkTheme } from './src/lib/mdx-theme'
 import rehypeShiki from '@shikijs/rehype'
 import { transformerNotationHighlight, transformerNotationDiff } from '@shikijs/transformers'
+import { remarkReadingTime } from './src/lib/remark-reading-time'
 
 export default defineConfig({
   server: { port: 3000 },
   plugins: [
-    // 1. MDX — must run before Vite/Rollup sees the JSX
+    // 1. MDX — must run before Vite/Rollup sees the JSX.
+    //    Plugin order inside remarkPlugins matters:
+    //    - remarkFrontmatter:    parse YAML → file.data.matter
+    //    - remarkReadingTime:    inject readingTime into file.data.matter
+    //    - remarkMdxFrontmatter: export file.data.matter as named `frontmatter`
     {
       enforce: 'pre',
       ...mdx({
-        remarkPlugins: [remarkFrontmatter, remarkMdxFrontmatter, remarkGfm],
+        remarkPlugins: [remarkFrontmatter, remarkReadingTime, remarkMdxFrontmatter, remarkGfm],
         rehypePlugins: [
           rehypeSlug,
           [rehypeAutolinkHeadings, { behavior: 'wrap' }],
@@ -37,13 +42,14 @@ export default defineConfig({
     },
     tsConfigPaths(),
     tanstackStart({
-      // crawlLinks discovers all blog posts and doc pages by following links from
-      // the listing/index pages. The landing page (/) is excluded via filter since
-      // it fetches live CBBI data and should not be snapshotted as static HTML.
+      // Only blog, docs, and search are content pages suitable for SSG.
+      // The landing page (/) fetches live CBBI data — must stay SSR.
+      // /table and other routes are not content pages.
       prerender: {
         enabled: true,
         crawlLinks: true,
-        filter: ({ path }) => path !== '/',
+        filter: ({ path }) =>
+          path.startsWith('/blog') || path.startsWith('/docs') || path === '/search',
       },
     }),
     // 2. React plugin must declare MDX as JSX-containing for HMR

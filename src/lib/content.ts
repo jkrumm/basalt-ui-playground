@@ -5,12 +5,6 @@ import { Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 
 export const INDEX_SUFFIX_RE = /\/index$/
-const RT_FRONTMATTER_RE = /^---[\s\S]*?---\n?/
-const RT_IMPORT_RE = /^(import|export)\s.*/gm
-const RT_JSX_TAG_RE = /<[^>]+>/g
-const RT_FENCED_CODE_RE = /```[\s\S]*?```/g
-const RT_INLINE_CODE_RE = /`[^`]*`/g
-const RT_WHITESPACE_RE = /\s+/
 
 // ---------------------------------------------------------------------------
 // TypeBox schemas — runtime + compile-time validation
@@ -27,6 +21,8 @@ export const BlogFrontmatterSchema = Type.Object({
   image: Type.Optional(Type.String()),
   series: Type.Optional(Type.String()),
   seriesOrder: Type.Optional(Type.Number()),
+  // Injected at build time by the remarkReadingTime remark plugin.
+  readingTime: Type.Optional(Type.String()),
 })
 
 export const DocsFrontmatterSchema = Type.Object({
@@ -54,7 +50,9 @@ export interface DocsModule {
 }
 
 // ---------------------------------------------------------------------------
-// Glob imports
+// Glob imports — eager so modules are synchronously available during SSR.
+// Reading time is computed at MDX transform time (remarkReadingTime plugin)
+// and stored in frontmatter, so no separate ?raw import is needed.
 // ---------------------------------------------------------------------------
 
 export const blogMeta = import.meta.glob<BlogFrontmatter>(
@@ -62,13 +60,6 @@ export const blogMeta = import.meta.glob<BlogFrontmatter>(
   { eager: true, import: 'frontmatter' },
 )
 
-const blogRaw = import.meta.glob<string>(
-  '../content/blog/*.mdx',
-  { eager: true, query: '?raw', import: 'default' },
-)
-
-// Eager: all MDX components are included in the bundle for synchronous SSR rendering.
-// No async loading needed — content pages are few and benefit from instant render.
 export const blogModules = import.meta.glob<BlogModule>(
   '../content/blog/*.mdx',
   { eager: true },
@@ -85,19 +76,15 @@ export const docsModules = import.meta.glob<DocsModule>(
 )
 
 // ---------------------------------------------------------------------------
-// Inline reading-time (no Node.js deps, works browser + server)
+// Validation helper
 // ---------------------------------------------------------------------------
 
-function computeReadingTime(raw: string): string {
-  const text = raw
-    .replace(RT_FRONTMATTER_RE, '')
-    .replace(RT_IMPORT_RE, '')
-    .replace(RT_JSX_TAG_RE, ' ')
-    .replace(RT_FENCED_CODE_RE, ' ')
-    .replace(RT_INLINE_CODE_RE, ' ')
-  const words = text.trim().split(RT_WHITESPACE_RE).filter(w => w.length > 0).length
-  const minutes = Math.max(1, Math.round(words / 200))
-  return `${minutes} min read`
+function assertBlogFrontmatter(path: string, fm: unknown): BlogFrontmatter {
+  if (import.meta.env.DEV && !Value.Check(BlogFrontmatterSchema, fm)) {
+    const errors = [...Value.Errors(BlogFrontmatterSchema, fm)]
+    console.warn(`[content] Invalid blog frontmatter in ${path}:`, errors)
+  }
+  return fm as BlogFrontmatter
 }
 
 // ---------------------------------------------------------------------------
@@ -125,18 +112,6 @@ export interface SearchDocument {
 }
 
 // ---------------------------------------------------------------------------
-// Validation helper
-// ---------------------------------------------------------------------------
-
-function assertBlogFrontmatter(path: string, fm: unknown): BlogFrontmatter {
-  if (import.meta.env.DEV && !Value.Check(BlogFrontmatterSchema, fm)) {
-    const errors = [...Value.Errors(BlogFrontmatterSchema, fm)]
-    console.warn(`[content] Invalid blog frontmatter in ${path}:`, errors)
-  }
-  return fm as BlogFrontmatter
-}
-
-// ---------------------------------------------------------------------------
 // Content collection builders
 // ---------------------------------------------------------------------------
 
@@ -145,11 +120,10 @@ export function getBlogList(): BlogPost[] {
     .filter(([, fm]) => fm && !fm.draft)
     .map(([path, fm]) => {
       const slug = path.replace('../content/blog/', '').replace('.mdx', '')
-      const raw = blogRaw[path] ?? ''
       return {
         slug,
         frontmatter: assertBlogFrontmatter(path, fm),
-        readingTime: computeReadingTime(raw),
+        readingTime: fm.readingTime ?? '1 min read',
       }
     })
     .sort((a, b) => b.frontmatter.publishedAt.localeCompare(a.frontmatter.publishedAt))
