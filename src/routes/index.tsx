@@ -28,6 +28,7 @@ import {
 } from '@blueprintjs/core'
 import {
   IconAlertTriangle,
+  IconBook,
   IconBrandGithub,
   IconCircleCheck,
   IconCircleX,
@@ -37,6 +38,8 @@ import {
   IconInfoCircle,
   IconLayoutGrid,
   IconLayoutList,
+  IconNews,
+  IconSearch,
   IconTable,
   IconWorld,
 } from '@tabler/icons-react'
@@ -306,6 +309,15 @@ function CBBIDashboard() {
           {/* Dialog trigger — Portal component test #1 */}
           <Link to="/table" style={{ textDecoration: 'none' }}>
             <Button variant="minimal" icon={<IconTable size={16} />} text="Table Study" />
+          </Link>
+          <Link to="/blog" style={{ textDecoration: 'none' }}>
+            <Button variant="minimal" icon={<IconNews size={16} />} text="Blog" />
+          </Link>
+          <Link to="/docs" style={{ textDecoration: 'none' }}>
+            <Button variant="minimal" icon={<IconBook size={16} />} text="Docs" />
+          </Link>
+          <Link to="/search" style={{ textDecoration: 'none' }}>
+            <Button variant="minimal" icon={<IconSearch size={16} />} text="Search" />
           </Link>
           <Button
             variant="minimal"
