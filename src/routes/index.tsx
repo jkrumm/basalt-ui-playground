@@ -1,0 +1,610 @@
+import type { HistoryPoint } from '../components/CBBIChart'
+import {
+  Alignment,
+  Button,
+  ButtonGroup,
+  Callout,
+  Card,
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  Divider,
+  Elevation,
+  H2,
+  H5,
+  HTMLSelect,
+  HTMLTable,
+  Intent,
+  Menu,
+  MenuItem,
+  Navbar,
+  NavbarGroup,
+  NavbarHeading,
+  Popover,
+  ProgressBar,
+  Spinner,
+  Tag,
+  Tooltip,
+} from '@blueprintjs/core'
+import {
+  IconAlertTriangle,
+  IconBrandGithub,
+  IconCircleCheck,
+  IconCircleX,
+  IconCode,
+  IconFileText,
+  IconFlame,
+  IconInfoCircle,
+  IconLayoutGrid,
+  IconLayoutList,
+  IconTable,
+  IconWorld,
+} from '@tabler/icons-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { ThemeToggle } from '../components/ThemeToggle'
+import { formatDateLong } from '../lib/date'
+
+// Lazy-loaded: Recharts is ~300KB, no reason to include in SSR bundle.
+// Combined with isMounted guard below, this is never executed on the server.
+const CBBIChart = lazy(() =>
+  import('../components/CBBIChart').then(m => ({ default: m.CBBIChart })),
+)
+
+// ---------------------------------------------------------------------------
+// Data model
+// ---------------------------------------------------------------------------
+
+const INDICATORS = {
+  'PiCycle': {
+    name: 'Pi Cycle Top',
+    desc: 'Detects cycle tops via 111d / 350d moving-average crossover',
+  },
+  'RUPL': {
+    name: 'RUPL',
+    desc: 'Relative Unrealized Profit/Loss — overall market sentiment',
+  },
+  'RHODL': {
+    name: 'RHODL Ratio',
+    desc: 'Wealth distribution between short-term and long-term holders',
+  },
+  'Puell': {
+    name: 'Puell Multiple',
+    desc: 'Daily miner revenue vs 365-day average — miner profitability cycle',
+  },
+  '2YMA': {
+    name: '2Y MA Multiplier',
+    desc: 'Bitcoin price relative to its 2-year moving average',
+  },
+  'Trolololo': {
+    name: 'Trolololo',
+    desc: 'Bitcoin Rainbow Chart — logarithmic regression of long-run price',
+  },
+  'MVRV': {
+    name: 'MVRV Z-Score',
+    desc: 'Market cap vs Realized cap — detects statistical over/undervaluation',
+  },
+  'ReserveRisk': {
+    name: 'Reserve Risk',
+    desc: 'Long-term holder conviction relative to current price level',
+  },
+  'Woobull': {
+    name: 'Woobull Top Cap',
+    desc: 'Bitcoin price relative to Willy Woo\'s Top Cap model',
+  },
+} as const
+
+type IndicatorKey = keyof typeof INDICATORS
+
+type CBBIRaw = {
+  Price: Record<string, number>
+  Confidence: Record<string, number>
+} & Record<IndicatorKey, Record<string, number | null>>
+
+interface LatestSnapshot {
+  date: string
+  price: number
+  confidence: number
+  indicators: Record<IndicatorKey, number | null>
+  // Weekly sampled history for the chart (every 7th day ≈ 767 points).
+  // Not included in SSR HTML — chart renders client-only after hydration.
+  history: HistoryPoint[]
+}
+
+// ---------------------------------------------------------------------------
+// Server function
+// ---------------------------------------------------------------------------
+
+const getCBBIData = createServerFn({ method: 'GET' }).handler(
+  async (): Promise<LatestSnapshot> => {
+    const res = await fetch('https://colintalkscrypto.com/cbbi/data/latest.json')
+    if (!res.ok)
+      throw new Error(`CBBI API returned ${res.status}`)
+
+    const raw: CBBIRaw = await res.json()
+    const timestamps = Object.keys(raw.Price).sort()
+    const ts = timestamps.at(-1)
+    if (!ts)
+      throw new Error('No timestamps in CBBI data')
+
+    // Weekly history for the chart (every 7th day → ~767 points)
+    const history: HistoryPoint[] = timestamps
+      .filter((_, i) => i % 7 === 0)
+      .flatMap((t) => {
+        const price = raw.Price[t]
+        const conf = raw.Confidence[t]
+        if (price == null || conf == null)
+          return []
+        return [{ ts: Number.parseInt(t), price, confidence: Math.round(conf * 1000) / 10 }]
+      })
+
+    return {
+      date: formatDateLong(Number.parseInt(ts)),
+      price: raw.Price[ts]!,
+      confidence: raw.Confidence[ts]!,
+      indicators: Object.fromEntries(
+        (Object.keys(INDICATORS) as IndicatorKey[]).map(k => [
+          k,
+          raw[k]?.[ts] ?? null,
+        ]),
+      ) as Record<IndicatorKey, number | null>,
+      history,
+    }
+  },
+)
+
+// ---------------------------------------------------------------------------
+// Route
+// ---------------------------------------------------------------------------
+
+export const Route = createFileRoute('/')({
+  loader: () => getCBBIData(),
+  component: CBBIDashboard,
+})
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function getIntent(v: number): Intent {
+  if (v < 0.33)
+    return Intent.SUCCESS
+  if (v < 0.66)
+    return Intent.WARNING
+  return Intent.DANGER
+}
+
+function getZoneLabel(v: number): string {
+  if (v < 0.2)
+    return 'Deep Accumulation'
+  if (v < 0.4)
+    return 'Accumulation'
+  if (v < 0.6)
+    return 'Neutral'
+  if (v < 0.75)
+    return 'Caution'
+  if (v < 0.9)
+    return 'Distribution'
+  return 'Market Top'
+}
+
+function fmtPct(v: number | null): string {
+  return v !== null ? `${(v * 100).toFixed(1)}%` : '—'
+}
+
+function fmtPrice(v: number): string {
+  return v.toLocaleString('en-US', { maximumFractionDigits: 0 })
+}
+
+// Blueprint's `icon` prop accepts `IconName | MaybeElement` where
+// MaybeElement = React.JSX.Element | false | null | undefined.
+// Tabler icon components are valid React elements — full drop-in.
+function getCalloutConfig(confidence: number): {
+  intent: Intent
+  icon: React.JSX.Element
+  title: string
+  message: string
+} {
+  if (confidence < 0.2) {
+    return {
+      intent: Intent.SUCCESS,
+      icon: <IconCircleCheck size={16} />,
+      title: 'Deep Accumulation Zone',
+      message:
+        'On-chain metrics are at historically low levels. Bitcoin has traded in this range during early cycle phases and post-crash recoveries. Risk/reward is historically favorable.',
+    }
+  }
+  if (confidence < 0.4) {
+    return {
+      intent: Intent.SUCCESS,
+      icon: <IconCircleCheck size={16} />,
+      title: 'Accumulation Zone',
+      message:
+        'Below the neutral midpoint. On-chain data reflects mid-cycle consolidation with no overheating signals. Historically a reasonable entry window before the next expansion phase.',
+    }
+  }
+  if (confidence < 0.6) {
+    return {
+      intent: Intent.PRIMARY,
+      icon: <IconInfoCircle size={16} />,
+      title: 'Neutral — Mid Cycle',
+      message:
+        'No strong directional signal. The market is transitioning between accumulation and distribution phases. On-chain data is balanced.',
+    }
+  }
+  if (confidence < 0.75) {
+    return {
+      intent: Intent.WARNING,
+      icon: <IconAlertTriangle size={16} />,
+      title: 'Caution — Cycle Heating Up',
+      message:
+        'Multiple indicators are elevating. Historically, this range precedes the later stages of a bull cycle. Consider managing position size.',
+    }
+  }
+  if (confidence < 0.9) {
+    return {
+      intent: Intent.DANGER,
+      icon: <IconFlame size={16} />,
+      title: 'Distribution Zone',
+      message:
+        'Strong on-chain sell signal across multiple metrics. Historical Bitcoin cycle tops have occurred in this range. Exercise caution with new exposure.',
+    }
+  }
+  return {
+    intent: Intent.DANGER,
+    icon: <IconCircleX size={16} />,
+    title: 'Market Top Territory',
+    message:
+      'Extreme readings across all indicators. Every prior Bitcoin cycle top has occurred at CBBI levels above 0.9. Historical data suggests extreme caution.',
+  }
+}
+
+function getSortedKeys(
+  indicators: Record<IndicatorKey, number | null>,
+  sortBy: string,
+): IndicatorKey[] {
+  const keys = Object.keys(INDICATORS) as IndicatorKey[]
+  if (sortBy === 'value-asc')
+    return keys.toSorted((a, b) => (indicators[a] ?? -1) - (indicators[b] ?? -1))
+  if (sortBy === 'value-desc')
+    return keys.toSorted((a, b) => (indicators[b] ?? -1) - (indicators[a] ?? -1))
+  return keys
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+function CBBIDashboard() {
+  const { price, confidence, indicators, date, history } = Route.useLoaderData()
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
+  const [sortBy, setSortBy] = useState('default')
+  const [aboutOpen, setAboutOpen] = useState(false)
+  // Chart is client-only: useEffect never runs on server, so isMounted
+  // stays false during SSR — Recharts never touches document/window.
+  const [isMounted, setIsMounted] = useState(false)
+  // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect, react-hooks/set-state-in-effect
+  useEffect(() => setIsMounted(true), [])
+
+  const callout = getCalloutConfig(confidence)
+  const sortedKeys = getSortedKeys(indicators, sortBy)
+
+  return (
+    <div style={{ minHeight: '100vh', paddingBottom: 48 }}>
+      {/* ------------------------------------------------------------------ */}
+      {/* Navbar — Button, Divider                                            */}
+      {/* ------------------------------------------------------------------ */}
+      <Navbar>
+        <NavbarGroup align={Alignment.START}>
+          <NavbarHeading>
+            <strong>CBBI</strong>
+            {' '}
+            Dashboard
+          </NavbarHeading>
+          <Divider />
+          {/* Dialog trigger — Portal component test #1 */}
+          <Link to="/table" style={{ textDecoration: 'none' }}>
+            <Button variant="minimal" icon={<IconTable size={16} />} text="Table Study" />
+          </Link>
+          <Button
+            variant="minimal"
+            icon={<IconFileText size={16} />}
+            text="About CBBI"
+            onClick={() => setAboutOpen(true)}
+          />
+          {/* Popover — Portal component test #2 */}
+          <Popover
+            placement="bottom-start"
+            content={(
+              <Menu>
+                <MenuItem
+                  icon={<IconBrandGithub size={16} />}
+                  text="CBBI Algorithm (GitHub)"
+                  href="https://github.com/Zaczero/CBBI"
+                  target="_blank"
+                  rel="noopener"
+                />
+                <MenuItem
+                  icon={<IconWorld size={16} />}
+                  text="colintalkscrypto.com/cbbi"
+                  href="https://colintalkscrypto.com/cbbi"
+                  target="_blank"
+                  rel="noopener"
+                />
+              </Menu>
+            )}
+          >
+            <Button variant="minimal" icon={<IconCode size={16} />} text="Algorithm" />
+          </Popover>
+        </NavbarGroup>
+        <NavbarGroup align={Alignment.END}>
+          <Tag large minimal style={{ marginRight: 8 }}>
+            {date}
+          </Tag>
+          <Tag large>
+            BTC $
+            {fmtPrice(price)}
+          </Tag>
+          <Divider />
+          <ThemeToggle />
+        </NavbarGroup>
+      </Navbar>
+
+      {/* ------------------------------------------------------------------ */}
+      {/* Dialog — Portal component test #3                                  */}
+      {/* isOpen=false on server → no portal mount, no document.body access */}
+      {/* ------------------------------------------------------------------ */}
+      <Dialog
+        isOpen={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        title="About CBBI"
+        icon={<IconInfoCircle size={16} />}
+        style={{ width: 560 }}
+      >
+        <DialogBody>
+          <p>
+            The
+            {' '}
+            <strong>Colin's Bitcoin Bull Run Index (CBBI)</strong>
+            {' '}
+            is a composite
+            indicator that aggregates 9 independent on-chain metrics, each normalized to
+            a 0–1 scale and averaged with equal weight. A score near 0 indicates an early
+            cycle / accumulation phase; near 1 indicates proximity to a cycle top.
+          </p>
+          <H5>Indicators included</H5>
+          <ul style={{ paddingLeft: 20 }}>
+            {(Object.keys(INDICATORS) as IndicatorKey[]).map(key => (
+              <li key={key} style={{ marginBottom: 6 }}>
+                <strong>{INDICATORS[key].name}</strong>
+                {' '}
+                —
+                {INDICATORS[key].desc}
+              </li>
+            ))}
+          </ul>
+        </DialogBody>
+        <DialogFooter
+          actions={(
+            <Button intent={Intent.PRIMARY} onClick={() => setAboutOpen(false)}>
+              Close
+            </Button>
+          )}
+        />
+      </Dialog>
+
+      <div style={{ maxWidth: 960, margin: '32px auto', padding: '0 20px' }}>
+        {/* ---------------------------------------------------------------- */}
+        {/* Confidence card                                                   */}
+        {/* ---------------------------------------------------------------- */}
+        <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
+          <div className="cbbi-confidence-header">
+            <H2 style={{ margin: 0 }}>Confidence Score</H2>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <Tag large intent={getIntent(confidence)}>
+                {getZoneLabel(confidence)}
+              </Tag>
+              <Tag large minimal>
+                {fmtPct(confidence)}
+              </Tag>
+            </div>
+          </div>
+          <ProgressBar
+            value={confidence}
+            intent={getIntent(confidence)}
+            animate={false}
+            stripes={false}
+            style={{ height: 12 }}
+          />
+          <p className="cbbi-meta" style={{ marginTop: 10 }}>
+            Composite of 9 on-chain indicators. Low = accumulation zone &mdash; High
+            = distribution / approaching cycle top.
+          </p>
+        </Card>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Callout — intent, icon, title                                     */}
+        {/* ---------------------------------------------------------------- */}
+        <Callout
+          intent={callout.intent}
+          icon={callout.icon}
+          title={callout.title}
+          style={{ marginBottom: 24 }}
+        >
+          {callout.message}
+        </Callout>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Controls — ButtonGroup, HTMLSelect                                */}
+        {/* ---------------------------------------------------------------- */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 16,
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
+          <ButtonGroup>
+            <Button
+              icon={<IconLayoutGrid size={16} />}
+              text="Grid"
+              active={viewMode === 'grid'}
+              onClick={() => setViewMode('grid')}
+            />
+            <Button
+              icon={<IconLayoutList size={16} />}
+              text="Table"
+              active={viewMode === 'table'}
+              onClick={() => setViewMode('table')}
+            />
+          </ButtonGroup>
+
+          <HTMLSelect
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            options={[
+              { label: 'Default order', value: 'default' },
+              { label: 'Value: Low → High', value: 'value-asc' },
+              { label: 'Value: High → Low', value: 'value-desc' },
+            ]}
+          />
+        </div>
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Grid view — Card, Tooltip (Portal), ProgressBar, Tag             */}
+        {/* ---------------------------------------------------------------- */}
+        {viewMode === 'grid' && (
+          <div className="cbbi-grid">
+            {sortedKeys.map((key) => {
+              const { name, desc } = INDICATORS[key]
+              const value = indicators[key]
+              return (
+                <Card key={key} elevation={Elevation.ONE} className="cbbi-indicator-card">
+                  <div className="cbbi-indicator-header">
+                    {/* Tooltip wraps the heading — Portal-based, SSR test */}
+                    <Tooltip content={desc} placement="top" compact>
+                      <H5 style={{ margin: 0, cursor: 'help' }}>{name}</H5>
+                    </Tooltip>
+                    <Tag
+                      minimal
+                      intent={value !== null ? getIntent(value) : Intent.NONE}
+                    >
+                      {fmtPct(value)}
+                    </Tag>
+                  </div>
+                  <ProgressBar
+                    value={value ?? 0}
+                    intent={value !== null ? getIntent(value) : Intent.NONE}
+                    animate={false}
+                    stripes={false}
+                  />
+                </Card>
+              )
+            })}
+          </div>
+        )}
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Table view — HTMLTable, Tag, ProgressBar                         */}
+        {/* ---------------------------------------------------------------- */}
+        {viewMode === 'table' && (
+          <Card elevation={Elevation.ONE} style={{ padding: 0, overflow: 'hidden' }}>
+            <HTMLTable striped interactive style={{ width: '100%', margin: 0 }}>
+              <thead>
+                <tr>
+                  <th>Indicator</th>
+                  <th>Description</th>
+                  <th style={{ textAlign: 'right' }}>Value</th>
+                  <th>Zone</th>
+                  <th style={{ width: 140 }}>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedKeys.map((key) => {
+                  const { name, desc } = INDICATORS[key]
+                  const value = indicators[key]
+                  return (
+                    <tr key={key}>
+                      <td>
+                        <strong>{name}</strong>
+                      </td>
+                      <td className="cbbi-meta" style={{ maxWidth: 280 }}>
+                        {desc}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Tag
+                          minimal
+                          intent={value !== null ? getIntent(value) : Intent.NONE}
+                        >
+                          {fmtPct(value)}
+                        </Tag>
+                      </td>
+                      <td style={{ color: '#8f99a8', fontSize: 13 }}>
+                        {value !== null ? getZoneLabel(value) : '—'}
+                      </td>
+                      <td>
+                        <ProgressBar
+                          value={value ?? 0}
+                          intent={value !== null ? getIntent(value) : Intent.NONE}
+                          animate={false}
+                          stripes={false}
+                        />
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </HTMLTable>
+          </Card>
+        )}
+
+        {/* ---------------------------------------------------------------- */}
+        {/* Historical chart — client-only (isMounted guard + React.lazy)   */}
+        {/*                                                                   */}
+        {/* Why client-only?                                                  */}
+        {/*   1. 767 SVG elements would bloat SSR HTML for zero SEO gain     */}
+        {/*   2. Recharts (~300KB) excluded from server bundle                */}
+        {/*   3. Data IS server-fetched (in loader) — only rendering deferred */}
+        {/* ---------------------------------------------------------------- */}
+        <Card elevation={Elevation.TWO} style={{ marginTop: 24, marginBottom: 24 }}>
+          <H2 style={{ margin: '0 0 4px' }}>Historical Chart</H2>
+          <p className="cbbi-meta" style={{ marginBottom: 16 }}>
+            Weekly Bitcoin price (right axis, log scale) with CBBI confidence dots colored by cycle position.
+          </p>
+          {isMounted
+            ? (
+                <Suspense
+                  fallback={(
+                    <div style={{ height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Spinner size={40} />
+                    </div>
+                  )}
+                >
+                  <CBBIChart data={history} />
+                </Suspense>
+              )
+            : (
+              // Server render + first client paint: show spinner placeholder.
+              // Height is fixed so layout doesn't shift after hydration.
+                <div style={{ height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Spinner size={40} />
+                </div>
+              )}
+        </Card>
+
+        {/* Source */}
+        <p className="cbbi-source">
+          Data:
+          {' '}
+          <a href="https://colintalkscrypto.com/cbbi">colintalkscrypto.com/cbbi</a>
+          {' · '}
+          <a href="https://github.com/Zaczero/CBBI">CBBI algorithm</a>
+        </p>
+      </div>
+    </div>
+  )
+}

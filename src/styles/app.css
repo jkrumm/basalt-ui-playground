@@ -1,0 +1,145 @@
+/* Variable fonts — before Blueprint so @font-face is declared first */
+@import '@fontsource-variable/geist';
+@import './mdx.css';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* Blueprint v6 — icons before core, table after core */
+@import '@blueprintjs/icons/lib/css/blueprint-icons.css';
+@import '@blueprintjs/core/lib/css/blueprint.css';
+@import '@blueprintjs/table/lib/css/table.css';
+
+/* ── Font overrides ─────────────────────────────────────────────────────────
+   Blueprint v6 sets font-family directly on body (no CSS vars) — we override
+   it here after importing Blueprint's CSS so specificity wins.
+   ──────────────────────────────────────────────────────────────────────── */
+
+body {
+  margin: 0;
+  background-color: #fff;
+  font-family:
+    'Geist Variable',
+    -apple-system,
+    'BlinkMacSystemFont',
+    sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body.bp6-dark {
+  background-color: #1c2127;
+}
+
+/* All Blueprint monospace / data selectors → JetBrains Mono Variable */
+.bp6-monospace-text,
+.bp6-tag,
+.bp6-table-cell,
+.bp6-table-truncated-popover,
+.bp6-code,
+.bp6-code-block,
+.bp6-running-text code,
+.bp6-running-text pre,
+code,
+pre {
+  font-family: 'JetBrains Mono Variable', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Heading typography — uppercase, tracked ────────────────────────────────
+   Applied on top of Blueprint's existing sizes/line-heights/margins.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.bp6-running-text h1,
+h1.bp6-heading {
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.bp6-running-text h2,
+h2.bp6-heading {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.bp6-running-text h3,
+h3.bp6-heading {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.bp6-running-text h4,
+h4.bp6-heading,
+.bp6-running-text h5,
+h5.bp6-heading,
+.bp6-running-text h6,
+h6.bp6-heading {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Utility classes ────────────────────────────────────────────────────────
+   KPI / data / label roles not covered by Blueprint's own class system.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* KPI numbers — light weight at large sizes looks more elegant than 400 */
+.text-kpi {
+  font-family: 'JetBrains Mono Variable', monospace;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* UI labels / badges — compact uppercase metadata */
+.text-label {
+  font-family: 'Geist Variable', sans-serif;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.cbbi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.cbbi-indicator-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cbbi-indicator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.cbbi-confidence-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 16px;
+}
+
+.cbbi-meta {
+  color: #8f99a8;
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.cbbi-source {
+  margin-top: 24px;
+  text-align: center;
+  color: #5f6b7c;
+  font-size: 12px;
+}
+
+.cbbi-source a {
+  color: #5f6b7c;
+  text-decoration: underline;
+}

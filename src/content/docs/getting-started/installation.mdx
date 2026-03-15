@@ -1,0 +1,47 @@
+---
+title: "Installation"
+description: "Detailed installation and configuration guide."
+order: 2
+section: "Getting Started"
+---
+
+## Installation
+
+Full installation guide for the CBBI Blueprint project.
+
+## Requirements
+
+| Tool | Minimum version |
+|-|-|
+| Bun | 1.2 |
+| Node.js | 22.12.0 |
+
+## Environment
+
+The project requires no environment variables for local development.
+The CBBI API data is fetched from a public endpoint at runtime.
+
+## Project structure
+
+```
+src/
+  components/     # Blueprint + MDX components
+  content/        # MDX blog posts and docs
+  lib/            # Shared utilities
+  routes/         # TanStack Router file-based routes
+  styles/         # Global CSS
+```
+
+## Available scripts
+
+| Script | Description |
+|-|-|
+| `bun run dev` | Start Vite dev server on port 3000 |
+| `bun run build` | Production build to `dist/` |
+| `bun run start` | Start the Bun production server |
+| `bun run typecheck` | TypeScript type checking |
+| `bun run lint` | ESLint |
+
+<Admonition type="note">
+  Run `bun run pre` to execute typecheck and lint together before committing.
+</Admonition>

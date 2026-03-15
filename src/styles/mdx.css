@@ -1,0 +1,234 @@
+/* ── MDX prose styles ──────────────────────────────────────────────────────
+   Blueprint's bp6-running-text handles p, ul, ol, blockquote.
+   This file adds: code blocks, steps, admonitions, and layout utilities.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* ── Shiki code block shell ─────────────────────────────────────────────── */
+
+.mdx-pre {
+  position: relative;
+  margin: 1.25rem 0;
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 0.875rem;
+}
+
+.mdx-pre pre {
+  margin: 0;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  border-radius: 6px;
+  line-height: 1.65;
+  /* Shiki sets background inline — we defer to its color */
+}
+
+/* Language badge — top-right corner */
+.mdx-lang-badge {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-family: 'JetBrains Mono Variable', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(255, 255, 255, 0.08);
+  color: #8f99a8;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Copy button */
+.mdx-copy-btn {
+  position: absolute;
+  top: 0.45rem;
+  right: 3.5rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #8f99a8;
+  font-family: 'Geist Variable', sans-serif;
+  z-index: 2;
+}
+
+.mdx-pre:hover .mdx-copy-btn {
+  opacity: 1;
+}
+
+.mdx-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #c5cbd3;
+}
+
+/* Shiki diff transformers */
+.diff.add {
+  background-color: rgba(114, 202, 155, 0.12); /* green-5 at low opacity */
+  display: inline-block;
+  width: 100%;
+}
+
+.diff.remove {
+  background-color: rgba(250, 153, 156, 0.12); /* red-5 at low opacity */
+  display: inline-block;
+  width: 100%;
+}
+
+.highlighted {
+  background-color: rgba(138, 187, 255, 0.1); /* blue-5 at low opacity */
+  display: inline-block;
+  width: 100%;
+}
+
+/* ── Steps component ────────────────────────────────────────────────────── */
+
+.mdx-steps {
+  counter-reset: step;
+  list-style: none;
+  margin: 1.5rem 0;
+  padding: 0;
+  position: relative;
+}
+
+.mdx-step {
+  position: relative;
+  padding-left: 2.75rem;
+  padding-bottom: 1.5rem;
+  counter-increment: step;
+}
+
+/* Numbered circle */
+.mdx-step::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background-color: #215db0; /* Blueprint blue */
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  text-align: center;
+  z-index: 1;
+}
+
+/* Vertical connecting line */
+.mdx-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 0.875rem;
+  top: 1.75rem;
+  bottom: 0;
+  width: 1px;
+  background-color: #2d72d2; /* Blueprint blue-3 */
+  opacity: 0.35;
+}
+
+.mdx-step-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #f6f7f9; /* light-gray-5 */
+  line-height: 1.75rem; /* align with counter circle */
+}
+
+.mdx-step-content {
+  color: #c5cbd3;
+}
+
+.mdx-step-content > *:first-child {
+  margin-top: 0;
+}
+
+.mdx-step-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Package manager tabs ───────────────────────────────────────────────── */
+
+.mdx-pm-tabs {
+  margin: 1.25rem 0;
+}
+
+.mdx-pm-tabs .bp6-tab-list {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ── MDX tabs wrapper ───────────────────────────────────────────────────── */
+
+.mdx-tabs {
+  margin: 1.25rem 0;
+}
+
+/* ── Admonition ─────────────────────────────────────────────────────────── */
+
+/* Blueprint <Callout> already styles this well — just add spacing */
+.mdx-admonition {
+  margin: 1.25rem 0;
+}
+
+/* ── Inline code ────────────────────────────────────────────────────────── */
+
+/* bp6-running-text code already applies font — just add subtle highlight */
+.bp6-running-text :not(pre) > code {
+  background-color: rgba(138, 187, 255, 0.1);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  font-size: 0.875em;
+}
+
+/* ── Blog & Docs layout ─────────────────────────────────────────────────── */
+
+.mdx-prose {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+.mdx-content {
+  /* Spacing for prose content */
+}
+
+.mdx-content > * + * {
+  margin-top: 1rem;
+}
+
+/* ── Mermaid diagram ────────────────────────────────────────────────────── */
+
+.mdx-mermaid {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.mdx-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ── Diagram stubs ──────────────────────────────────────────────────────── */
+
+.mdx-diagram-stub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  border: 1px dashed #4a90d9;
+  border-radius: 6px;
+  color: #8f99a8;
+  font-size: 0.875rem;
+  margin: 1.25rem 0;
+  padding: 1rem;
+  background: rgba(45, 114, 210, 0.05);
+}
