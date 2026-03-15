@@ -70,7 +70,6 @@ export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts 
           margin: '0 auto',
           padding: '0 1.25rem',
           gap: '3rem',
-          alignItems: 'flex-start',
         }}
       >
         {/* Main content */}
