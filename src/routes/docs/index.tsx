@@ -1,7 +1,6 @@
 import type { DocsFrontmatter } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { createFileRoute } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { DocsLayout } from '../../components/content/DocsLayout'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
 import { docsMeta, docsModules, getDocsSidebar } from '../../lib/content'
@@ -13,15 +12,13 @@ interface DocsIndexData {
   sections: ReturnType<typeof getDocsSidebar>
 }
 
-const getDocsIndexFn = createServerFn({ method: 'GET' }).handler((): DocsIndexData => {
-  const fm = docsMeta[DOCS_INDEX_KEY]
-  if (!fm)
-    throw new Error('Docs index not found')
-  return { frontmatter: fm, sections: getDocsSidebar() }
-})
-
 export const Route = createFileRoute('/docs/')({
-  loader: () => getDocsIndexFn(),
+  loader: (): DocsIndexData => {
+    const fm = docsMeta[DOCS_INDEX_KEY]
+    if (!fm)
+      throw new Error('Docs index not found')
+    return { frontmatter: fm, sections: getDocsSidebar() }
+  },
   head: ({ loaderData: ld }) => {
     if (!ld)
       return {}

@@ -15,18 +15,13 @@ import {
 } from '@blueprintjs/core'
 import { IconArrowLeft, IconSearch } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import Fuse from 'fuse.js'
 import { useMemo, useState } from 'react'
 import { ThemeToggle } from '../components/ThemeToggle'
 import { getSearchIndex, INDEX_SUFFIX_RE } from '../lib/content'
 
-const getSearchIndexFn = createServerFn({ method: 'GET' }).handler(
-  (): SearchDocument[] => getSearchIndex(),
-)
-
 export const Route = createFileRoute('/search')({
-  loader: () => getSearchIndexFn(),
+  loader: (): SearchDocument[] => getSearchIndex(),
   head: () => ({
     meta: [
       { title: 'Search — CBBI Blueprint' },
@@ -38,7 +33,7 @@ export const Route = createFileRoute('/search')({
 })
 
 function SearchPage() {
-  const documents = Route.useLoaderData() as SearchDocument[]
+  const documents = Route.useLoaderData()
   const [query, setQuery] = useState('')
 
   const fuse = useMemo(

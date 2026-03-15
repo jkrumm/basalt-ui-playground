@@ -10,17 +10,15 @@ import {
 } from '@blueprintjs/core'
 import { IconArrowLeft } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { BlogPostCard } from '../../components/content/BlogPostCard'
 import { ThemeToggle } from '../../components/ThemeToggle'
 import { getBlogList } from '../../lib/content'
 
-const getBlogListFn = createServerFn({ method: 'GET' }).handler((): BlogPost[] => {
-  return getBlogList()
-})
-
 export const Route = createFileRoute('/blog/')({
-  loader: () => getBlogListFn(),
+  // getBlogList reads eagerly-bundled glob data — safe to call directly in the loader,
+  // no createServerFn needed. Running isomorphically avoids HTTP round-trips during
+  // prerendering that cause ETIMEDOUT when the prerender server is shutting down.
+  loader: (): BlogPost[] => getBlogList(),
   head: () => ({
     meta: [
       { title: 'Blog — CBBI Blueprint' },

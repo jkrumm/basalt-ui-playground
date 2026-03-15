@@ -1,7 +1,6 @@
 import type { BlogFrontmatter, BlogPost } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { BlogLayout } from '../../components/content/BlogLayout'
 import { RelatedPosts } from '../../components/content/RelatedPosts'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
@@ -17,20 +16,14 @@ interface PostLoaderData {
   seriesPosts: BlogPost[]
 }
 
-const getBlogPostFn = createServerFn({ method: 'GET' })
-  .inputValidator((slug: unknown): string => {
-    if (typeof slug !== 'string')
-      throw new Error('Invalid slug')
-    return slug
-  })
-  .handler(async ({ data: slug }): Promise<PostLoaderData> => {
-    const key = `../content/blog/${slug}.mdx`
-    const fm = blogMeta[key]
+export const Route = createFileRoute('/blog/$slug')({
+  loader: ({ params }): PostLoaderData => {
+    const { slug } = params
+    const fm = blogMeta[`../content/blog/${slug}.mdx`]
     if (!fm)
       throw notFound()
 
-    const all = getBlogList()
-    const post = all.find(p => p.slug === slug)
+    const post = getBlogList().find(p => p.slug === slug)
 
     return {
       slug,
@@ -39,10 +32,7 @@ const getBlogPostFn = createServerFn({ method: 'GET' })
       related: getRelatedPosts(slug),
       seriesPosts: fm.series ? getSeriesPosts(fm.series) : [],
     }
-  })
-
-export const Route = createFileRoute('/blog/$slug')({
-  loader: ({ params }) => getBlogPostFn({ data: params.slug }),
+  },
   head: ({ loaderData: ld }) => {
     if (!ld)
       return {}

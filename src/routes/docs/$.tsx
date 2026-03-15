@@ -1,7 +1,6 @@
 import type { DocsFrontmatter } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { createFileRoute, notFound } from '@tanstack/react-router'
-import { createServerFn } from '@tanstack/react-start'
 import { DocsLayout } from '../../components/content/DocsLayout'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
 import { docsMeta, docsModules, getDocsSidebar } from '../../lib/content'
@@ -12,15 +11,9 @@ interface DocsPageData {
   sections: ReturnType<typeof getDocsSidebar>
 }
 
-const getDocsPageFn = createServerFn({ method: 'GET' })
-  .inputValidator((splat: unknown): string => {
-    if (typeof splat !== 'string')
-      throw new Error('Invalid path')
-    return splat
-  })
-  .handler(async ({ data: splat }): Promise<DocsPageData> => {
-    const sections = getDocsSidebar()
-
+export const Route = createFileRoute('/docs/$')({
+  loader: ({ params }): DocsPageData => {
+    const splat = params._splat ?? ''
     const directKey = `../content/docs/${splat}.mdx`
     const indexKey = `../content/docs/${splat}/index.mdx`
 
@@ -39,11 +32,8 @@ const getDocsPageFn = createServerFn({ method: 'GET' })
       throw notFound()
     }
 
-    return { moduleKey, frontmatter: fm!, sections }
-  })
-
-export const Route = createFileRoute('/docs/$')({
-  loader: ({ params }) => getDocsPageFn({ data: params._splat ?? '' }),
+    return { moduleKey, frontmatter: fm!, sections: getDocsSidebar() }
+  },
   head: ({ loaderData: ld, params }) => {
     if (!ld)
       return {}
