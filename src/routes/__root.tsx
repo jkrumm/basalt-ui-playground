@@ -2,7 +2,6 @@ import type { Theme } from '../lib/theme'
 import { Classes, FocusStyleManager } from '@blueprintjs/core'
 import geistFont from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
 import jbMonoFont from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2?url'
-/// <reference types="vite/client" />
 import { useHotkey } from '@tanstack/react-hotkeys'
 import {
   createRootRoute,
@@ -12,8 +11,10 @@ import {
   useRouter,
 } from '@tanstack/react-router'
 import { useCallback, useEffect, useState } from 'react'
+import { RouteTracker } from '../components/analytics/RouteTracker'
 import { SearchModal } from '../components/content/SearchModal'
 import { ThemeContext, useSystemTheme } from '../context/theme-context'
+import { EVENTS, track } from '../lib/analytics'
 import { getThemeFn, setThemeFn } from '../lib/theme'
 import appCss from '../styles/app.css?url'
 
@@ -24,6 +25,8 @@ export const Route = createRootRoute({
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { title: 'CBBI Dashboard — Blueprint + TanStack Start' },
+      // Tell Dark Reader this site handles its own dark mode — opt out of auto-inversion
+      { name: 'darkreader-lock', content: '' },
     ],
     links: [
       { rel: 'preload', href: geistFont, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
@@ -42,10 +45,16 @@ function RootComponent() {
   const theme = pendingTheme ?? loaderTheme
   const [searchOpen, setSearchOpen] = useState(false)
 
-  useHotkey('Mod+K', () => setSearchOpen(true), { preventDefault: true })
+  useHotkey('Mod+K', () => {
+    setSearchOpen(true)
+    track(EVENTS.SEARCH_OPENED)
+  }, { preventDefault: true })
   // Allow any page's navbar to open the modal via a custom event
   useEffect(() => {
-    const handler = () => setSearchOpen(true)
+    const handler = () => {
+      setSearchOpen(true)
+      track(EVENTS.SEARCH_OPENED)
+    }
     window.addEventListener('open-search', handler)
     return () => window.removeEventListener('open-search', handler)
   }, [])
@@ -76,6 +85,15 @@ function RootComponent() {
       <html lang="en">
         <head>
           <HeadContent />
+          {/* Umami analytics — injected only when env vars are set; absent in dev by default */}
+          {import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
+            <script
+              defer
+              src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
+              data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+              data-auto-track="false"
+            />
+          )}
         </head>
         {/* bp6-dark resolved server-side from cookie (explicit) or from OS pref on client (system). */}
         {/* suppressHydrationWarning: expected when 'system' resolves differently on server vs client. */}
@@ -83,6 +101,7 @@ function RootComponent() {
           className={effectiveTheme === 'dark' ? Classes.DARK : undefined}
           suppressHydrationWarning
         >
+          <RouteTracker />
           <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
           <Outlet />
           <Scripts />

@@ -9,12 +9,16 @@ import {
   NavbarHeading,
   Tag,
 } from '@blueprintjs/core'
+import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMemo, useState } from 'react'
 import { BlogPostCard } from '../../components/content/BlogPostCard'
+import { PageLayout } from '../../components/layout/PageLayout'
 import { ThemeToggle } from '../../components/ThemeToggle'
+import { EVENTS, track } from '../../lib/analytics'
 import { getBlogList } from '../../lib/content'
+import styles from './index.module.css'
 
 export const Route = createFileRoute('/blog/')({
   // getBlogList reads eagerly-bundled glob data — safe to call directly in the loader,
@@ -49,65 +53,74 @@ function BlogListingPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 64 }}>
-      <Navbar>
-        <NavbarGroup align={Alignment.LEFT}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
-          </Link>
-          <Divider />
-          <NavbarHeading>Blog</NavbarHeading>
-        </NavbarGroup>
-        <NavbarGroup align={Alignment.RIGHT}>
-          <ThemeToggle />
-        </NavbarGroup>
-      </Navbar>
+    <PageLayout>
+      <Box className={styles.page}>
+        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+          <NavbarGroup align={Alignment.LEFT}>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
+            </Link>
+            <Divider />
+            <NavbarHeading>Blog</NavbarHeading>
+          </NavbarGroup>
+          <NavbarGroup align={Alignment.RIGHT}>
+            <ThemeToggle />
+          </NavbarGroup>
+        </Navbar>
 
-      <div style={{ maxWidth: 960, margin: '2rem auto', padding: '0 1.25rem' }}>
-        <H1 style={{ marginBottom: '1rem' }}>Blog</H1>
+        <Box className={styles.container}>
+          <H1 style={{ marginBottom: '1rem' }}>Blog</H1>
 
-        {allTags.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-            <Tag
-              interactive
-              intent={activeTag === null ? 'primary' : 'none'}
-              onClick={() => setActiveTag(null)}
-            >
-              All
-            </Tag>
-            {allTags.map(tag => (
+          {allTags.length > 0 && (
+            <Flex gap={2} flexWrap="wrap" marginBottom={6}>
               <Tag
-                key={tag}
                 interactive
-                minimal={activeTag !== tag}
-                intent={activeTag === tag ? 'primary' : 'none'}
-                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                intent={activeTag === null ? 'primary' : 'none'}
+                onClick={() => {
+                  setActiveTag(null)
+                  track(EVENTS.BLOG_TAG_FILTER, { tag: 'all' })
+                }}
               >
-                {tag}
+                All
               </Tag>
-            ))}
-          </div>
-        )}
+              {allTags.map(tag => (
+                <Tag
+                  key={tag}
+                  interactive
+                  minimal={activeTag !== tag}
+                  intent={activeTag === tag ? 'primary' : 'none'}
+                  onClick={() => {
+                    const next = activeTag === tag ? null : tag
+                    setActiveTag(next)
+                    track(EVENTS.BLOG_TAG_FILTER, { tag: next ?? 'all' })
+                  }}
+                >
+                  {tag}
+                </Tag>
+              ))}
+            </Flex>
+          )}
 
-        {visiblePosts.length === 0
-          ? (
-              <p style={{ color: '#8f99a8' }}>No posts for this tag.</p>
-            )
-          : (
-              <div className="cbbi-grid">
-                {visiblePosts.map(post => (
-                  <Link
-                    key={post.slug}
-                    to="/blog/$slug"
-                    params={{ slug: post.slug }}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <BlogPostCard post={post} />
-                  </Link>
-                ))}
-              </div>
-            )}
-      </div>
-    </div>
+          {visiblePosts.length === 0
+            ? (
+                <p style={{ color: '#8f99a8' }}>No posts for this tag.</p>
+              )
+            : (
+                <div className={styles.grid}>
+                  {visiblePosts.map(post => (
+                    <Link
+                      key={post.slug}
+                      to="/blog/$slug"
+                      params={{ slug: post.slug }}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <BlogPostCard post={post} />
+                    </Link>
+                  ))}
+                </div>
+              )}
+        </Box>
+      </Box>
+    </PageLayout>
   )
 }

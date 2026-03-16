@@ -1,9 +1,12 @@
 import type { BlogFrontmatter, BlogPost, PrevNext } from '../../lib/content'
-import { Alignment, Button, Callout, Classes, Divider, H1, Navbar, NavbarGroup, Tag } from '@blueprintjs/core'
+import { Alignment, Button, Callout, Card, Classes, Divider, Elevation, H1, Navbar, NavbarGroup, Tag } from '@blueprintjs/core'
+import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react'
 import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
+import { PageLayout } from '../layout/PageLayout'
 import { ThemeToggle } from '../ThemeToggle'
+import styles from './BlogLayout.module.css'
 import { TableOfContents } from './TableOfContents'
 
 function useReadingProgress() {
@@ -33,186 +36,164 @@ export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts 
   const progress = useReadingProgress()
 
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 64 }}>
-      {/* Reading progress bar */}
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          height: 2,
-          width: `${progress}%`,
-          backgroundColor: '#2D72D2',
-          zIndex: 9999,
-          transition: 'width 0.05s linear',
-          pointerEvents: 'none',
-        }}
-      />
-      <Navbar>
-        <NavbarGroup align={Alignment.LEFT}>
-          <Link to="/blog" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="Blog" />
-          </Link>
-          <Divider />
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" text="CBBI" />
-          </Link>
-        </NavbarGroup>
-        <NavbarGroup align={Alignment.RIGHT}>
-          <ThemeToggle />
-        </NavbarGroup>
-      </Navbar>
+    <PageLayout>
+      <Box className={styles.page}>
+        {/* Reading progress bar */}
+        <div className={styles.readingBar} style={{ width: `${progress}%` }} />
 
-      <div
-        style={{
-          display: 'flex',
-          maxWidth: 1280,
-          margin: '0 auto',
-          padding: '0 1.25rem',
-          gap: '3rem',
-        }}
-      >
-        {/* Main content */}
-        <div className="mdx-prose" style={{ flex: 1, minWidth: 0 }}>
-          {/* Series navigation */}
-          {frontmatter.series && seriesPosts.length > 1 && (
-            <Callout style={{ marginBottom: '1.5rem', marginTop: '1.5rem' }}>
-              <p style={{ fontWeight: 600, marginBottom: '0.5rem', marginTop: 0, fontSize: 13 }}>
-                Part of the series:
-                {' '}
-                <strong>{frontmatter.series}</strong>
-              </p>
-              <ol style={{ margin: 0, padding: '0 0 0 1.25rem' }}>
-                {seriesPosts.map((p, i) => (
-                  <li key={p.slug} style={{ fontSize: 13, marginBottom: 2 }}>
-                    {p.slug === currentSlug
-                      ? (
-                          <strong>
-                            Part
-                            {' '}
-                            {i + 1}
-                            :
-                            {' '}
-                            {p.frontmatter.title}
-                          </strong>
-                        )
-                      : (
-                          <Link to="/blog/$slug" params={{ slug: p.slug }} style={{ color: 'inherit' }}>
-                            Part
-                            {' '}
-                            {i + 1}
-                            :
-                            {' '}
-                            {p.frontmatter.title}
-                          </Link>
-                        )}
-                  </li>
-                ))}
-              </ol>
-            </Callout>
-          )}
+        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+          <NavbarGroup align={Alignment.LEFT}>
+            <Link to="/blog" className={styles.navLink}>
+              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="Blog" />
+            </Link>
+            <Divider />
+            <Link to="/" className={styles.navLink}>
+              <Button variant="minimal" text="CBBI" />
+            </Link>
+          </NavbarGroup>
+          <NavbarGroup align={Alignment.RIGHT}>
+            <ThemeToggle />
+          </NavbarGroup>
+        </Navbar>
 
-          {/* Post header */}
-          <header style={{ marginBottom: '2rem', marginTop: '2rem' }}>
-            <H1>{frontmatter.title}</H1>
-
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <span style={{ color: '#8f99a8', fontSize: 14 }}>
-                {new Date(frontmatter.publishedAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
-              <span style={{ color: '#5f6b7c' }}>·</span>
-              <span style={{ color: '#8f99a8', fontSize: 14 }}>{readingTime}</span>
-              {frontmatter.updatedAt && (
-                <>
-                  <span style={{ color: '#5f6b7c' }}>·</span>
-                  <span style={{ color: '#5f6b7c', fontSize: 13 }}>
-                    Updated
-                    {' '}
-                    {new Date(frontmatter.updatedAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {frontmatter.tags.map(tag => (
-                <Tag key={tag} minimal>
-                  {tag}
-                </Tag>
-              ))}
-            </div>
-
-            {frontmatter.description && (
-              <p style={{ color: '#8f99a8', fontSize: 16, marginTop: '1rem', marginBottom: 0 }}>
-                {frontmatter.description}
-              </p>
+        <div className={styles.layout}>
+          {/* Main content */}
+          <div className={`mdx-prose ${styles.content}`}>
+            {/* Series navigation */}
+            {frontmatter.series && seriesPosts.length > 1 && (
+              <Callout style={{ marginBottom: '1.5rem', marginTop: '1.5rem' }}>
+                <p style={{ fontWeight: 600, marginBottom: '0.5rem', marginTop: 0 }}>
+                  Part of the series:
+                  {' '}
+                  <strong>{frontmatter.series}</strong>
+                </p>
+                <ol style={{ margin: 0, padding: '0 0 0 1.25rem' }}>
+                  {seriesPosts.map((p, i) => (
+                    <li key={p.slug} style={{ marginBottom: 2 }}>
+                      {p.slug === currentSlug
+                        ? (
+                            <strong>
+                              Part
+                              {' '}
+                              {i + 1}
+                              :
+                              {' '}
+                              {p.frontmatter.title}
+                            </strong>
+                          )
+                        : (
+                            <Link to="/blog/$slug" params={{ slug: p.slug }} style={{ color: 'inherit' }}>
+                              Part
+                              {' '}
+                              {i + 1}
+                              :
+                              {' '}
+                              {p.frontmatter.title}
+                            </Link>
+                          )}
+                    </li>
+                  ))}
+                </ol>
+              </Callout>
             )}
-          </header>
 
-          <div className={`${Classes.RUNNING_TEXT} mdx-content`}>
-            {children}
+            {/* Post header */}
+            <Box marginBottom={8} marginTop={8}>
+              <H1>{frontmatter.title}</H1>
+
+              <Flex gap={2} flexWrap="wrap" alignItems="center" marginBottom={3}>
+                <span className={Classes.TEXT_MUTED}>
+                  {new Date(frontmatter.publishedAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+                <span className={Classes.TEXT_MUTED}>·</span>
+                <span className={Classes.TEXT_MUTED}>{readingTime}</span>
+                {frontmatter.updatedAt && (
+                  <>
+                    <span className={Classes.TEXT_MUTED}>·</span>
+                    <span className={Classes.TEXT_MUTED}>
+                      Updated
+                      {' '}
+                      {new Date(frontmatter.updatedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </>
+                )}
+              </Flex>
+
+              <Flex gap={2} flexWrap="wrap">
+                {frontmatter.tags.map(tag => (
+                  <Tag key={tag} minimal>
+                    {tag}
+                  </Tag>
+                ))}
+              </Flex>
+
+              {frontmatter.description && (
+                <p className={`${Classes.TEXT_MUTED} ${Classes.TEXT_LARGE}`} style={{ marginTop: '1rem', marginBottom: 0 }}>
+                  {frontmatter.description}
+                </p>
+              )}
+            </Box>
+
+            <div className={`${Classes.RUNNING_TEXT} mdx-content`}>
+              {children}
+            </div>
+
+            {/* Prev / Next navigation */}
+            {prevNext && (prevNext.prev || prevNext.next) && (
+              <Flex justifyContent="space-between" gap={4} className={styles.prevNextNav}>
+                {prevNext.prev
+                  ? (
+                      <Link to="/blog/$slug" params={{ slug: prevNext.prev.slug }} className={`${styles.navLink} ${styles.content}`}>
+                        <Card elevation={Elevation.ONE} interactive style={{ height: '100%' }}>
+                          <Flex alignItems="center" gap={3} padding={3}>
+                            <IconArrowLeft size={16} className={Classes.TEXT_MUTED} style={{ flexShrink: 0 }} />
+                            <Box>
+                              <p className={styles.prevLabel}>Previous</p>
+                              <p className={styles.prevTitle}>{prevNext.prev.frontmatter.title}</p>
+                              {prevNext.prev.frontmatter.tags[0] && (
+                                <Tag minimal>{prevNext.prev.frontmatter.tags[0]}</Tag>
+                              )}
+                            </Box>
+                          </Flex>
+                        </Card>
+                      </Link>
+                    )
+                  : <Box flex="1" />}
+
+                {prevNext.next && (
+                  <Link to="/blog/$slug" params={{ slug: prevNext.next.slug }} className={`${styles.navLink} ${styles.content}`}>
+                    <Card elevation={Elevation.ONE} interactive style={{ height: '100%' }}>
+                      <Flex justifyContent="end" alignItems="center" gap={3} padding={3}>
+                        <Box style={{ textAlign: 'right' }}>
+                          <p className={styles.nextLabel}>Next</p>
+                          <p className={styles.nextTitle}>{prevNext.next.frontmatter.title}</p>
+                          {prevNext.next.frontmatter.tags[0] && (
+                            <Tag minimal>{prevNext.next.frontmatter.tags[0]}</Tag>
+                          )}
+                        </Box>
+                        <IconArrowRight size={16} className={Classes.TEXT_MUTED} style={{ flexShrink: 0 }} />
+                      </Flex>
+                    </Card>
+                  </Link>
+                )}
+              </Flex>
+            )}
           </div>
 
-          {/* Prev / Next navigation */}
-          {prevNext && (prevNext.prev || prevNext.next) && (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '1rem',
-                marginTop: '3rem',
-                paddingTop: '1.5rem',
-                borderTop: '1px solid rgba(255,255,255,0.08)',
-              }}
-            >
-              {prevNext.prev
-                ? (
-                    <Link to="/blog/$slug" params={{ slug: prevNext.prev.slug }} style={{ textDecoration: 'none', flex: 1 }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5f6b7c' }}>
-                          <IconArrowLeft size={13} />
-                          Previous
-                        </span>
-                        <span style={{ fontWeight: 600, fontSize: 14 }}>{prevNext.prev.frontmatter.title}</span>
-                        {prevNext.prev.frontmatter.tags[0] && (
-                          <Tag minimal style={{ fontSize: 11, width: 'fit-content' }}>{prevNext.prev.frontmatter.tags[0]}</Tag>
-                        )}
-                      </div>
-                    </Link>
-                  )
-                : <div style={{ flex: 1 }} />}
-
-              {prevNext.next && (
-                <Link to="/blog/$slug" params={{ slug: prevNext.next.slug }} style={{ textDecoration: 'none', flex: 1, textAlign: 'right' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#5f6b7c' }}>
-                      Next
-                      <IconArrowRight size={13} />
-                    </span>
-                    <span style={{ fontWeight: 600, fontSize: 14 }}>{prevNext.next.frontmatter.title}</span>
-                    {prevNext.next.frontmatter.tags[0] && (
-                      <Tag minimal style={{ fontSize: 11, width: 'fit-content' }}>{prevNext.next.frontmatter.tags[0]}</Tag>
-                    )}
-                  </div>
-                </Link>
-              )}
-            </div>
-          )}
+          {/* TOC sidebar */}
+          <aside className={styles.toc}>
+            <TableOfContents />
+          </aside>
         </div>
-
-        {/* TOC sidebar — shown via CSS on wide viewports */}
-        <aside className="mdx-toc-sidebar" style={{ width: 220, flexShrink: 0, paddingTop: '2rem' }}>
-          <TableOfContents />
-        </aside>
-      </div>
-    </div>
+      </Box>
+    </PageLayout>
   )
 }

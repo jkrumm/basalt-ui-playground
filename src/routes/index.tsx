@@ -26,6 +26,7 @@ import {
   Tag,
   Tooltip,
 } from '@blueprintjs/core'
+import { Box, Flex } from '@blueprintjs/labs'
 import {
   IconAlertTriangle,
   IconBook,
@@ -46,8 +47,11 @@ import {
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { lazy, Suspense, useEffect, useState } from 'react'
+import { PageLayout } from '../components/layout/PageLayout'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { EVENTS, track } from '../lib/analytics'
 import { formatDateLong } from '../lib/date'
+import styles from './index.module.css'
 
 // Lazy-loaded: Recharts is ~300KB, no reason to include in SSR bundle.
 // Combined with isMounted guard below, this is never executed on the server.
@@ -294,332 +298,336 @@ function CBBIDashboard() {
   const sortedKeys = getSortedKeys(indicators, sortBy)
 
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 48 }}>
-      {/* ------------------------------------------------------------------ */}
-      {/* Navbar — Button, Divider                                            */}
-      {/* ------------------------------------------------------------------ */}
-      <Navbar>
-        <NavbarGroup align={Alignment.START}>
-          <NavbarHeading>
-            <strong>CBBI</strong>
-            {' '}
-            Dashboard
-          </NavbarHeading>
-          <Divider />
-          {/* Dialog trigger — Portal component test #1 */}
-          <Link to="/table" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconTable size={16} />} text="Table Study" />
-          </Link>
-          <Link to="/blog" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconNews size={16} />} text="Blog" />
-          </Link>
-          <Link to="/docs" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconBook size={16} />} text="Docs" />
-          </Link>
-          <Button
-            variant="minimal"
-            icon={<IconSearch size={16} />}
-            text="Search"
-            onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}
-          />
-          <Button
-            variant="minimal"
-            icon={<IconFileText size={16} />}
-            text="About CBBI"
-            onClick={() => setAboutOpen(true)}
-          />
-          {/* Popover — Portal component test #2 */}
-          <Popover
-            placement="bottom-start"
-            content={(
-              <Menu>
-                <MenuItem
-                  icon={<IconBrandGithub size={16} />}
-                  text="CBBI Algorithm (GitHub)"
-                  href="https://github.com/Zaczero/CBBI"
-                  target="_blank"
-                  rel="noopener"
-                />
-                <MenuItem
-                  icon={<IconWorld size={16} />}
-                  text="colintalkscrypto.com/cbbi"
-                  href="https://colintalkscrypto.com/cbbi"
-                  target="_blank"
-                  rel="noopener"
-                />
-              </Menu>
-            )}
-          >
-            <Button variant="minimal" icon={<IconCode size={16} />} text="Algorithm" />
-          </Popover>
-        </NavbarGroup>
-        <NavbarGroup align={Alignment.END}>
-          <Tag large minimal style={{ marginRight: 8 }}>
-            {date}
-          </Tag>
-          <Tag large>
-            BTC $
-            {fmtPrice(price)}
-          </Tag>
-          <Divider />
-          <ThemeToggle />
-        </NavbarGroup>
-      </Navbar>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* Dialog — Portal component test #3                                  */}
-      {/* isOpen=false on server → no portal mount, no document.body access */}
-      {/* ------------------------------------------------------------------ */}
-      <Dialog
-        isOpen={aboutOpen}
-        onClose={() => setAboutOpen(false)}
-        title="About CBBI"
-        icon={<IconInfoCircle size={16} />}
-        style={{ width: 560 }}
-      >
-        <DialogBody>
-          <p>
-            The
-            {' '}
-            <strong>Colin's Bitcoin Bull Run Index (CBBI)</strong>
-            {' '}
-            is a composite
-            indicator that aggregates 9 independent on-chain metrics, each normalized to
-            a 0–1 scale and averaged with equal weight. A score near 0 indicates an early
-            cycle / accumulation phase; near 1 indicates proximity to a cycle top.
-          </p>
-          <H5>Indicators included</H5>
-          <ul style={{ paddingLeft: 20 }}>
-            {(Object.keys(INDICATORS) as IndicatorKey[]).map(key => (
-              <li key={key} style={{ marginBottom: 6 }}>
-                <strong>{INDICATORS[key].name}</strong>
-                {' '}
-                —
-                {INDICATORS[key].desc}
-              </li>
-            ))}
-          </ul>
-        </DialogBody>
-        <DialogFooter
-          actions={(
-            <Button intent={Intent.PRIMARY} onClick={() => setAboutOpen(false)}>
-              Close
-            </Button>
-          )}
-        />
-      </Dialog>
-
-      <div style={{ maxWidth: 960, margin: '32px auto', padding: '0 20px' }}>
-        {/* ---------------------------------------------------------------- */}
-        {/* Confidence card                                                   */}
-        {/* ---------------------------------------------------------------- */}
-        <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
-          <div className="cbbi-confidence-header">
-            <H2 style={{ margin: 0 }}>Confidence Score</H2>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <Tag large intent={getIntent(confidence)}>
-                {getZoneLabel(confidence)}
-              </Tag>
-              <Tag large minimal>
-                {fmtPct(confidence)}
-              </Tag>
-            </div>
-          </div>
-          <ProgressBar
-            value={confidence}
-            intent={getIntent(confidence)}
-            animate={false}
-            stripes={false}
-            style={{ height: 12 }}
-          />
-          <p className="cbbi-meta" style={{ marginTop: 10 }}>
-            Composite of 9 on-chain indicators. Low = accumulation zone &mdash; High
-            = distribution / approaching cycle top.
-          </p>
-        </Card>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Callout — intent, icon, title                                     */}
-        {/* ---------------------------------------------------------------- */}
-        <Callout
-          intent={callout.intent}
-          icon={callout.icon}
-          title={callout.title}
-          style={{ marginBottom: 24 }}
-        >
-          {callout.message}
-        </Callout>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Controls — ButtonGroup, HTMLSelect                                */}
-        {/* ---------------------------------------------------------------- */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-            gap: 8,
-            flexWrap: 'wrap',
-          }}
-        >
-          <ButtonGroup>
+    <PageLayout>
+      <Box className={styles.page}>
+        {/* ------------------------------------------------------------------ */}
+        {/* Navbar — Button, Divider                                            */}
+        {/* ------------------------------------------------------------------ */}
+        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+          <NavbarGroup align={Alignment.START}>
+            <NavbarHeading>
+              <strong>CBBI</strong>
+              {' '}
+              Dashboard
+            </NavbarHeading>
+            <Divider />
+            {/* Dialog trigger — Portal component test #1 */}
+            <Link to="/table" style={{ textDecoration: 'none' }}>
+              <Button variant="minimal" icon={<IconTable size={16} />} text="Table Study" />
+            </Link>
+            <Link to="/blog" style={{ textDecoration: 'none' }}>
+              <Button variant="minimal" icon={<IconNews size={16} />} text="Blog" />
+            </Link>
+            <Link to="/docs" style={{ textDecoration: 'none' }}>
+              <Button variant="minimal" icon={<IconBook size={16} />} text="Docs" />
+            </Link>
             <Button
-              icon={<IconLayoutGrid size={16} />}
-              text="Grid"
-              active={viewMode === 'grid'}
-              onClick={() => setViewMode('grid')}
+              variant="minimal"
+              icon={<IconSearch size={16} />}
+              text="Search"
+              onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}
             />
             <Button
-              icon={<IconLayoutList size={16} />}
-              text="Table"
-              active={viewMode === 'table'}
-              onClick={() => setViewMode('table')}
+              variant="minimal"
+              icon={<IconFileText size={16} />}
+              text="About CBBI"
+              onClick={() => setAboutOpen(true)}
             />
-          </ButtonGroup>
-
-          <HTMLSelect
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            options={[
-              { label: 'Default order', value: 'default' },
-              { label: 'Value: Low → High', value: 'value-asc' },
-              { label: 'Value: High → Low', value: 'value-desc' },
-            ]}
-          />
-        </div>
-
-        {/* ---------------------------------------------------------------- */}
-        {/* Grid view — Card, Tooltip (Portal), ProgressBar, Tag             */}
-        {/* ---------------------------------------------------------------- */}
-        {viewMode === 'grid' && (
-          <div className="cbbi-grid">
-            {sortedKeys.map((key) => {
-              const { name, desc } = INDICATORS[key]
-              const value = indicators[key]
-              return (
-                <Card key={key} elevation={Elevation.ONE} className="cbbi-indicator-card">
-                  <div className="cbbi-indicator-header">
-                    {/* Tooltip wraps the heading — Portal-based, SSR test */}
-                    <Tooltip content={desc} placement="top" compact>
-                      <H5 style={{ margin: 0, cursor: 'help' }}>{name}</H5>
-                    </Tooltip>
-                    <Tag
-                      minimal
-                      intent={value !== null ? getIntent(value) : Intent.NONE}
-                    >
-                      {fmtPct(value)}
-                    </Tag>
-                  </div>
-                  <ProgressBar
-                    value={value ?? 0}
-                    intent={value !== null ? getIntent(value) : Intent.NONE}
-                    animate={false}
-                    stripes={false}
+            {/* Popover — Portal component test #2 */}
+            <Popover
+              placement="bottom-start"
+              content={(
+                <Menu>
+                  <MenuItem
+                    icon={<IconBrandGithub size={16} />}
+                    text="CBBI Algorithm (GitHub)"
+                    href="https://github.com/Zaczero/CBBI"
+                    target="_blank"
+                    rel="noopener"
                   />
-                </Card>
-              )
-            })}
-          </div>
-        )}
+                  <MenuItem
+                    icon={<IconWorld size={16} />}
+                    text="colintalkscrypto.com/cbbi"
+                    href="https://colintalkscrypto.com/cbbi"
+                    target="_blank"
+                    rel="noopener"
+                  />
+                </Menu>
+              )}
+            >
+              <Button variant="minimal" icon={<IconCode size={16} />} text="Algorithm" />
+            </Popover>
+          </NavbarGroup>
+          <NavbarGroup align={Alignment.END}>
+            <Tag large minimal style={{ marginRight: 8 }}>
+              {date}
+            </Tag>
+            <Tag large>
+              BTC $
+              {fmtPrice(price)}
+            </Tag>
+            <Divider />
+            <ThemeToggle />
+          </NavbarGroup>
+        </Navbar>
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Table view — HTMLTable, Tag, ProgressBar                         */}
-        {/* ---------------------------------------------------------------- */}
-        {viewMode === 'table' && (
-          <Card elevation={Elevation.ONE} style={{ padding: 0, overflow: 'hidden' }}>
-            <HTMLTable striped interactive style={{ width: '100%', margin: 0 }}>
-              <thead>
-                <tr>
-                  <th>Indicator</th>
-                  <th>Description</th>
-                  <th style={{ textAlign: 'right' }}>Value</th>
-                  <th>Zone</th>
-                  <th style={{ width: 140 }}>Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedKeys.map((key) => {
-                  const { name, desc } = INDICATORS[key]
-                  const value = indicators[key]
-                  return (
-                    <tr key={key}>
-                      <td>
-                        <strong>{name}</strong>
-                      </td>
-                      <td className="cbbi-meta" style={{ maxWidth: 280 }}>
-                        {desc}
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
+        {/* ------------------------------------------------------------------ */}
+        {/* Dialog — Portal component test #3                                  */}
+        {/* isOpen=false on server → no portal mount, no document.body access */}
+        {/* ------------------------------------------------------------------ */}
+        <Dialog
+          isOpen={aboutOpen}
+          onClose={() => setAboutOpen(false)}
+          title="About CBBI"
+          icon={<IconInfoCircle size={16} />}
+          style={{ width: 560 }}
+        >
+          <DialogBody>
+            <p>
+              The
+              {' '}
+              <strong>Colin's Bitcoin Bull Run Index (CBBI)</strong>
+              {' '}
+              is a composite
+              indicator that aggregates 9 independent on-chain metrics, each normalized to
+              a 0–1 scale and averaged with equal weight. A score near 0 indicates an early
+              cycle / accumulation phase; near 1 indicates proximity to a cycle top.
+            </p>
+            <H5>Indicators included</H5>
+            <ul style={{ paddingLeft: 20 }}>
+              {(Object.keys(INDICATORS) as IndicatorKey[]).map(key => (
+                <li key={key} style={{ marginBottom: 6 }}>
+                  <strong>{INDICATORS[key].name}</strong>
+                  {' '}
+                  —
+                  {INDICATORS[key].desc}
+                </li>
+              ))}
+            </ul>
+          </DialogBody>
+          <DialogFooter
+            actions={(
+              <Button intent={Intent.PRIMARY} onClick={() => setAboutOpen(false)}>
+                Close
+              </Button>
+            )}
+          />
+        </Dialog>
+
+        <Box className={styles.container}>
+          {/* ---------------------------------------------------------------- */}
+          {/* Confidence card                                                   */}
+          {/* ---------------------------------------------------------------- */}
+          <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
+            <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
+              <H2 style={{ margin: 0 }}>Confidence Score</H2>
+              <Flex gap={2} alignItems="center">
+                <Tag large intent={getIntent(confidence)}>
+                  {getZoneLabel(confidence)}
+                </Tag>
+                <Tag large minimal>
+                  {fmtPct(confidence)}
+                </Tag>
+              </Flex>
+            </Flex>
+            <ProgressBar
+              value={confidence}
+              intent={getIntent(confidence)}
+              animate={false}
+              stripes={false}
+              style={{ height: 12 }}
+            />
+            <p className="cbbi-meta" style={{ marginTop: 10 }}>
+              Composite of 9 on-chain indicators. Low = accumulation zone &mdash; High
+              = distribution / approaching cycle top.
+            </p>
+          </Card>
+
+          {/* ---------------------------------------------------------------- */}
+          {/* Callout — intent, icon, title                                     */}
+          {/* ---------------------------------------------------------------- */}
+          <Callout
+            intent={callout.intent}
+            icon={callout.icon}
+            title={callout.title}
+            style={{ marginBottom: 24 }}
+          >
+            {callout.message}
+          </Callout>
+
+          {/* ---------------------------------------------------------------- */}
+          {/* Controls — ButtonGroup, HTMLSelect                                */}
+          {/* ---------------------------------------------------------------- */}
+          <Flex justifyContent="space-between" alignItems="center" marginBottom={4} gap={2} flexWrap="wrap">
+            <ButtonGroup>
+              <Button
+                icon={<IconLayoutGrid size={16} />}
+                text="Grid"
+                active={viewMode === 'grid'}
+                onClick={() => {
+                  setViewMode('grid')
+                  track(EVENTS.VIEW_TOGGLED, { view: 'grid' })
+                }}
+              />
+              <Button
+                icon={<IconLayoutList size={16} />}
+                text="Table"
+                active={viewMode === 'table'}
+                onClick={() => {
+                  setViewMode('table')
+                  track(EVENTS.VIEW_TOGGLED, { view: 'table' })
+                }}
+              />
+            </ButtonGroup>
+
+            <HTMLSelect
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value)
+                track(EVENTS.SORT_CHANGED, { value: e.target.value })
+              }}
+              options={[
+                { label: 'Default order', value: 'default' },
+                { label: 'Value: Low → High', value: 'value-asc' },
+                { label: 'Value: High → Low', value: 'value-desc' },
+              ]}
+            />
+          </Flex>
+
+          {/* ---------------------------------------------------------------- */}
+          {/* Grid view — Card, Tooltip (Portal), ProgressBar, Tag             */}
+          {/* ---------------------------------------------------------------- */}
+          {viewMode === 'grid' && (
+            <div className={styles.grid}>
+              {sortedKeys.map((key) => {
+                const { name, desc } = INDICATORS[key]
+                const value = indicators[key]
+                return (
+                  <Card key={key} elevation={Elevation.ONE}>
+                    <Flex flexDirection="column" gap={2}>
+                      <Flex justifyContent="space-between" alignItems="start">
+                        {/* Tooltip wraps the heading — Portal-based, SSR test */}
+                        <Tooltip content={desc} placement="top" compact>
+                          <H5 style={{ margin: 0, cursor: 'help' }}>{name}</H5>
+                        </Tooltip>
                         <Tag
                           minimal
                           intent={value !== null ? getIntent(value) : Intent.NONE}
                         >
                           {fmtPct(value)}
                         </Tag>
-                      </td>
-                      <td style={{ color: '#8f99a8', fontSize: 13 }}>
-                        {value !== null ? getZoneLabel(value) : '—'}
-                      </td>
-                      <td>
-                        <ProgressBar
-                          value={value ?? 0}
-                          intent={value !== null ? getIntent(value) : Intent.NONE}
-                          animate={false}
-                          stripes={false}
-                        />
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </HTMLTable>
+                      </Flex>
+                      <ProgressBar
+                        value={value ?? 0}
+                        intent={value !== null ? getIntent(value) : Intent.NONE}
+                        animate={false}
+                        stripes={false}
+                      />
+                    </Flex>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+
+          {/* ---------------------------------------------------------------- */}
+          {/* Table view — HTMLTable, Tag, ProgressBar                         */}
+          {/* ---------------------------------------------------------------- */}
+          {viewMode === 'table' && (
+            <Card elevation={Elevation.ONE} style={{ padding: 0, overflow: 'hidden' }}>
+              <HTMLTable striped interactive style={{ width: '100%', margin: 0 }}>
+                <thead>
+                  <tr>
+                    <th>Indicator</th>
+                    <th>Description</th>
+                    <th style={{ textAlign: 'right' }}>Value</th>
+                    <th>Zone</th>
+                    <th style={{ width: 140 }}>Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedKeys.map((key) => {
+                    const { name, desc } = INDICATORS[key]
+                    const value = indicators[key]
+                    return (
+                      <tr key={key}>
+                        <td>
+                          <strong>{name}</strong>
+                        </td>
+                        <td className="cbbi-meta" style={{ maxWidth: 280 }}>
+                          {desc}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <Tag
+                            minimal
+                            intent={value !== null ? getIntent(value) : Intent.NONE}
+                          >
+                            {fmtPct(value)}
+                          </Tag>
+                        </td>
+                        <td style={{ color: '#8f99a8', fontSize: 13 }}>
+                          {value !== null ? getZoneLabel(value) : '—'}
+                        </td>
+                        <td>
+                          <ProgressBar
+                            value={value ?? 0}
+                            intent={value !== null ? getIntent(value) : Intent.NONE}
+                            animate={false}
+                            stripes={false}
+                          />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </HTMLTable>
+            </Card>
+          )}
+
+          {/* ---------------------------------------------------------------- */}
+          {/* Historical chart — client-only (isMounted guard + React.lazy)   */}
+          {/*                                                                   */}
+          {/* Why client-only?                                                  */}
+          {/*   1. 767 SVG elements would bloat SSR HTML for zero SEO gain     */}
+          {/*   2. Recharts (~300KB) excluded from server bundle                */}
+          {/*   3. Data IS server-fetched (in loader) — only rendering deferred */}
+          {/* ---------------------------------------------------------------- */}
+          <Card elevation={Elevation.TWO} style={{ marginTop: 24, marginBottom: 24 }}>
+            <H2 style={{ margin: '0 0 4px' }}>Historical Chart</H2>
+            <p className="cbbi-meta" style={{ marginBottom: 16 }}>
+              Weekly Bitcoin price (right axis, log scale) with CBBI confidence dots colored by cycle position.
+            </p>
+            {isMounted
+              ? (
+                  <Suspense
+                    fallback={(
+                      <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
+                        <Spinner size={40} />
+                      </Flex>
+                    )}
+                  >
+                    <CBBIChart data={history} />
+                  </Suspense>
+                )
+              : (
+            // Server render + first client paint: show spinner placeholder.
+            // Height is fixed so layout doesn't shift after hydration.
+                  <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
+                    <Spinner size={40} />
+                  </Flex>
+                )}
           </Card>
-        )}
 
-        {/* ---------------------------------------------------------------- */}
-        {/* Historical chart — client-only (isMounted guard + React.lazy)   */}
-        {/*                                                                   */}
-        {/* Why client-only?                                                  */}
-        {/*   1. 767 SVG elements would bloat SSR HTML for zero SEO gain     */}
-        {/*   2. Recharts (~300KB) excluded from server bundle                */}
-        {/*   3. Data IS server-fetched (in loader) — only rendering deferred */}
-        {/* ---------------------------------------------------------------- */}
-        <Card elevation={Elevation.TWO} style={{ marginTop: 24, marginBottom: 24 }}>
-          <H2 style={{ margin: '0 0 4px' }}>Historical Chart</H2>
-          <p className="cbbi-meta" style={{ marginBottom: 16 }}>
-            Weekly Bitcoin price (right axis, log scale) with CBBI confidence dots colored by cycle position.
+          {/* Source */}
+          <p className="cbbi-source">
+            Data:
+            {' '}
+            <a href="https://colintalkscrypto.com/cbbi">colintalkscrypto.com/cbbi</a>
+            {' · '}
+            <a href="https://github.com/Zaczero/CBBI">CBBI algorithm</a>
           </p>
-          {isMounted
-            ? (
-                <Suspense
-                  fallback={(
-                    <div style={{ height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Spinner size={40} />
-                    </div>
-                  )}
-                >
-                  <CBBIChart data={history} />
-                </Suspense>
-              )
-            : (
-              // Server render + first client paint: show spinner placeholder.
-              // Height is fixed so layout doesn't shift after hydration.
-                <div style={{ height: 440, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Spinner size={40} />
-                </div>
-              )}
-        </Card>
-
-        {/* Source */}
-        <p className="cbbi-source">
-          Data:
-          {' '}
-          <a href="https://colintalkscrypto.com/cbbi">colintalkscrypto.com/cbbi</a>
-          {' · '}
-          <a href="https://github.com/Zaczero/CBBI">CBBI algorithm</a>
-        </p>
-      </div>
-    </div>
+        </Box>
+      </Box>
+    </PageLayout>
   )
 }

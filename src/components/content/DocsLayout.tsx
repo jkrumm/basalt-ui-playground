@@ -1,10 +1,28 @@
 import type { DocNavSection } from '../../lib/content'
 import { Alignment, Button, Card, Classes, Divider, Elevation, Navbar, NavbarGroup } from '@blueprintjs/core'
+import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react'
 import { Link, useRouterState } from '@tanstack/react-router'
+import { useEffect, useState } from 'react'
 import { INDEX_SUFFIX_RE } from '../../lib/content'
+import { PageLayout } from '../layout/PageLayout'
 import { ThemeToggle } from '../ThemeToggle'
+import styles from './DocsLayout.module.css'
 import { DocsSidebar } from './DocsSidebar'
+
+function useReadingProgress() {
+  const [progress, setProgress] = useState(0)
+  useEffect(() => {
+    const onScroll = () => {
+      const scrolled = window.scrollY
+      const total = document.documentElement.scrollHeight - window.innerHeight
+      setProgress(total > 0 ? Math.min(100, (scrolled / total) * 100) : 0)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+  return progress
+}
 
 interface DocsLayoutProps {
   sections: DocNavSection[]
@@ -13,8 +31,9 @@ interface DocsLayoutProps {
 
 export function DocsLayout({ sections, children }: DocsLayoutProps) {
   const pathname = useRouterState({ select: s => s.location.pathname })
+  const progress = useReadingProgress()
 
-  // Derive active section + page label + next page from sections + current pathname
+  // Derive active section + page label + prev/next from sections + current pathname
   let sectionTitle: string | null = null
   let pageLabel: string | null = null
   const flat = sections.flatMap(s => s.items)
@@ -34,111 +53,122 @@ export function DocsLayout({ sections, children }: DocsLayoutProps) {
     if (pageLabel)
       break
   }
+  const prevPage = activeIdx > 0 ? (flat[activeIdx - 1] ?? null) : null
   const nextPage = activeIdx !== -1 ? (flat[activeIdx + 1] ?? null) : null
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar>
-        <NavbarGroup align={Alignment.LEFT}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
-          </Link>
-          <Divider />
-          <Link to="/docs" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" text="Docs" />
-          </Link>
-          <Link to="/blog" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" text="Blog" />
-          </Link>
-        </NavbarGroup>
-        <NavbarGroup align={Alignment.RIGHT}>
-          <ThemeToggle />
-        </NavbarGroup>
-      </Navbar>
+    <PageLayout>
+      <Box className={styles.page}>
+        {/* Reading progress bar */}
+        <div className={styles.readingBar} style={{ width: `${progress}%` }} />
 
-      <div
-        style={{
-          display: 'flex',
-          flex: 1,
-          maxWidth: 1200,
-          margin: '0 auto',
-          width: '100%',
-          padding: '0 1rem',
-        }}
-      >
-        {/* Sidebar */}
-        <aside
-          style={{
-            width: 240,
-            flexShrink: 0,
-            paddingTop: '1.5rem',
-            paddingRight: '1.5rem',
-            borderRight: '1px solid rgba(255,255,255,0.08)',
-          }}
-        >
-          <DocsSidebar sections={sections} />
-        </aside>
+        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+          <NavbarGroup align={Alignment.LEFT}>
+            <Link to="/" className={styles.navLink}>
+              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
+            </Link>
+            <Divider />
+            <Link to="/docs" className={styles.navLink}>
+              <Button variant="minimal" text="Docs" />
+            </Link>
+            <Link to="/blog" className={styles.navLink}>
+              <Button variant="minimal" text="Blog" />
+            </Link>
+          </NavbarGroup>
+          <NavbarGroup align={Alignment.RIGHT}>
+            <ThemeToggle />
+          </NavbarGroup>
+        </Navbar>
 
-        {/* Content */}
-        <main
-          className={`${Classes.RUNNING_TEXT} mdx-content`}
-          style={{
-            flex: 1,
-            padding: '2rem 2rem 4rem',
-            minWidth: 0,
-          }}
-        >
-          {/* Breadcrumbs */}
-          {sectionTitle && pageLabel && (
-            <nav aria-label="Breadcrumb" style={{ marginBottom: '1.5rem' }}>
-              <ol style={{ display: 'flex', gap: 6, alignItems: 'center', listStyle: 'none', margin: 0, padding: 0, fontSize: 13 }}>
-                <li>
-                  <Link to="/docs" style={{ color: '#8f99a8', textDecoration: 'none' }}>
-                    Docs
-                  </Link>
-                </li>
-                <li style={{ color: '#5f6b7c' }}>›</li>
-                <li style={{ color: '#8f99a8' }}>{sectionTitle}</li>
-                <li style={{ color: '#5f6b7c' }}>›</li>
-                <li style={{ color: '#abb3bf' }}>{pageLabel}</li>
-              </ol>
-            </nav>
-          )}
-          {children}
+        <div className={styles.body}>
+          {/* Sidebar — sticky with own scroll */}
+          <aside className={styles.sidebar}>
+            <DocsSidebar sections={sections} />
+          </aside>
 
-          {/* What's next */}
-          {nextPage && (() => {
-            const isRoot = nextPage.slug === 'index'
-            const cleanSlug = nextPage.slug.replace(INDEX_SUFFIX_RE, '')
-            return (
-              <div style={{ marginTop: '3rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#5f6b7c', marginBottom: '0.75rem' }}>
-                  What&apos;s next
-                </p>
-                <Link
-                  to={isRoot ? '/docs' : '/docs/$'}
-                  params={isRoot ? undefined : { _splat: cleanSlug }}
-                  style={{ textDecoration: 'none' }}
-                >
-                  <Card
-                    elevation={Elevation.ONE}
-                    interactive
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem' }}
-                  >
-                    <div>
-                      <p style={{ fontWeight: 600, margin: '0 0 0.2rem', fontSize: 15 }}>{nextPage.label}</p>
-                      {nextPage.frontmatter.description && (
-                        <p style={{ margin: 0, fontSize: 13, color: '#8f99a8' }}>{nextPage.frontmatter.description}</p>
-                      )}
-                    </div>
-                    <IconArrowRight size={18} style={{ color: '#5f6b7c', flexShrink: 0 }} />
-                  </Card>
-                </Link>
-              </div>
-            )
-          })()}
-        </main>
-      </div>
-    </div>
+          {/* Content */}
+          <main className={`${Classes.RUNNING_TEXT} mdx-content ${styles.main}`}>
+            {/* Breadcrumbs */}
+            {sectionTitle && pageLabel && (
+              <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
+                <Flex asChild gap={2} alignItems="center" className={styles.breadcrumbList}>
+                  <ol>
+                    <li>
+                      <Link to="/docs" className={Classes.TEXT_MUTED} style={{ textDecoration: 'none' }}>
+                        Docs
+                      </Link>
+                    </li>
+                    <li className={Classes.TEXT_MUTED}>›</li>
+                    <li className={Classes.TEXT_MUTED}>{sectionTitle}</li>
+                    <li className={Classes.TEXT_MUTED}>›</li>
+                    <li className={Classes.TEXT_DISABLED}>{pageLabel}</li>
+                  </ol>
+                </Flex>
+              </nav>
+            )}
+            {children}
+
+            {/* Prev / Next navigation */}
+            {(prevPage || nextPage) && (
+              <Flex justifyContent="space-between" gap={4} className={styles.prevNextNav}>
+                {prevPage
+                  ? (() => {
+                      const isRoot = prevPage.slug === 'index'
+                      const cleanSlug = prevPage.slug.replace(INDEX_SUFFIX_RE, '')
+                      return (
+                        <Link
+                          to={isRoot ? '/docs' : '/docs/$'}
+                          params={isRoot ? undefined : { _splat: cleanSlug }}
+                          className={`${styles.navLink}`}
+                          style={{ flex: 1 }}
+                        >
+                          <Card elevation={Elevation.ONE} interactive style={{ height: '100%' }}>
+                            <Flex alignItems="center" gap={3} padding={3}>
+                              <IconArrowLeft size={16} className={Classes.TEXT_MUTED} style={{ flexShrink: 0 }} />
+                              <Box>
+                                <p className={styles.navCardLabel}>Previous</p>
+                                <p className={styles.navCardTitle}>{prevPage.label}</p>
+                                {prevPage.frontmatter.description && (
+                                  <p className={styles.navCardDesc}>{prevPage.frontmatter.description}</p>
+                                )}
+                              </Box>
+                            </Flex>
+                          </Card>
+                        </Link>
+                      )
+                    })()
+                  : <Box flex="1" />}
+
+                {nextPage && (() => {
+                  const isRoot = nextPage.slug === 'index'
+                  const cleanSlug = nextPage.slug.replace(INDEX_SUFFIX_RE, '')
+                  return (
+                    <Link
+                      to={isRoot ? '/docs' : '/docs/$'}
+                      params={isRoot ? undefined : { _splat: cleanSlug }}
+                      className={styles.navLink}
+                      style={{ flex: 1 }}
+                    >
+                      <Card elevation={Elevation.ONE} interactive style={{ height: '100%' }}>
+                        <Flex justifyContent="end" alignItems="center" gap={3} padding={3}>
+                          <Box style={{ textAlign: 'right' }}>
+                            <p className={styles.navCardLabel}>Next</p>
+                            <p className={styles.navCardTitle}>{nextPage.label}</p>
+                            {nextPage.frontmatter.description && (
+                              <p className={styles.navCardDesc}>{nextPage.frontmatter.description}</p>
+                            )}
+                          </Box>
+                          <IconArrowRight size={16} className={Classes.TEXT_MUTED} style={{ flexShrink: 0 }} />
+                        </Flex>
+                      </Card>
+                    </Link>
+                  )
+                })()}
+              </Flex>
+            )}
+          </main>
+        </div>
+      </Box>
+    </PageLayout>
   )
 }

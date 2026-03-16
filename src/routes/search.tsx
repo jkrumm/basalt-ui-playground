@@ -13,12 +13,16 @@ import {
   NavbarHeading,
   Tag,
 } from '@blueprintjs/core'
-import { IconArrowLeft } from '@tabler/icons-react'
+import { Box, Flex } from '@blueprintjs/labs'
+import { IconArrowLeft, IconSearch } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import Fuse from 'fuse.js'
 import { useMemo, useState } from 'react'
+import { PageLayout } from '../components/layout/PageLayout'
 import { ThemeToggle } from '../components/ThemeToggle'
+import { EVENTS, track } from '../lib/analytics'
 import { getSearchIndex, INDEX_SUFFIX_RE } from '../lib/content'
+import styles from './search.module.css'
 
 export const Route = createFileRoute('/search')({
   loader: (): SearchDocument[] => getSearchIndex(),
@@ -58,100 +62,100 @@ function SearchPage() {
   }, [fuse, query])
 
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 64 }}>
-      <Navbar>
-        <NavbarGroup align={Alignment.LEFT}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
-          </Link>
-          <Divider />
-          <NavbarHeading>Search</NavbarHeading>
-        </NavbarGroup>
-        <NavbarGroup align={Alignment.RIGHT}>
-          <ThemeToggle />
-        </NavbarGroup>
-      </Navbar>
-
-      <div style={{ maxWidth: 720, margin: '2rem auto', padding: '0 1.25rem' }}>
-        <H1 style={{ marginBottom: '1.5rem' }}>Search</H1>
-
-        <InputGroup
-          large
-          leftIcon="search"
-          placeholder="Search blog posts and docs…"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          autoFocus
-          style={{ marginBottom: '1.5rem' }}
-        />
-
-        {query.trim() && results.length === 0 && (
-          <p className={Classes.TEXT_MUTED}>
-            No results for &ldquo;
-            {query}
-            &rdquo;
-          </p>
-        )}
-
-        <div className="search-results">
-          {results.map(({ item }) => (
-            <Link
-              key={`${item.type}/${item.slug}`}
-              to={item.type === 'blog' ? '/blog/$slug' : '/docs/$'}
-              params={
-                item.type === 'blog'
-                  ? { slug: item.slug }
-                  : { _splat: item.slug.replace(INDEX_SUFFIX_RE, '') }
-              }
-              style={{ textDecoration: 'none' }}
-            >
-              <Card elevation={Elevation.ONE} interactive style={{ padding: '1rem' }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: '0.35rem' }}>
-                  <span
-                    className="search-result-type"
-                    style={{ color: item.type === 'blog' ? '#2d72d2' : '#0d8050' }}
-                  >
-                    {item.type === 'blog' ? 'Blog' : 'Docs'}
-                  </span>
-                  {item.section && (
-                    <>
-                      <span style={{ color: '#5f6b7c', fontSize: 11 }}>›</span>
-                      <span style={{ color: '#5f6b7c', fontSize: 11 }}>{item.section}</span>
-                    </>
-                  )}
-                </div>
-                <p style={{ fontWeight: 600, margin: '0 0 0.25rem', fontSize: 15 }}>{item.title}</p>
-                <p style={{ color: '#8f99a8', margin: 0, fontSize: 13, lineHeight: 1.4 }}>{item.description}</p>
-                {item.tags && item.tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                    {item.tags.slice(0, 4).map(tag => (
-                      <Tag key={tag} minimal style={{ fontSize: 11 }}>
-                        {tag}
-                      </Tag>
-                    ))}
-                  </div>
-                )}
-              </Card>
+    <PageLayout>
+      <Box className={styles.page}>
+        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
+          <NavbarGroup align={Alignment.LEFT}>
+            <Link to="/" style={{ textDecoration: 'none' }}>
+              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
             </Link>
-          ))}
-        </div>
+            <Divider />
+            <NavbarHeading>Search</NavbarHeading>
+          </NavbarGroup>
+          <NavbarGroup align={Alignment.RIGHT}>
+            <ThemeToggle />
+          </NavbarGroup>
+        </Navbar>
 
-        {!query.trim() && (
-          <div style={{ marginTop: '2rem' }}>
-            <p className={Classes.TEXT_MUTED} style={{ fontSize: 13 }}>
-              Searching across
-              {' '}
-              {documents.filter(d => d.type === 'blog').length}
-              {' '}
-              blog posts and
-              {' '}
-              {documents.filter(d => d.type === 'docs').length}
-              {' '}
-              docs pages.
+        <Box className={styles.container}>
+          <H1 style={{ marginBottom: '1.5rem' }}>Search</H1>
+
+          <InputGroup
+            large
+            leftIcon={<IconSearch size={16} />}
+            placeholder="Search blog posts and docs…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            autoFocus
+            style={{ marginBottom: '1.5rem' }}
+          />
+
+          {query.trim() && results.length === 0 && (
+            <p className={Classes.TEXT_MUTED}>
+              No results for &ldquo;
+              {query}
+              &rdquo;
             </p>
-          </div>
-        )}
-      </div>
-    </div>
+          )}
+
+          <Flex flexDirection="column" gap={2}>
+            {results.map(({ item }) => (
+              <Link
+                key={`${item.type}/${item.slug}`}
+                to={item.type === 'blog' ? '/blog/$slug' : '/docs/$'}
+                params={
+                  item.type === 'blog'
+                    ? { slug: item.slug }
+                    : { _splat: item.slug.replace(INDEX_SUFFIX_RE, '') }
+                }
+                style={{ textDecoration: 'none' }}
+                onClick={() => track(EVENTS.SEARCH_QUERY, { query: query.trim(), result_count: results.length })}
+              >
+                <Card elevation={Elevation.ONE} interactive style={{ padding: '1rem' }}>
+                  <Flex gap={2} alignItems="center" marginBottom={1}>
+                    <Tag intent={item.type === 'blog' ? 'primary' : 'success'} minimal>
+                      {item.type === 'blog' ? 'Blog' : 'Docs'}
+                    </Tag>
+                    {item.section && (
+                      <>
+                        <span className={Classes.TEXT_MUTED}>›</span>
+                        <span className={Classes.TEXT_MUTED}>{item.section}</span>
+                      </>
+                    )}
+                  </Flex>
+                  <p style={{ fontWeight: 600, margin: '0 0 0.25rem' }}>{item.title}</p>
+                  <p className={Classes.TEXT_MUTED} style={{ margin: 0, lineHeight: 1.4 }}>{item.description}</p>
+                  {item.tags && item.tags.length > 0 && (
+                    <Flex gap={1} flexWrap="wrap" marginTop={2}>
+                      {item.tags.slice(0, 4).map(tag => (
+                        <Tag key={tag} minimal>
+                          {tag}
+                        </Tag>
+                      ))}
+                    </Flex>
+                  )}
+                </Card>
+              </Link>
+            ))}
+          </Flex>
+
+          {!query.trim() && (
+            <Box marginTop={8}>
+              <p className={Classes.TEXT_MUTED}>
+                Searching across
+                {' '}
+                {documents.filter(d => d.type === 'blog').length}
+                {' '}
+                blog posts and
+                {' '}
+                {documents.filter(d => d.type === 'docs').length}
+                {' '}
+                docs pages.
+              </p>
+            </Box>
+          )}
+        </Box>
+      </Box>
+    </PageLayout>
   )
 }
