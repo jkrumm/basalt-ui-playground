@@ -33,4 +33,20 @@ export default antfu(
     plugins: { 'react-compiler': reactCompiler },
     rules: { 'react-compiler/react-compiler': 'error' },
   },
+  // Ban Blueprint icon name strings — use Tabler icon components exclusively
+  {
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXAttribute[name.name=/^(icon|leftIcon|rightIcon)$/][value.type=\'Literal\']',
+          message: 'Use a Tabler icon component instead of a Blueprint icon name string (e.g. leftIcon={<IconSearch size={16} />}).',
+        },
+        {
+          selector: 'ImportDeclaration[source.value=\'@blueprintjs/icons\']',
+          message: 'Import from @blueprintjs/icons is banned. Use @tabler/icons-react exclusively.',
+        },
+      ],
+    },
+  },
 )

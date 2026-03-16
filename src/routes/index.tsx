@@ -315,7 +315,7 @@ function CBBIDashboard() {
             <Link to="/table" style={{ textDecoration: 'none' }}>
               <Button variant="minimal" icon={<IconTable size={16} />} text="Table Study" />
             </Link>
-            <Link to="/blog" style={{ textDecoration: 'none' }}>
+            <Link to="/blog" search={{ tag: '' }} style={{ textDecoration: 'none' }}>
               <Button variant="minimal" icon={<IconNews size={16} />} text="Blog" />
             </Link>
             <Link to="/docs" style={{ textDecoration: 'none' }}>
@@ -466,7 +466,7 @@ function CBBIDashboard() {
                 active={viewMode === 'grid'}
                 onClick={() => {
                   setViewMode('grid')
-                  track(EVENTS.VIEW_TOGGLED, { view: 'grid' })
+                  track(EVENTS.VIEW_TOGGLED, { component: 'indicator-grid', view: 'grid' })
                 }}
               />
               <Button
@@ -475,7 +475,7 @@ function CBBIDashboard() {
                 active={viewMode === 'table'}
                 onClick={() => {
                   setViewMode('table')
-                  track(EVENTS.VIEW_TOGGLED, { view: 'table' })
+                  track(EVENTS.VIEW_TOGGLED, { component: 'indicator-grid', view: 'table' })
                 }}
               />
             </ButtonGroup>
@@ -484,7 +484,7 @@ function CBBIDashboard() {
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value)
-                track(EVENTS.SORT_CHANGED, { value: e.target.value })
+                track(EVENTS.TABLE_SORTED, { component: 'indicator-grid', value: e.target.value })
               }}
               options={[
                 { label: 'Default order', value: 'default' },

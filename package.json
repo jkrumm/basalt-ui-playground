@@ -11,11 +11,11 @@
     "lint:fix": "eslint src/ --fix",
     "typecheck": "tsc --noEmit",
     "start": "bun run server.ts",
-    "pre": "bun run typecheck && bun run lint"
+    "stylelint": "stylelint 'src/**/*.css'",
+    "pre": "bun run typecheck && bun run lint && bun run stylelint"
   },
   "dependencies": {
     "@blueprintjs/core": "^6.10.0",
-    "@blueprintjs/icons": "^6.7.0",
     "@blueprintjs/labs": "^6.2.3",
     "@blueprintjs/table": "^6.0.19",
     "@fontsource-variable/geist": "^5.2.8",
@@ -46,6 +46,7 @@
     "@antfu/eslint-config": "^7.7.2",
     "@babel/core": "^7.29.0",
     "@blueprintjs/eslint-plugin": "^6.1.23",
+    "@blueprintjs/stylelint-plugin": "^5.2.1",
     "@eslint-react/eslint-plugin": "^2.13.0",
     "@rolldown/plugin-babel": "^0.2.1",
     "@tanstack/eslint-plugin-router": "^1.161.4",
@@ -60,6 +61,9 @@
     "eslint-plugin-react-compiler": "^19.1.0-rc.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "stylelint": "^17.4.0",
+    "stylelint-config-css-modules": "^4.6.0",
+    "stylelint-config-standard": "^40.0.0",
     "typescript": "6.0.1-rc",
     "vite": "^8.0.0",
     "vite-tsconfig-paths": "^6.1.1"

@@ -1,3 +1,4 @@
+import type { Static } from '@sinclair/typebox'
 import type { BlogPost } from '../../lib/content'
 import {
   Alignment,
@@ -10,17 +11,27 @@ import {
   Tag,
 } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
+import { Type } from '@sinclair/typebox'
+import { Value } from '@sinclair/typebox/value'
 import { IconArrowLeft } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { BlogPostCard } from '../../components/content/BlogPostCard'
 import { PageLayout } from '../../components/layout/PageLayout'
 import { ThemeToggle } from '../../components/ThemeToggle'
-import { EVENTS, track } from '../../lib/analytics'
 import { getBlogList } from '../../lib/content'
 import styles from './index.module.css'
 
+const BlogSearchSchema = Type.Object({
+  tag: Type.String({ default: '' }),
+})
+type BlogSearchParams = Static<typeof BlogSearchSchema>
+
 export const Route = createFileRoute('/blog/')({
+  validateSearch: (search: Record<string, unknown>): BlogSearchParams => {
+    const result = Value.Default(BlogSearchSchema, { ...search })
+    return Value.Check(BlogSearchSchema, result) ? result as BlogSearchParams : { tag: '' }
+  },
   // getBlogList reads eagerly-bundled glob data — safe to call directly in the loader,
   // no createServerFn needed. Running isomorphically avoids HTTP round-trips during
   // prerendering that cause ETIMEDOUT when the prerender server is shutting down.
@@ -37,7 +48,7 @@ export const Route = createFileRoute('/blog/')({
 
 function BlogListingPage() {
   const posts = Route.useLoaderData()
-  const [activeTag, setActiveTag] = useState<string | null>(null)
+  const { tag: activeTag } = Route.useSearch()
 
   const allTags = useMemo(() => {
     const seen = new Set<string>()
@@ -73,30 +84,29 @@ function BlogListingPage() {
 
           {allTags.length > 0 && (
             <Flex gap={2} flexWrap="wrap" marginBottom={6}>
-              <Tag
-                interactive
-                intent={activeTag === null ? 'primary' : 'none'}
-                onClick={() => {
-                  setActiveTag(null)
-                  track(EVENTS.BLOG_TAG_FILTER, { tag: 'all' })
-                }}
-              >
-                All
-              </Tag>
-              {allTags.map(tag => (
+              <Link to="/blog" search={{ tag: '' }} style={{ textDecoration: 'none' }}>
                 <Tag
-                  key={tag}
                   interactive
-                  minimal={activeTag !== tag}
-                  intent={activeTag === tag ? 'primary' : 'none'}
-                  onClick={() => {
-                    const next = activeTag === tag ? null : tag
-                    setActiveTag(next)
-                    track(EVENTS.BLOG_TAG_FILTER, { tag: next ?? 'all' })
-                  }}
+                  intent={!activeTag ? 'primary' : 'none'}
                 >
-                  {tag}
+                  All
                 </Tag>
+              </Link>
+              {allTags.map(tag => (
+                <Link
+                  key={tag}
+                  to="/blog"
+                  search={{ tag: activeTag === tag ? '' : tag }}
+                  style={{ textDecoration: 'none' }}
+                >
+                  <Tag
+                    interactive
+                    minimal={activeTag !== tag}
+                    intent={activeTag === tag ? 'primary' : 'none'}
+                  >
+                    {tag}
+                  </Tag>
+                </Link>
               ))}
             </Flex>
           )}

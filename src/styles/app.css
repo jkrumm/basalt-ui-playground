@@ -1,33 +1,46 @@
 /* Variable fonts — before Blueprint so @font-face is declared first */
 @import '@fontsource-variable/geist';
-@import './mdx.css';
 @import '@fontsource-variable/jetbrains-mono';
+@import './mdx.css';
 
-/* Blueprint v6 — icons before core, table after core */
-@import '@blueprintjs/icons/lib/css/blueprint-icons.css';
+/* Blueprint v6 — core, table, labs (icons package omitted: Tabler icons used exclusively) */
 @import '@blueprintjs/core/lib/css/blueprint.css';
 @import '@blueprintjs/table/lib/css/table.css';
+@import '@blueprintjs/labs/lib/css/blueprint-labs.css';
+
+/* ── Override Blueprint font vars ───────────────────────────────────────────
+   Blueprint v6 uses CSS custom properties for font families. Overriding them
+   here propagates our custom fonts to all Blueprint components automatically.
+   ──────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bp-typography-family-default: 'Geist Variable', -apple-system, 'BlinkMacSystemFont', sans-serif;
+  --bp-typography-family-mono: 'JetBrains Mono Variable', monospace;
+}
 
 /* ── Font overrides ─────────────────────────────────────────────────────────
-   Blueprint v6 sets font-family directly on body (no CSS vars) — we override
-   it here after importing Blueprint's CSS so specificity wins.
+   Blueprint v6 sets font-family directly on body — we override it after
+   importing Blueprint's CSS so our vars take effect.
    ──────────────────────────────────────────────────────────────────────── */
 
 body {
   margin: 0;
-  background-color: #fff;
-  font-family:
-    'Geist Variable',
-    -apple-system,
-    'BlinkMacSystemFont',
-    sans-serif;
+  background-color: var(--bp-surface-background-color-default-rest);
+  font-family: var(--bp-typography-family-default);
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body.bp6-dark {
-  background-color: #1c2127;
+  background-color: var(--bp-palette-dark-gray-1);
+}
+
+/* Bare code/pre — lower specificity, must precede .bp6-running-text code/pre */
+code,
+pre {
+  font-family: var(--bp-typography-family-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* All Blueprint monospace / data selectors → JetBrains Mono Variable */
@@ -38,10 +51,8 @@ body.bp6-dark {
 .bp6-code,
 .bp6-code-block,
 .bp6-running-text code,
-.bp6-running-text pre,
-code,
-pre {
-  font-family: 'JetBrains Mono Variable', monospace;
+.bp6-running-text pre {
+  font-family: var(--bp-typography-family-mono);
   font-variant-numeric: tabular-nums;
 }
 
@@ -51,6 +62,9 @@ pre {
 
 .bp6-running-text h1,
 h1.bp6-heading {
+  /* stylelint-disable-next-line declaration-property-value-allowed-list --
+     Blueprint has no font-weight token above bold(600); 700 is intentional
+     for display headings to differentiate from body bold */
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -58,14 +72,14 @@ h1.bp6-heading {
 
 .bp6-running-text h2,
 h2.bp6-heading {
-  font-weight: 600;
+  font-weight: var(--bp-typography-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .bp6-running-text h3,
 h3.bp6-heading {
-  font-weight: 600;
+  font-weight: var(--bp-typography-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
@@ -86,7 +100,10 @@ h6.bp6-heading {
 
 /* KPI numbers — light weight at large sizes looks more elegant than 400 */
 .text-kpi {
-  font-family: 'JetBrains Mono Variable', monospace;
+  font-family: var(--bp-typography-family-mono);
+  /* stylelint-disable-next-line declaration-property-value-allowed-list --
+     Blueprint has no weight token below default(400); 300 is intentional
+     for large KPI display numbers where lightness reads as elegance */
   font-weight: 300;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
@@ -94,40 +111,19 @@ h6.bp6-heading {
 
 /* UI labels / badges — compact uppercase metadata */
 .text-label {
-  font-family: 'Geist Variable', sans-serif;
-  font-weight: 500;
+  font-family: var(--bp-typography-family-default);
+  font-weight: var(--bp-typography-weight-bold);
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
 
-.cbbi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
-}
+/* ── Global data / typography utilities ─────────────────────────────────── */
 
-.cbbi-indicator-card {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cbbi-indicator-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.cbbi-confidence-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 16px;
-}
+/* Component-scoped layout lives in *.module.css files colocated with TSX.  */
 
 .cbbi-meta {
-  color: #8f99a8;
-  font-size: 12px;
+  color: var(--bp-typography-color-muted);
+  font-size: var(--bp-typography-size-body-small);
   line-height: 1.4;
   margin: 0;
 }
@@ -135,11 +131,11 @@ h6.bp6-heading {
 .cbbi-source {
   margin-top: 24px;
   text-align: center;
-  color: #5f6b7c;
-  font-size: 12px;
+  color: var(--bp-typography-color-muted);
+  font-size: var(--bp-typography-size-body-small);
 }
 
 .cbbi-source a {
-  color: #5f6b7c;
+  color: var(--bp-typography-color-muted);
   text-decoration: underline;
 }

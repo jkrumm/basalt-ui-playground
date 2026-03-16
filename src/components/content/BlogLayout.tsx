@@ -43,7 +43,7 @@ export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts 
 
         <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
           <NavbarGroup align={Alignment.LEFT}>
-            <Link to="/blog" className={styles.navLink}>
+            <Link to="/blog" search={{ tag: '' }} className={styles.navLink}>
               <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="Blog" />
             </Link>
             <Divider />
@@ -129,9 +129,9 @@ export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts 
 
               <Flex gap={2} flexWrap="wrap">
                 {frontmatter.tags.map(tag => (
-                  <Tag key={tag} minimal>
-                    {tag}
-                  </Tag>
+                  <Link key={tag} to="/blog" search={{ tag }} style={{ textDecoration: 'none' }}>
+                    <Tag minimal interactive>{tag}</Tag>
+                  </Link>
                 ))}
               </Flex>
 

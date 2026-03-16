@@ -1,5 +1,6 @@
 import type { DocsFrontmatter } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
+import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { DocsLayout } from '../../components/content/DocsLayout'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
@@ -56,7 +57,7 @@ function DocsPage() {
     <DocsLayout sections={sections}>
       {MdxContent
         ? <MdxContent components={mdxComponents} />
-        : <NonIdealState icon="error" title="Page not found" />}
+        : <NonIdealState icon={<IconAlertCircle size={40} />} title="Page not found" />}
     </DocsLayout>
   )
 }

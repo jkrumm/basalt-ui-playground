@@ -1,9 +1,12 @@
 import type { SearchDocument } from '../../lib/content'
 import { Card, Classes, Dialog, Elevation, InputGroup, Tag } from '@blueprintjs/core'
+import { Box, Flex } from '@blueprintjs/labs'
+import { IconSearch } from '@tabler/icons-react'
 import { Link } from '@tanstack/react-router'
 import Fuse from 'fuse.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getSearchIndex, INDEX_SUFFIX_RE } from '../../lib/content'
+import styles from './SearchModal.module.css'
 
 interface SearchModalProps {
   isOpen: boolean
@@ -57,43 +60,23 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       canEscapeKeyClose
       style={{ width: 600, padding: 0, overflow: 'hidden' }}
     >
-      <div style={{ padding: '1rem 1rem 0' }}>
+      <Box className={styles.inputWrapper}>
         <InputGroup
           inputRef={inputRef}
           large
-          leftIcon="search"
+          leftIcon={<IconSearch size={16} />}
           placeholder="Search posts and docs…"
           value={query}
           onChange={e => setQuery(e.target.value)}
           rightElement={(
-            <kbd
-              style={{
-                fontSize: 11,
-                color: '#8f99a8',
-                backgroundColor: 'rgba(255,255,255,0.07)',
-                border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 4,
-                padding: '2px 6px',
-                margin: '6px 8px 0 0',
-                display: 'inline-block',
-              }}
-            >
-              ESC
-            </kbd>
+            <kbd className={styles.kbdHint}>ESC</kbd>
           )}
         />
-      </div>
+      </Box>
 
-      <div
-        style={{
-          maxHeight: 420,
-          overflowY: 'auto',
-          padding: '0.5rem 1rem 1rem',
-          marginTop: '0.5rem',
-        }}
-      >
+      <Box className={styles.results}>
         {query.trim() && results.length === 0 && (
-          <p className={Classes.TEXT_MUTED} style={{ fontSize: 13, padding: '0.5rem 0' }}>
+          <p className={`${Classes.TEXT_MUTED} ${styles.resultDesc}`} style={{ padding: '0.5rem 0' }}>
             No results for &ldquo;
             {query}
             &rdquo;
@@ -101,14 +84,14 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         )}
 
         {!query.trim() && (
-          <p className={Classes.TEXT_MUTED} style={{ fontSize: 12, padding: '0.25rem 0 0' }}>
+          <p className={`${Classes.TEXT_MUTED} ${styles.resultDesc}`} style={{ padding: '0.25rem 0 0' }}>
             {documents.length > 0
               ? `Searching across ${documents.filter(d => d.type === 'blog').length} blog posts and ${documents.filter(d => d.type === 'docs').length} docs pages`
               : 'Loading…'}
           </p>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <Flex flexDirection="column" gap={2}>
           {results.map(({ item }) => (
             <Link
               key={`${item.type}/${item.slug}`}
@@ -118,45 +101,37 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                   ? { slug: item.slug }
                   : { _splat: item.slug.replace(INDEX_SUFFIX_RE, '') }
               }
-              style={{ textDecoration: 'none' }}
+              className={styles.navLink}
               onClick={onClose}
             >
               <Card elevation={Elevation.ONE} interactive style={{ padding: '0.75rem 1rem' }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: '0.2rem' }}>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 600,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      color: item.type === 'blog' ? '#2d72d2' : '#0d8050',
-                    }}
-                  >
+                <Flex gap={2} alignItems="center" marginBottom={0.5}>
+                  <Tag intent={item.type === 'blog' ? 'primary' : 'success'} minimal>
                     {item.type === 'blog' ? 'Blog' : 'Docs'}
-                  </span>
+                  </Tag>
                   {item.section && (
                     <>
-                      <span style={{ color: '#5f6b7c', fontSize: 11 }}>›</span>
-                      <span style={{ color: '#5f6b7c', fontSize: 11 }}>{item.section}</span>
+                      <span className={Classes.TEXT_MUTED}>›</span>
+                      <span className={Classes.TEXT_MUTED}>{item.section}</span>
                     </>
                   )}
-                </div>
-                <p style={{ fontWeight: 600, margin: '0 0 0.15rem', fontSize: 14 }}>{item.title}</p>
-                <p style={{ color: '#8f99a8', margin: 0, fontSize: 12, lineHeight: 1.4 }}>{item.description}</p>
+                </Flex>
+                <p className={styles.resultTitle}>{item.title}</p>
+                <p className={styles.resultDesc}>{item.description}</p>
                 {item.tags && item.tags.length > 0 && (
-                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: '0.4rem' }}>
+                  <Flex gap={1} flexWrap="wrap" marginTop={2}>
                     {item.tags.slice(0, 3).map(tag => (
-                      <Tag key={tag} minimal style={{ fontSize: 10 }}>
+                      <Tag key={tag} minimal>
                         {tag}
                       </Tag>
                     ))}
-                  </div>
+                  </Flex>
                 )}
               </Card>
             </Link>
           ))}
-        </div>
-      </div>
+        </Flex>
+      </Box>
     </Dialog>
   )
 }

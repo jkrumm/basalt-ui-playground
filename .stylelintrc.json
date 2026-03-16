@@ -1,0 +1,69 @@
+{
+  "extends": ["stylelint-config-standard", "stylelint-config-css-modules"],
+  "plugins": ["@blueprintjs/stylelint-plugin"],
+  "rules": {
+    "@blueprintjs/no-prefix-literal": true,
+
+    "import-notation": "string",
+
+    "color-named": "never",
+
+    "declaration-property-value-allowed-list": {
+      "color": ["/^var\\(--bp-/", "inherit", "transparent", "currentColor"],
+      "background-color": ["/^var\\(--bp-/", "inherit", "transparent"],
+      "border-color": ["/^var\\(--bp-/", "inherit", "transparent"],
+      "fill": ["/^var\\(--bp-/", "inherit", "transparent", "currentColor"],
+      "font-family": ["/^var\\(--bp-/", "inherit"],
+      "font-size": ["/^var\\(--bp-/", "inherit"],
+      "font-weight": ["/^var\\(--bp-/", "inherit"],
+      "border-radius": ["/^var\\(--bp-/", "0", "50%"],
+      "box-shadow": ["/^var\\(--bp-/", "none"],
+      "z-index": ["/^var\\(--bp-/", "auto", "-1"]
+    },
+
+    "declaration-property-value-disallowed-list": [
+      { "display": ["flex", "inline-flex", "grid", "inline-grid"] },
+      {
+        "message": "Use Blueprint Labs <Box> or <Flex> component instead of CSS flex/grid. Add a disable comment with justification if raw CSS layout is unavoidable (e.g. pseudo-elements, page shell calc())."
+      }
+    ],
+
+    "property-disallowed-list": [
+      [
+        "justify-content",
+        "align-items",
+        "align-self",
+        "align-content",
+        "flex-direction",
+        "flex-wrap",
+        "flex-grow",
+        "flex-shrink",
+        "flex-basis",
+        "gap",
+        "row-gap",
+        "column-gap",
+        "grid-template-columns",
+        "grid-template-rows",
+        "grid-template-areas",
+        "grid-column",
+        "grid-row",
+        "grid-area"
+      ],
+      {
+        "message": "Use Blueprint Labs <Box> / <Flex> component props (justifyContent, alignItems, gap, flexDirection, etc.) instead. Add a disable comment with justification if raw CSS is unavoidable (e.g. pseudo-elements, auto-fill responsive grids)."
+      }
+    ]
+  },
+
+  "overrides": [
+    {
+      "files": ["**/*.module.css"],
+      "rules": {
+        "selector-class-pattern": [
+          "^[a-z][a-zA-Z0-9]*$",
+          { "message": "CSS Module class names should be camelCase (e.g. .myClass)" }
+        ]
+      }
+    }
+  ]
+}

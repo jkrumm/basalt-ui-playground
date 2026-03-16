@@ -1,6 +1,6 @@
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
-import type { CSSProperties } from 'react'
 import { Alignment, Callout, Card, Code, Divider, Elevation, H3, H4, HTMLTable, Intent, Navbar, NavbarGroup, NavbarHeading, ProgressBar, Spinner, Tag } from '@blueprintjs/core'
+import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowDown, IconArrowsUpDown, IconArrowUp, IconChevronLeft } from '@tabler/icons-react'
 /**
  * Table Comparison Route — /table
@@ -34,6 +34,7 @@ import {
   useState,
 } from 'react'
 import { ThemeToggle } from '../components/ThemeToggle'
+import styles from './table.module.css'
 
 // ---------------------------------------------------------------------------
 // Blueprint Table — lazy so it never runs on the server
@@ -182,12 +183,12 @@ const COLUMNS: ColumnDef<IndicatorRow>[] = [
 // Sort icon helper
 // ---------------------------------------------------------------------------
 function SortIcon({ dir }: { dir: 'asc' | 'desc' | false }) {
-  const style: CSSProperties = { verticalAlign: 'middle', marginLeft: 4, opacity: dir ? 1 : 0.3 }
+  const className = dir ? styles.sortIconActive : styles.sortIcon
   if (dir === 'asc')
-    return <IconArrowUp size={12} style={style} />
+    return <IconArrowUp size={12} className={className} />
   if (dir === 'desc')
-    return <IconArrowDown size={12} style={style} />
-  return <IconArrowsUpDown size={12} style={style} />
+    return <IconArrowDown size={12} className={className} />
+  return <IconArrowsUpDown size={12} className={className} />
 }
 
 // ---------------------------------------------------------------------------
@@ -260,8 +261,8 @@ function TableComparison() {
   useEffect(() => setIsMounted(true), [])
 
   return (
-    <div style={{ minHeight: '100vh', paddingBottom: 64 }}>
-      <Navbar>
+    <Box className={styles.page}>
+      <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
         <NavbarGroup align={Alignment.START}>
           <Link to="/" style={{ textDecoration: 'none' }}>
             <NavbarHeading style={{ cursor: 'pointer' }}>
@@ -279,7 +280,7 @@ function TableComparison() {
         </NavbarGroup>
       </Navbar>
 
-      <div style={{ maxWidth: 1000, margin: '32px auto', padding: '0 20px' }}>
+      <Box className={styles.container}>
 
         {/* ---------------------------------------------------------------- */}
         {/* 1. TanStack Table — SSR-safe                                      */}
@@ -332,8 +333,10 @@ function TableComparison() {
           ? (
               <Suspense
                 fallback={(
-                  <Card elevation={Elevation.ONE} style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Spinner size={40} />
+                  <Card elevation={Elevation.ONE}>
+                    <Flex alignItems="center" justifyContent="center" style={{ height: 320 }}>
+                      <Spinner size={40} />
+                    </Flex>
                   </Card>
                 )}
               >
@@ -341,8 +344,10 @@ function TableComparison() {
               </Suspense>
             )
           : (
-              <Card elevation={Elevation.ONE} style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Spinner size={40} />
+              <Card elevation={Elevation.ONE}>
+                <Flex alignItems="center" justifyContent="center" style={{ height: 320 }}>
+                  <Spinner size={40} />
+                </Flex>
               </Card>
             )}
 
@@ -378,7 +383,7 @@ function TableComparison() {
           </tbody>
         </HTMLTable>
 
-      </div>
-    </div>
+      </Box>
+    </Box>
   )
 }

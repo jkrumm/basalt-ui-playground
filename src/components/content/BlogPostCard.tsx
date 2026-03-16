@@ -1,5 +1,7 @@
 import type { BlogPost } from '../../lib/content'
 import { Card, Elevation, H5, Tag } from '@blueprintjs/core'
+import { Flex } from '@blueprintjs/labs'
+import styles from './BlogPostCard.module.css'
 
 interface BlogPostCardProps {
   post: BlogPost
@@ -9,28 +11,25 @@ export function BlogPostCard({ post }: BlogPostCardProps) {
   const { slug, frontmatter, readingTime } = post
 
   return (
-    // Outer <a> is handled by the parent Link — this card is the visual element
     <Card
       elevation={Elevation.ONE}
       interactive
-      style={{ padding: '1.25rem', height: '100%', cursor: 'pointer' }}
+      className={styles.card}
       data-slug={slug}
     >
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: '0.5rem' }}>
+      <Flex gap={2} flexWrap="wrap" marginBottom={2}>
         {frontmatter.tags.map(tag => (
           <Tag key={tag} minimal>
             {tag}
           </Tag>
         ))}
-      </div>
+      </Flex>
 
       <H5 style={{ marginBottom: '0.5rem' }}>{frontmatter.title}</H5>
 
-      <p style={{ color: '#8f99a8', fontSize: 14, marginBottom: '0.75rem', lineHeight: 1.5 }}>
-        {frontmatter.description}
-      </p>
+      <p className={styles.description}>{frontmatter.description}</p>
 
-      <div style={{ display: 'flex', gap: 8, color: '#5f6b7c', fontSize: 13 }}>
+      <Flex gap={2} className={styles.meta}>
         <span>
           {new Date(frontmatter.publishedAt).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -40,7 +39,7 @@ export function BlogPostCard({ post }: BlogPostCardProps) {
         </span>
         <span>·</span>
         <span>{readingTime}</span>
-      </div>
+      </Flex>
     </Card>
   )
 }

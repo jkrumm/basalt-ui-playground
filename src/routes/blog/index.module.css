@@ -1,0 +1,23 @@
+.page {
+  min-height: 100vh;
+  padding-bottom: 64px;
+}
+
+.container {
+  max-width: 960px;
+  margin: 2rem auto;
+  padding: 0 1.25rem;
+}
+
+.grid {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list --
+     CSS grid required for auto-fill responsive card layout; no equivalent
+     in Blueprint Box props (grid-template-columns with minmax is CSS-only) */
+  display: grid;
+  /* stylelint-disable-next-line property-disallowed-list --
+     auto-fill responsive column layout cannot be expressed as a Box prop */
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* stylelint-disable-next-line property-disallowed-list --
+     gap on a CSS grid root; Box gap prop only applies when Box is the container */
+  gap: 16px;
+}

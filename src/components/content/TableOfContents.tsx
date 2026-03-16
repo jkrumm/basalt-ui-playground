@@ -1,5 +1,6 @@
 import { Classes } from '@blueprintjs/core'
 import { useEffect, useState } from 'react'
+import styles from './TableOfContents.module.css'
 
 interface TocItem {
   id: string
@@ -63,54 +64,19 @@ export function TableOfContents({ contentSelector = '.mdx-content' }: TableOfCon
     return null
 
   return (
-    <nav
-      aria-label="Table of contents"
-      style={{
-        position: 'sticky',
-        top: '4rem',
-        maxHeight: 'calc(100vh - 6rem)',
-        overflowY: 'auto',
-        paddingBottom: '2rem',
-      }}
-    >
-      <p
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
-          marginBottom: '0.5rem',
-          marginTop: 0,
-          color: '#5f6b7c',
-        }}
-      >
-        On this page
-      </p>
-      <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <nav aria-label="Table of contents" className={styles.nav}>
+      <p className={styles.heading}>On this page</p>
+      <ul className={styles.list}>
         {items.map((item) => {
           const isActive = item.id === activeId
           return (
             <li
               key={item.id}
-              style={{
-                paddingLeft: item.depth === 3 ? 12 : 0,
-                borderLeft: isActive ? '2px solid #2D72D2' : '2px solid transparent',
-                transition: 'border-color 0.15s',
-              }}
+              className={`${isActive ? styles.itemActive : styles.itemInactive}${item.depth === 3 ? ` ${styles.itemIndented}` : ''}`}
             >
               <a
                 href={`#${item.id}`}
-                className={isActive ? undefined : Classes.TEXT_MUTED}
-                style={{
-                  display: 'block',
-                  fontSize: 13,
-                  lineHeight: 1.4,
-                  padding: '3px 6px',
-                  textDecoration: 'none',
-                  color: isActive ? '#2D72D2' : undefined,
-                  fontWeight: isActive ? 500 : undefined,
-                  transition: 'color 0.15s',
-                }}
+                className={`${styles.link} ${isActive ? styles.linkActive : Classes.TEXT_MUTED}`}
               >
                 {item.text}
               </a>

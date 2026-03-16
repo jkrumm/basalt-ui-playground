@@ -1,16 +1,17 @@
 export const EVENTS = {
   // Custom events only — things NOT auto-captured as pageviews
   SCROLL_DEPTH: 'scroll_depth', // { depth: 25|50|75|100, page: string }
-  BLOG_TAG_FILTER: 'blog_tag_filter', // { tag: string } — state-only, no route change
   SEARCH_OPENED: 'search_opened', // {} — modal open (Cmd+K or button)
   SEARCH_QUERY: 'search_query', // { query: string, result_count: number }
-  CHART_SELECTED: 'chart_selected', // { chart: string }
-  SORT_CHANGED: 'sort_changed', // { value: string }
-  VIEW_TOGGLED: 'view_toggled', // { view: string }
+  TABLE_SORTED: 'table_sorted', // { component: string, value: string }
+  VIEW_TOGGLED: 'view_toggled', // { component: string, view: string }
+  TIMEFRAME_CHANGED: 'timeframe_changed', // { component: string, value: string }
 } as const
 
-// BLOG_POST_VIEW intentionally absent — visiting /blog/$slug fires a pageview via
-// RouteTracker already. The URL captures which post was viewed.
+// Intentionally absent — captured as pageviews via RouteTracker:
+//   BLOG_TAG_FILTER — tag filter is now ?tag= URL param → pageview URL captures it
+//   BLOG_POST_VIEW  — /blog/$slug URL captures the post
+//   CHART_SELECTED  — no chart selection UI currently
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS]
 

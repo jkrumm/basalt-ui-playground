@@ -11,6 +11,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { EVENTS, track } from '../lib/analytics'
 import { formatDateShort, formatYear } from '../lib/date'
 
 // ---------------------------------------------------------------------------
@@ -154,7 +155,16 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <ButtonGroup>
           {(['6M', '1Y', '3Y', '6Y', 'ALL'] as ZoomKey[]).map(z => (
-            <Button key={z} small text={z} active={zoom === z} onClick={() => setZoom(z)} />
+            <Button
+              key={z}
+              small
+              text={z}
+              active={zoom === z}
+              onClick={() => {
+                setZoom(z)
+                track(EVENTS.TIMEFRAME_CHANGED, { component: 'cbbi-chart', value: z })
+              }}
+            />
           ))}
         </ButtonGroup>
         <span style={{ fontSize: 11, color: '#5f6b7c' }}>

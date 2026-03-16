@@ -1,5 +1,6 @@
 import type { BlogFrontmatter, BlogPost, PrevNext } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
+import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { BlogLayout } from '../../components/content/BlogLayout'
 import { RelatedPosts } from '../../components/content/RelatedPosts'
@@ -80,7 +81,7 @@ function BlogPostPage() {
     <BlogLayout frontmatter={frontmatter} readingTime={rt} seriesPosts={seriesPosts} currentSlug={slug} prevNext={prevNext}>
       {MdxContent
         ? <MdxContent components={mdxComponents} />
-        : <NonIdealState icon="error" title="Failed to load post" />}
+        : <NonIdealState icon={<IconAlertCircle size={40} />} title="Failed to load post" />}
       {related.length > 0 && <RelatedPosts posts={related} />}
     </BlogLayout>
   )

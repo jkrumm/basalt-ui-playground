@@ -71,7 +71,7 @@ export function DocsLayout({ sections, children }: DocsLayoutProps) {
             <Link to="/docs" className={styles.navLink}>
               <Button variant="minimal" text="Docs" />
             </Link>
-            <Link to="/blog" className={styles.navLink}>
+            <Link to="/blog" search={{ tag: '' }} className={styles.navLink}>
               <Button variant="minimal" text="Blog" />
             </Link>
           </NavbarGroup>
