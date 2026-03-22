@@ -1,26 +1,13 @@
 import type { Static } from '@sinclair/typebox'
 import type { BlockItem } from '../../lib/content'
-import {
-  Alignment,
-  Button,
-  Card,
-  Divider,
-  Elevation,
-  H1,
-  H5,
-  Navbar,
-  NavbarGroup,
-  NavbarHeading,
-  Tag,
-} from '@blueprintjs/core'
+import { Card, Elevation, H1, H5, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
-import { IconArrowLeft } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
+import { ContentNav } from '../../components/layout/ContentNav'
 import { PageLayout } from '../../components/layout/PageLayout'
-import { ThemeToggle } from '../../components/ThemeToggle'
 import { getBlockList } from '../../lib/content'
 import styles from './index.module.css'
 
@@ -63,18 +50,7 @@ function BlocksGalleryPage() {
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-          <NavbarGroup align={Alignment.LEFT}>
-            <Link to="/" style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
-            </Link>
-            <Divider />
-            <NavbarHeading>Blocks</NavbarHeading>
-          </NavbarGroup>
-          <NavbarGroup align={Alignment.RIGHT}>
-            <ThemeToggle />
-          </NavbarGroup>
-        </Navbar>
+        <ContentNav />
 
         <Box className={styles.container}>
           <H1 style={{ marginBottom: '1rem' }}>Blocks</H1>

@@ -1,26 +1,13 @@
 import type { ContentType } from '../lib/collection'
 import type { SearchDocument } from '../lib/content'
-import {
-  Alignment,
-  Button,
-  Card,
-  Classes,
-  Divider,
-  Elevation,
-  H1,
-  InputGroup,
-  Navbar,
-  NavbarGroup,
-  NavbarHeading,
-  Tag,
-} from '@blueprintjs/core'
+import { Card, Classes, Elevation, H1, InputGroup, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
-import { IconArrowLeft, IconSearch } from '@tabler/icons-react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { IconSearch } from '@tabler/icons-react'
+import { createFileRoute } from '@tanstack/react-router'
 import Fuse from 'fuse.js'
 import { useMemo, useState } from 'react'
+import { ContentNav } from '../components/layout/ContentNav'
 import { PageLayout } from '../components/layout/PageLayout'
-import { ThemeToggle } from '../components/ThemeToggle'
 import { EVENTS, track } from '../lib/analytics'
 import { getSearchIndex, INDEX_SUFFIX_RE } from '../lib/content'
 import styles from './search.module.css'
@@ -91,18 +78,7 @@ function SearchPage() {
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-          <NavbarGroup align={Alignment.LEFT}>
-            <Link to="/" style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
-            </Link>
-            <Divider />
-            <NavbarHeading>Search</NavbarHeading>
-          </NavbarGroup>
-          <NavbarGroup align={Alignment.RIGHT}>
-            <ThemeToggle />
-          </NavbarGroup>
-        </Navbar>
+        <ContentNav />
 
         <Box className={styles.container}>
           <H1 style={{ marginBottom: '1.5rem' }}>Search</H1>
