@@ -484,7 +484,7 @@ function CBBIDashboard() {
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value)
-                track(EVENTS.TABLE_SORTED, { component: 'indicator-grid', value: e.target.value })
+                track(EVENTS.SELECT_CHANGED, { component: 'indicator-grid', field: 'sort', value: e.target.value })
               }}
               options={[
                 { label: 'Default order', value: 'default' },

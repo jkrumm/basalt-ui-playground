@@ -47,13 +47,13 @@ function RootComponent() {
 
   useHotkey('Mod+K', () => {
     setSearchOpen(true)
-    track(EVENTS.SEARCH_OPENED)
+    track(EVENTS.SEARCH_OPENED, {})
   }, { preventDefault: true })
   // Allow any page's navbar to open the modal via a custom event
   useEffect(() => {
     const handler = () => {
       setSearchOpen(true)
-      track(EVENTS.SEARCH_OPENED)
+      track(EVENTS.SEARCH_OPENED, {})
     }
     window.addEventListener('open-search', handler)
     return () => window.removeEventListener('open-search', handler)
