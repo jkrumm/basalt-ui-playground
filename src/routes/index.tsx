@@ -31,7 +31,6 @@ import {
   IconLayoutGrid,
   IconLayoutList,
   IconNews,
-  IconSearch,
   IconTable,
 } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
@@ -274,7 +273,7 @@ function getSortedKeys(
 // ---------------------------------------------------------------------------
 
 function CBBIDashboard() {
-  const { price, confidence, indicators, date, history } = Route.useLoaderData()
+  const { price, confidence, indicators, history } = Route.useLoaderData()
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [sortBy, setSortBy] = useState('default')
   // Chart is client-only: useEffect never runs on server, so isMounted
@@ -310,17 +309,8 @@ function CBBIDashboard() {
             <Link to="/docs" style={{ textDecoration: 'none' }}>
               <Button variant="minimal" icon={<IconBook size={16} />} text="Docs" />
             </Link>
-            <Button
-              variant="minimal"
-              icon={<IconSearch size={16} />}
-              text="Search"
-              onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}
-            />
           </NavbarGroup>
           <NavbarGroup align={Alignment.END}>
-            <Tag large minimal style={{ marginRight: 8 }}>
-              {date}
-            </Tag>
             <Tag large>
               BTC $
               {fmtPrice(price)}
