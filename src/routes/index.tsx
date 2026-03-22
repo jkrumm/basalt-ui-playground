@@ -23,6 +23,7 @@ import {
 import { Box, Flex } from '@blueprintjs/labs'
 import {
   IconAlertTriangle,
+  IconBlocks,
   IconBook,
   IconCircleCheck,
   IconCircleX,
@@ -31,6 +32,7 @@ import {
   IconLayoutGrid,
   IconLayoutList,
   IconNews,
+  IconRoute,
   IconTable,
 } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
@@ -308,6 +310,12 @@ function CBBIDashboard() {
             </Link>
             <Link to="/docs" style={{ textDecoration: 'none' }}>
               <Button variant="minimal" icon={<IconBook size={16} />} text="Docs" />
+            </Link>
+            <Link to="/guides" search={{ category: '', difficulty: '' }} style={{ textDecoration: 'none' }}>
+              <Button variant="minimal" icon={<IconRoute size={16} />} text="Guides" />
+            </Link>
+            <Link to="/blocks" search={{ category: '' }} style={{ textDecoration: 'none' }}>
+              <Button variant="minimal" icon={<IconBlocks size={16} />} text="Blocks" />
             </Link>
           </NavbarGroup>
           <NavbarGroup align={Alignment.END}>

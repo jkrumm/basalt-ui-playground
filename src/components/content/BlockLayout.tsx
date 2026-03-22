@@ -1,20 +1,9 @@
 import type { HeadingItem } from '../../lib/collection'
 import type { BlockFrontmatter } from '../../lib/content'
-import {
-  Alignment,
-  Button,
-  Classes,
-  Divider,
-  H1,
-  Navbar,
-  NavbarGroup,
-  Tag,
-} from '@blueprintjs/core'
+import { Classes, H1, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
-import { IconArrowLeft } from '@tabler/icons-react'
-import { Link } from '@tanstack/react-router'
+import { ContentNav } from '../layout/ContentNav'
 import { PageLayout } from '../layout/PageLayout'
-import { ThemeToggle } from '../ThemeToggle'
 import styles from './BlockLayout.module.css'
 import { TableOfContents } from './TableOfContents'
 
@@ -28,23 +17,7 @@ export function BlockLayout({ frontmatter, headings, children }: BlockLayoutProp
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-          <NavbarGroup align={Alignment.LEFT}>
-            <Link to="/blocks" search={{ category: '' }} className={styles.navLink}>
-              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="Blocks" />
-            </Link>
-            <Divider />
-            <Link to="/docs" className={styles.navLink}>
-              <Button variant="minimal" text="Docs" />
-            </Link>
-            <Link to="/guides" search={{ category: '', difficulty: '' }} className={styles.navLink}>
-              <Button variant="minimal" text="Guides" />
-            </Link>
-          </NavbarGroup>
-          <NavbarGroup align={Alignment.RIGHT}>
-            <ThemeToggle />
-          </NavbarGroup>
-        </Navbar>
+        <ContentNav />
 
         <div className={styles.layout}>
           <div className={`mdx-prose ${styles.content}`}>

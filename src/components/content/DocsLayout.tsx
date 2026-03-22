@@ -1,13 +1,13 @@
 import type { HeadingItem } from '../../lib/collection'
 import type { DocNavSection } from '../../lib/content'
-import { Alignment, Button, Card, Classes, Divider, Elevation, Navbar, NavbarGroup } from '@blueprintjs/core'
+import { Card, Classes, Elevation } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useReadingProgress } from '../../hooks/useReadingProgress'
 import { INDEX_SUFFIX_RE } from '../../lib/content'
+import { ContentNav } from '../layout/ContentNav'
 import { PageLayout } from '../layout/PageLayout'
-import { ThemeToggle } from '../ThemeToggle'
 import styles from './DocsLayout.module.css'
 import { DocsSidebar } from './DocsSidebar'
 import { TableOfContents } from './TableOfContents'
@@ -51,23 +51,7 @@ export function DocsLayout({ sections, headings = [], children }: DocsLayoutProp
         {/* Reading progress bar */}
         <div className={styles.readingBar} style={{ width: `${progress}%` }} />
 
-        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-          <NavbarGroup align={Alignment.LEFT}>
-            <Link to="/" className={styles.navLink}>
-              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="CBBI" />
-            </Link>
-            <Divider />
-            <Link to="/docs" className={styles.navLink}>
-              <Button variant="minimal" text="Docs" />
-            </Link>
-            <Link to="/blog" search={{ tag: '' }} className={styles.navLink}>
-              <Button variant="minimal" text="Blog" />
-            </Link>
-          </NavbarGroup>
-          <NavbarGroup align={Alignment.RIGHT}>
-            <ThemeToggle />
-          </NavbarGroup>
-        </Navbar>
+        <ContentNav />
 
         <div className={styles.body}>
           {/* Sidebar — sticky with own scroll */}

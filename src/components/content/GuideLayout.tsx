@@ -1,11 +1,11 @@
 import type { GuideFrontmatter, GuideItem, HeadingItem } from '../../lib/content'
-import { Alignment, Button, Callout, Card, Classes, Divider, Elevation, H1, Navbar, NavbarGroup, Tag } from '@blueprintjs/core'
+import { Callout, Card, Classes, Elevation, H1, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft, IconArrowRight, IconClock } from '@tabler/icons-react'
 import { Link } from '@tanstack/react-router'
 import { useReadingProgress } from '../../hooks/useReadingProgress'
+import { ContentNav } from '../layout/ContentNav'
 import { PageLayout } from '../layout/PageLayout'
-import { ThemeToggle } from '../ThemeToggle'
 import styles from './GuideLayout.module.css'
 import { TableOfContents } from './TableOfContents'
 
@@ -34,23 +34,7 @@ export function GuideLayout({ frontmatter, readingTime, headings = [], prevNext,
         {/* Reading progress bar */}
         <div className={styles.readingBar} style={{ width: `${progress}%` }} />
 
-        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-          <NavbarGroup align={Alignment.LEFT}>
-            <Link to="/guides" search={{ category: '', difficulty: '' }} className={styles.navLink}>
-              <Button variant="minimal" icon={<IconArrowLeft size={16} />} text="Guides" />
-            </Link>
-            <Divider />
-            <Link to="/docs" className={styles.navLink}>
-              <Button variant="minimal" text="Docs" />
-            </Link>
-            <Link to="/blog" search={{ tag: '' }} className={styles.navLink}>
-              <Button variant="minimal" text="Blog" />
-            </Link>
-          </NavbarGroup>
-          <NavbarGroup align={Alignment.RIGHT}>
-            <ThemeToggle />
-          </NavbarGroup>
-        </Navbar>
+        <ContentNav />
 
         <div className={styles.layout}>
           {/* Main content */}
