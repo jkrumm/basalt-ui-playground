@@ -1,7 +1,7 @@
 import type { ColumnDef, SortingState } from '@tanstack/react-table'
-import { Alignment, Callout, Card, Code, Divider, Elevation, H3, H4, HTMLTable, Intent, Navbar, NavbarGroup, NavbarHeading, ProgressBar, Spinner, Tag } from '@blueprintjs/core'
+import { Callout, Card, Code, Elevation, H3, H4, HTMLTable, Intent, ProgressBar, Spinner, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
-import { IconArrowDown, IconArrowsUpDown, IconArrowUp, IconChevronLeft } from '@tabler/icons-react'
+import { IconArrowDown, IconArrowsUpDown, IconArrowUp } from '@tabler/icons-react'
 /**
  * Table Comparison Route — /table
  *
@@ -16,7 +16,7 @@ import { IconArrowDown, IconArrowsUpDown, IconArrowUp, IconChevronLeft } from '@
  *    → Client-only. Calls getBoundingClientRect() during render.
  *    → Use in authenticated SPAs, spreadsheet-like UX, large virtualised grids.
  */
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import {
 
@@ -33,7 +33,6 @@ import {
   useEffect,
   useState,
 } from 'react'
-import { ThemeToggle } from '../components/ThemeToggle'
 import styles from './table.module.css'
 
 // ---------------------------------------------------------------------------
@@ -262,24 +261,6 @@ function TableComparison() {
 
   return (
     <Box className={styles.page}>
-      <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-        <NavbarGroup align={Alignment.START}>
-          <Link to="/" style={{ textDecoration: 'none' }}>
-            <NavbarHeading style={{ cursor: 'pointer' }}>
-              <IconChevronLeft size={14} style={{ marginRight: 4, verticalAlign: 'middle' }} />
-              <strong>CBBI</strong>
-              {' '}
-              Dashboard
-            </NavbarHeading>
-          </Link>
-        </NavbarGroup>
-        <NavbarGroup align={Alignment.END}>
-          <span style={{ fontSize: 12, color: '#5f6b7c' }}>Table Case Study</span>
-          <Divider />
-          <ThemeToggle />
-        </NavbarGroup>
-      </Navbar>
-
       <Box className={styles.container}>
 
         {/* ---------------------------------------------------------------- */}

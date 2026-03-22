@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useState } from 'react'
 import { RouteTracker } from '../components/analytics/RouteTracker'
 import { SearchModal } from '../components/content/SearchModal'
+import { ContentNav } from '../components/layout/ContentNav'
 import { ThemeContext, useSystemTheme } from '../context/theme-context'
 import { EVENTS, track } from '../lib/analytics'
 import { getThemeFn, setThemeFn } from '../lib/theme'
@@ -103,6 +104,7 @@ function RootComponent() {
         >
           <RouteTracker />
           <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+          <ContentNav />
           <Outlet />
           <Scripts />
         </body>

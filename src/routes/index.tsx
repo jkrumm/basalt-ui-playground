@@ -1,20 +1,15 @@
 import type { HistoryPoint } from '../components/CBBIChart'
 import {
-  Alignment,
   Button,
   ButtonGroup,
   Callout,
   Card,
-  Divider,
   Elevation,
   H2,
   H5,
   HTMLSelect,
   HTMLTable,
   Intent,
-  Navbar,
-  NavbarGroup,
-  NavbarHeading,
   ProgressBar,
   Spinner,
   Tag,
@@ -23,23 +18,17 @@ import {
 import { Box, Flex } from '@blueprintjs/labs'
 import {
   IconAlertTriangle,
-  IconBlocks,
-  IconBook,
   IconCircleCheck,
   IconCircleX,
   IconFlame,
   IconInfoCircle,
   IconLayoutGrid,
   IconLayoutList,
-  IconNews,
-  IconRoute,
-  IconTable,
 } from '@tabler/icons-react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { PageLayout } from '../components/layout/PageLayout'
-import { ThemeToggle } from '../components/ThemeToggle'
 import { EVENTS, track } from '../lib/analytics'
 import { formatDateLong } from '../lib/date'
 import styles from './index.module.css'
@@ -290,44 +279,6 @@ function CBBIDashboard() {
   return (
     <PageLayout>
       <Box className={styles.page}>
-        {/* ------------------------------------------------------------------ */}
-        {/* Navbar — Button, Divider                                            */}
-        {/* ------------------------------------------------------------------ */}
-        <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
-          <NavbarGroup align={Alignment.START}>
-            <NavbarHeading>
-              <strong>CBBI</strong>
-              {' '}
-              Dashboard
-            </NavbarHeading>
-            <Divider />
-            {/* Dialog trigger — Portal component test #1 */}
-            <Link to="/table" style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconTable size={16} />} text="Tables" />
-            </Link>
-            <Link to="/blog" search={{ tag: '' }} style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconNews size={16} />} text="Blog" />
-            </Link>
-            <Link to="/docs" style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconBook size={16} />} text="Docs" />
-            </Link>
-            <Link to="/guides" search={{ category: '', difficulty: '' }} style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconRoute size={16} />} text="Guides" />
-            </Link>
-            <Link to="/blocks" search={{ category: '' }} style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconBlocks size={16} />} text="Blocks" />
-            </Link>
-          </NavbarGroup>
-          <NavbarGroup align={Alignment.END}>
-            <Tag large>
-              BTC $
-              {fmtPrice(price)}
-            </Tag>
-            <Divider />
-            <ThemeToggle />
-          </NavbarGroup>
-        </Navbar>
-
         <Box className={styles.container}>
           {/* ---------------------------------------------------------------- */}
           {/* Confidence card                                                   */}
@@ -336,6 +287,10 @@ function CBBIDashboard() {
             <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
               <H2 style={{ margin: 0 }}>Confidence Score</H2>
               <Flex gap={2} alignItems="center">
+                <Tag large>
+                  BTC $
+                  {fmtPrice(price)}
+                </Tag>
                 <Tag large intent={getIntent(confidence)}>
                   {getZoneLabel(confidence)}
                 </Tag>
