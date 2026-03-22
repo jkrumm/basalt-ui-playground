@@ -17,6 +17,12 @@ import { remarkReadingTime } from './src/lib/remark-reading-time'
 
 export default defineConfig({
   server: { port: 3000 },
+  ssr: {
+    // Vite 8 SSR externalization incorrectly loads the CJS build of these
+    // packages instead of ESM, causing "does not provide an export named"
+    // errors. Force bundling through Rolldown to use the ESM build.
+    noExternal: ['@tanstack/router-core', '@tanstack/react-router'],
+  },
   plugins: [
     // 1. MDX — must run before Vite/Rollup sees the JSX.
     //    Plugin order inside remarkPlugins matters:
