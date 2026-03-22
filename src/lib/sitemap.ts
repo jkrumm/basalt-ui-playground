@@ -6,6 +6,8 @@ const STATIC_ROUTES: SitemapEntry[] = [
   { url: '/' },
   { url: '/blog' },
   { url: '/docs' },
+  { url: '/guides' },
+  { url: '/blocks' },
 ]
 
 export function buildSitemapXml(entries: SitemapEntry[]): string {
@@ -23,9 +25,6 @@ ${urls}
 </urlset>`
 }
 
-export function collectSitemapEntries(
-  blogEntries: SitemapEntry[],
-  docsEntries: SitemapEntry[],
-): SitemapEntry[] {
-  return [...STATIC_ROUTES, ...blogEntries, ...docsEntries]
+export function collectSitemapEntries(...entryGroups: SitemapEntry[][]): SitemapEntry[] {
+  return [...STATIC_ROUTES, ...entryGroups.flat()]
 }

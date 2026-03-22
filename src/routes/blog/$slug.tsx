@@ -1,11 +1,13 @@
+import type { HeadingItem } from '../../lib/collection'
 import type { BlogFrontmatter, BlogPost, PrevNext } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { BlogLayout } from '../../components/content/BlogLayout'
 import { RelatedPosts } from '../../components/content/RelatedPosts'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { blogMeta, blogModules, getBlogList, getPrevNextPosts, getRelatedPosts, getSeriesPosts } from '../../lib/content'
+import { blogCollection, getBlogList, getPrevNextPosts, getRelatedPosts, getSeriesPosts } from '../../lib/content'
 
 const BASE_URL = 'https://cbbi.jkrumm.com'
 
@@ -13,6 +15,7 @@ interface PostLoaderData {
   slug: string
   frontmatter: BlogFrontmatter
   readingTime: string
+  headings: HeadingItem[]
   related: BlogPost[]
   seriesPosts: BlogPost[]
   prevNext: PrevNext
@@ -21,16 +24,17 @@ interface PostLoaderData {
 export const Route = createFileRoute('/blog/$slug')({
   loader: ({ params }): PostLoaderData => {
     const { slug } = params
-    const fm = blogMeta[`../content/blog/${slug}.mdx`]
-    if (!fm)
+    if (!blogCollection.meta[`../content/blog/${slug}.mdx`])
       throw notFound()
 
+    const fm = blogCollection.getBySlug(slug)
     const post = getBlogList().find(p => p.slug === slug)
 
     return {
       slug,
       frontmatter: fm,
       readingTime: post?.readingTime ?? '1 min read',
+      headings: blogCollection.getHeadings(slug),
       related: getRelatedPosts(slug),
       seriesPosts: fm.series ? getSeriesPosts(fm.series) : [],
       prevNext: getPrevNextPosts(slug),
@@ -74,13 +78,13 @@ export const Route = createFileRoute('/blog/$slug')({
 })
 
 function BlogPostPage() {
-  const { slug, frontmatter, readingTime: rt, related, seriesPosts, prevNext } = Route.useLoaderData()
-  const MdxContent = blogModules[`../content/blog/${slug}.mdx`]?.default
+  const { slug, frontmatter, readingTime: rt, headings, related, seriesPosts, prevNext } = Route.useLoaderData()
+  const MdxContent = useMemo(() => blogCollection.getComponent(slug), [slug])
 
   return (
-    <BlogLayout frontmatter={frontmatter} readingTime={rt} seriesPosts={seriesPosts} currentSlug={slug} prevNext={prevNext}>
+    <BlogLayout frontmatter={frontmatter} readingTime={rt} headings={headings} seriesPosts={seriesPosts} currentSlug={slug} prevNext={prevNext}>
       {MdxContent
-        ? <MdxContent components={mdxComponents} />
+        ? <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
         : <NonIdealState icon={<IconAlertCircle size={40} />} title="Failed to load post" />}
       {related.length > 0 && <RelatedPosts posts={related} />}
     </BlogLayout>

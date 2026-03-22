@@ -4,10 +4,11 @@ import { useCallback, useRef, useState } from 'react'
 const LANGUAGE_RE = /language-(\w+)/
 
 interface CodeBlockProps extends React.HTMLAttributes<HTMLPreElement> {
-  children?: React.ReactNode
+  'children'?: React.ReactNode
+  'data-filename'?: string
 }
 
-export function CodeBlock({ children, className, style, ...props }: CodeBlockProps) {
+export function CodeBlock({ children, className, style, 'data-filename': filename, ...props }: CodeBlockProps) {
   const preRef = useRef<HTMLPreElement>(null)
   const [copied, setCopied] = useState(false)
 
@@ -19,15 +20,16 @@ export function CodeBlock({ children, className, style, ...props }: CodeBlockPro
     })
   }, [])
 
-  // Extract language from Shiki's class: "shiki blueprint-dark" + possible language class
   const lang = extractLanguage(className)
 
   return (
     <div className="mdx-pre">
+      {filename && <div className="mdx-filename">{filename}</div>}
       <Pre ref={preRef} className={className} style={style} {...props}>
         {children}
       </Pre>
-      {lang && <span className="mdx-lang-badge">{lang}</span>}
+      {!filename && lang && <span className="mdx-lang-badge">{lang}</span>}
+      {filename && <span className="mdx-lang-badge">{lang ?? filename.split('.').pop()}</span>}
       <button type="button" className="mdx-copy-btn" onClick={copyToClipboard}>
         {copied ? 'Copied!' : 'Copy'}
       </button>
@@ -38,7 +40,6 @@ export function CodeBlock({ children, className, style, ...props }: CodeBlockPro
 function extractLanguage(className?: string): string | null {
   if (!className)
     return null
-  // Shiki adds `language-xxx` class on the code element, or we look in pre's class
   const match = className.match(LANGUAGE_RE)
   return match ? (match[1] ?? null) : null
 }

@@ -1,14 +1,17 @@
+import type { HeadingItem } from '../../lib/collection'
 import type { DocsFrontmatter } from '../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { DocsLayout } from '../../components/content/DocsLayout'
 import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { docsMeta, docsModules, getDocsSidebar } from '../../lib/content'
+import { docsCollection, docsMeta, getDocsSidebar } from '../../lib/content'
 
 interface DocsPageData {
-  moduleKey: string
+  slug: string
   frontmatter: DocsFrontmatter
+  headings: HeadingItem[]
   sections: ReturnType<typeof getDocsSidebar>
 }
 
@@ -18,22 +21,27 @@ export const Route = createFileRoute('/docs/$')({
     const directKey = `../content/docs/${splat}.mdx`
     const indexKey = `../content/docs/${splat}/index.mdx`
 
-    let moduleKey: string
+    let slug: string
     let fm: DocsFrontmatter | undefined
 
     if (docsMeta[directKey]) {
-      moduleKey = directKey
+      slug = splat || 'index'
       fm = docsMeta[directKey]
     }
     else if (docsMeta[indexKey]) {
-      moduleKey = indexKey
+      slug = splat ? `${splat}/index` : 'index'
       fm = docsMeta[indexKey]
     }
     else {
       throw notFound()
     }
 
-    return { moduleKey, frontmatter: fm!, sections: getDocsSidebar() }
+    return {
+      slug,
+      frontmatter: fm!,
+      headings: docsCollection.getHeadings(slug),
+      sections: getDocsSidebar(),
+    }
   },
   head: ({ loaderData: ld, params }) => {
     if (!ld)
@@ -50,13 +58,13 @@ export const Route = createFileRoute('/docs/$')({
 })
 
 function DocsPage() {
-  const { moduleKey, sections } = Route.useLoaderData()
-  const MdxContent = docsModules[moduleKey]?.default
+  const { slug, headings, sections } = Route.useLoaderData()
+  const MdxContent = useMemo(() => docsCollection.getComponent(slug), [slug])
 
   return (
-    <DocsLayout sections={sections}>
+    <DocsLayout sections={sections} headings={headings}>
       {MdxContent
-        ? <MdxContent components={mdxComponents} />
+        ? <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
         : <NonIdealState icon={<IconAlertCircle size={40} />} title="Page not found" />}
     </DocsLayout>
   )

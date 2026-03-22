@@ -1,0 +1,45 @@
+.page {
+  min-height: 100vh;
+  padding-bottom: 64px;
+}
+
+.layout {
+  /* stylelint-disable-next-line declaration-property-value-disallowed-list --
+     page-level flex shell: content + TOC sidebar side-by-side with a
+     max-width container; Box cannot express max-width + margin:auto together
+     with flex in a single component without a wrapping div */
+  display: flex;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  /* stylelint-disable-next-line property-disallowed-list --
+     3rem gap on the page shell flex; Box gap prop would apply here but
+     this element is a raw div (non-Box) paired with display:flex above */
+  gap: 3rem;
+}
+
+.content {
+  /* stylelint-disable-next-line property-disallowed-list --
+     flex-grow/shrink on child of .layout CSS flex container (see above) */
+  flex: 1;
+  min-width: 0;
+}
+
+.toc {
+  width: 220px;
+  /* stylelint-disable-next-line property-disallowed-list --
+     flex-shrink: 0 prevents TOC sidebar from collapsing in the .layout
+     flex container (see above) */
+  flex-shrink: 0;
+  padding-top: 2rem;
+}
+
+@media (width <= 1100px) {
+  .toc {
+    display: none;
+  }
+}
+
+.navLink {
+  text-decoration: none;
+}

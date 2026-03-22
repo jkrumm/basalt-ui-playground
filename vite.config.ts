@@ -12,7 +12,14 @@ import tsConfigPaths from 'vite-tsconfig-paths'
 import { defineConfig } from 'vite'
 import { blueprintDarkTheme } from './src/lib/mdx-theme'
 import rehypeShiki from '@shikijs/rehype'
-import { transformerNotationHighlight, transformerNotationDiff } from '@shikijs/transformers'
+import { rehypeExportHeadings } from './src/lib/rehype-export-headings'
+import {
+  transformerNotationHighlight,
+  transformerNotationDiff,
+  transformerNotationFocus,
+  transformerNotationErrorLevel,
+  transformerMetaHighlight,
+} from '@shikijs/transformers'
 import { remarkReadingTime } from './src/lib/remark-reading-time'
 
 export default defineConfig({
@@ -34,13 +41,27 @@ export default defineConfig({
       ...mdx({
         remarkPlugins: [remarkFrontmatter, remarkReadingTime, remarkMdxFrontmatter, remarkGfm],
         rehypePlugins: [
+          // rehypeSlug must run before rehypeExportHeadings (ids needed for TOC)
           rehypeSlug,
-          [rehypeAutolinkHeadings, { behavior: 'wrap' }],
+          // Extract h2/h3 headings as named ESM export — after slug, before Shiki
+          rehypeExportHeadings,
+          [rehypeAutolinkHeadings, { behavior: 'append', properties: { className: ['heading-anchor'], ariaLabel: 'Link to section' } }],
           [
             rehypeShiki,
             {
               theme: blueprintDarkTheme,
-              transformers: [transformerNotationHighlight(), transformerNotationDiff()],
+              transformers: [
+                transformerNotationHighlight(),
+                transformerNotationDiff(),
+                transformerNotationFocus(),
+                transformerNotationErrorLevel(),
+                transformerMetaHighlight(),
+              ],
+              parseMetaString(meta: string) {
+                const match = /filename="([^"]+)"/.exec(meta)
+                if (match?.[1])
+                  return { 'data-filename': match[1] }
+              },
             },
           ],
         ],
@@ -48,14 +69,18 @@ export default defineConfig({
     },
     tsConfigPaths(),
     tanstackStart({
-      // Only blog, docs, and search are content pages suitable for SSG.
+      // Content pages suitable for SSG prerendering.
       // The landing page (/) fetches live CBBI data — must stay SSR.
-      // /table and other routes are not content pages.
+      // /table and other dynamic routes are not content pages.
       prerender: {
         enabled: true,
         crawlLinks: true,
         filter: ({ path }) =>
-          path.startsWith('/blog') || path.startsWith('/docs') || path === '/search',
+          path.startsWith('/blog')
+          || path.startsWith('/docs')
+          || path.startsWith('/guides')
+          || path.startsWith('/blocks')
+          || path === '/search',
       },
     }),
     // 2. React plugin must declare MDX as JSX-containing for HMR
@@ -74,11 +99,14 @@ export default defineConfig({
               sitemap.collectSitemapEntries(
                 content.getBlogSitemapEntries(),
                 content.getDocsSitemapEntries(),
+                content.getGuidesSitemapEntries(),
+                content.getBlocksSitemapEntries(),
               ),
             ) as string
             res.setHeader('Content-Type', 'application/xml; charset=utf-8')
             res.end(xml)
-          } catch (e) {
+          }
+          catch (e) {
             res.statusCode = 500
             res.end(`Sitemap generation failed: ${String(e)}`)
           }

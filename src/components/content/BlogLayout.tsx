@@ -1,38 +1,26 @@
+import type { HeadingItem } from '../../lib/collection'
 import type { BlogFrontmatter, BlogPost, PrevNext } from '../../lib/content'
 import { Alignment, Button, Callout, Card, Classes, Divider, Elevation, H1, Navbar, NavbarGroup, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react'
 import { Link } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useReadingProgress } from '../../hooks/useReadingProgress'
 import { PageLayout } from '../layout/PageLayout'
 import { ThemeToggle } from '../ThemeToggle'
 import styles from './BlogLayout.module.css'
 import { TableOfContents } from './TableOfContents'
 
-function useReadingProgress() {
-  const [progress, setProgress] = useState(0)
-  useEffect(() => {
-    const onScroll = () => {
-      const scrolled = window.scrollY
-      const total = document.documentElement.scrollHeight - window.innerHeight
-      setProgress(total > 0 ? Math.min(100, (scrolled / total) * 100) : 0)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  return progress
-}
-
 interface BlogLayoutProps {
   frontmatter: BlogFrontmatter
   currentSlug: string
   readingTime: string
+  headings?: HeadingItem[]
   seriesPosts?: BlogPost[]
   prevNext?: PrevNext
   children: React.ReactNode
 }
 
-export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts = [], prevNext, children }: BlogLayoutProps) {
+export function BlogLayout({ frontmatter, currentSlug, readingTime, headings = [], seriesPosts = [], prevNext, children }: BlogLayoutProps) {
   const progress = useReadingProgress()
 
   return (
@@ -190,7 +178,7 @@ export function BlogLayout({ frontmatter, currentSlug, readingTime, seriesPosts 
 
           {/* TOC sidebar */}
           <aside className={styles.toc}>
-            <TableOfContents />
+            <TableOfContents headings={headings} />
           </aside>
         </div>
       </Box>

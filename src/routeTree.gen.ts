@@ -12,10 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TableRouteImport } from './routes/table'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GuidesIndexRouteImport } from './routes/guides/index'
 import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as BlogIndexRouteImport } from './routes/blog/index'
+import { Route as BlocksIndexRouteImport } from './routes/blocks/index'
+import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
 import { Route as DocsSplatRouteImport } from './routes/docs/$'
 import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
+import { Route as BlocksSlugRouteImport } from './routes/blocks/$slug'
 
 const TableRoute = TableRouteImport.update({
   id: '/table',
@@ -32,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/guides/',
+  path: '/guides/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocsIndexRoute = DocsIndexRouteImport.update({
   id: '/docs/',
   path: '/docs/',
@@ -40,6 +49,16 @@ const DocsIndexRoute = DocsIndexRouteImport.update({
 const BlogIndexRoute = BlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BlocksIndexRoute = BlocksIndexRouteImport.update({
+  id: '/blocks/',
+  path: '/blocks/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesSlugRoute = GuidesSlugRouteImport.update({
+  id: '/guides/$slug',
+  path: '/guides/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DocsSplatRoute = DocsSplatRouteImport.update({
@@ -52,34 +71,51 @@ const BlogSlugRoute = BlogSlugRouteImport.update({
   path: '/blog/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BlocksSlugRoute = BlocksSlugRouteImport.update({
+  id: '/blocks/$slug',
+  path: '/blocks/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/table': typeof TableRoute
+  '/blocks/$slug': typeof BlocksSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$': typeof DocsSplatRoute
+  '/guides/$slug': typeof GuidesSlugRoute
+  '/blocks/': typeof BlocksIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/guides/': typeof GuidesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/table': typeof TableRoute
+  '/blocks/$slug': typeof BlocksSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$': typeof DocsSplatRoute
+  '/guides/$slug': typeof GuidesSlugRoute
+  '/blocks': typeof BlocksIndexRoute
   '/blog': typeof BlogIndexRoute
   '/docs': typeof DocsIndexRoute
+  '/guides': typeof GuidesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/search': typeof SearchRoute
   '/table': typeof TableRoute
+  '/blocks/$slug': typeof BlocksSlugRoute
   '/blog/$slug': typeof BlogSlugRoute
   '/docs/$': typeof DocsSplatRoute
+  '/guides/$slug': typeof GuidesSlugRoute
+  '/blocks/': typeof BlocksIndexRoute
   '/blog/': typeof BlogIndexRoute
   '/docs/': typeof DocsIndexRoute
+  '/guides/': typeof GuidesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -87,31 +123,54 @@ export interface FileRouteTypes {
     | '/'
     | '/search'
     | '/table'
+    | '/blocks/$slug'
     | '/blog/$slug'
     | '/docs/$'
+    | '/guides/$slug'
+    | '/blocks/'
     | '/blog/'
     | '/docs/'
+    | '/guides/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/search' | '/table' | '/blog/$slug' | '/docs/$' | '/blog' | '/docs'
+  to:
+    | '/'
+    | '/search'
+    | '/table'
+    | '/blocks/$slug'
+    | '/blog/$slug'
+    | '/docs/$'
+    | '/guides/$slug'
+    | '/blocks'
+    | '/blog'
+    | '/docs'
+    | '/guides'
   id:
     | '__root__'
     | '/'
     | '/search'
     | '/table'
+    | '/blocks/$slug'
     | '/blog/$slug'
     | '/docs/$'
+    | '/guides/$slug'
+    | '/blocks/'
     | '/blog/'
     | '/docs/'
+    | '/guides/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SearchRoute: typeof SearchRoute
   TableRoute: typeof TableRoute
+  BlocksSlugRoute: typeof BlocksSlugRoute
   BlogSlugRoute: typeof BlogSlugRoute
   DocsSplatRoute: typeof DocsSplatRoute
+  GuidesSlugRoute: typeof GuidesSlugRoute
+  BlocksIndexRoute: typeof BlocksIndexRoute
   BlogIndexRoute: typeof BlogIndexRoute
   DocsIndexRoute: typeof DocsIndexRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -137,6 +196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/guides/': {
+      id: '/guides/'
+      path: '/guides'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/docs/': {
       id: '/docs/'
       path: '/docs'
@@ -149,6 +215,20 @@ declare module '@tanstack/react-router' {
       path: '/blog'
       fullPath: '/blog/'
       preLoaderRoute: typeof BlogIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blocks/': {
+      id: '/blocks/'
+      path: '/blocks'
+      fullPath: '/blocks/'
+      preLoaderRoute: typeof BlocksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides/$slug': {
+      id: '/guides/$slug'
+      path: '/guides/$slug'
+      fullPath: '/guides/$slug'
+      preLoaderRoute: typeof GuidesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/docs/$': {
@@ -165,6 +245,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BlogSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/blocks/$slug': {
+      id: '/blocks/$slug'
+      path: '/blocks/$slug'
+      fullPath: '/blocks/$slug'
+      preLoaderRoute: typeof BlocksSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -172,10 +259,14 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SearchRoute: SearchRoute,
   TableRoute: TableRoute,
+  BlocksSlugRoute: BlocksSlugRoute,
   BlogSlugRoute: BlogSlugRoute,
   DocsSplatRoute: DocsSplatRoute,
+  GuidesSlugRoute: GuidesSlugRoute,
+  BlocksIndexRoute: BlocksIndexRoute,
   BlogIndexRoute: BlogIndexRoute,
   DocsIndexRoute: DocsIndexRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,35 +1,24 @@
+import type { HeadingItem } from '../../lib/collection'
 import type { DocNavSection } from '../../lib/content'
 import { Alignment, Button, Card, Classes, Divider, Elevation, Navbar, NavbarGroup } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react'
 import { Link, useRouterState } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useReadingProgress } from '../../hooks/useReadingProgress'
 import { INDEX_SUFFIX_RE } from '../../lib/content'
 import { PageLayout } from '../layout/PageLayout'
 import { ThemeToggle } from '../ThemeToggle'
 import styles from './DocsLayout.module.css'
 import { DocsSidebar } from './DocsSidebar'
-
-function useReadingProgress() {
-  const [progress, setProgress] = useState(0)
-  useEffect(() => {
-    const onScroll = () => {
-      const scrolled = window.scrollY
-      const total = document.documentElement.scrollHeight - window.innerHeight
-      setProgress(total > 0 ? Math.min(100, (scrolled / total) * 100) : 0)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-  return progress
-}
+import { TableOfContents } from './TableOfContents'
 
 interface DocsLayoutProps {
   sections: DocNavSection[]
+  headings?: HeadingItem[]
   children: React.ReactNode
 }
 
-export function DocsLayout({ sections, children }: DocsLayoutProps) {
+export function DocsLayout({ sections, headings = [], children }: DocsLayoutProps) {
   const pathname = useRouterState({ select: s => s.location.pathname })
   const progress = useReadingProgress()
 
@@ -167,6 +156,13 @@ export function DocsLayout({ sections, children }: DocsLayoutProps) {
               </Flex>
             )}
           </main>
+
+          {/* TOC — right rail, only when headings exist */}
+          {headings.length > 0 && (
+            <aside className={styles.toc}>
+              <TableOfContents headings={headings} />
+            </aside>
+          )}
         </div>
       </Box>
     </PageLayout>

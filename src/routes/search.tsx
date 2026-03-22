@@ -1,3 +1,4 @@
+import type { ContentType } from '../lib/collection'
 import type { SearchDocument } from '../lib/content'
 import {
   Alignment,
@@ -29,12 +30,29 @@ export const Route = createFileRoute('/search')({
   head: () => ({
     meta: [
       { title: 'Search — CBBI Blueprint' },
-      { name: 'description', content: 'Search blog posts and documentation.' },
+      { name: 'description', content: 'Search blog posts, documentation, guides, and blocks.' },
     ],
     links: [{ rel: 'canonical', href: 'https://cbbi.jkrumm.com/search' }],
   }),
   component: SearchPage,
 })
+
+const TYPE_CONFIG: Record<ContentType, { label: string, intent: 'primary' | 'success' | 'warning' | 'danger' | 'none' }> = {
+  blog: { label: 'Blog', intent: 'primary' },
+  docs: { label: 'Docs', intent: 'success' },
+  guide: { label: 'Guide', intent: 'warning' },
+  block: { label: 'Block', intent: 'none' },
+}
+
+function getResultTo(item: SearchDocument): string {
+  switch (item.type) {
+    case 'blog': return `/blog/${item.slug}`
+    case 'docs': return `/docs/${item.slug.replace(INDEX_SUFFIX_RE, '')}`
+    case 'guide': return `/guides/${item.slug}`
+    case 'block': return `/blocks/${item.slug}`
+    default: return '/'
+  }
+}
 
 function SearchPage() {
   const documents = Route.useLoaderData()
@@ -48,6 +66,7 @@ function SearchPage() {
           { name: 'description', weight: 1 },
           { name: 'tags', weight: 1.5 },
           { name: 'section', weight: 0.5 },
+          { name: 'category', weight: 0.5 },
         ],
         threshold: 0.4,
         includeScore: true,
@@ -60,6 +79,14 @@ function SearchPage() {
       return []
     return fuse.search(query).slice(0, 12)
   }, [fuse, query])
+
+  const counts = useMemo(() => {
+    const byType: Partial<Record<ContentType, number>> = {}
+    for (const doc of documents) {
+      byType[doc.type] = (byType[doc.type] ?? 0) + 1
+    }
+    return byType
+  }, [documents])
 
   return (
     <PageLayout>
@@ -83,7 +110,7 @@ function SearchPage() {
           <InputGroup
             large
             leftIcon={<IconSearch size={16} />}
-            placeholder="Search blog posts and docs…"
+            placeholder="Search blog, docs, guides, blocks…"
             value={query}
             onChange={e => setQuery(e.target.value)}
             autoFocus
@@ -99,59 +126,67 @@ function SearchPage() {
           )}
 
           <Flex flexDirection="column" gap={2}>
-            {results.map(({ item }) => (
-              <Link
-                key={`${item.type}/${item.slug}`}
-                to={item.type === 'blog' ? '/blog/$slug' : '/docs/$'}
-                params={
-                  item.type === 'blog'
-                    ? { slug: item.slug }
-                    : { _splat: item.slug.replace(INDEX_SUFFIX_RE, '') }
-                }
-                style={{ textDecoration: 'none' }}
-                onClick={() => track(EVENTS.SEARCH_QUERY, { query: query.trim(), result_count: results.length })}
-              >
-                <Card elevation={Elevation.ONE} interactive style={{ padding: '1rem' }}>
-                  <Flex gap={2} alignItems="center" marginBottom={1}>
-                    <Tag intent={item.type === 'blog' ? 'primary' : 'success'} minimal>
-                      {item.type === 'blog' ? 'Blog' : 'Docs'}
-                    </Tag>
-                    {item.section && (
-                      <>
-                        <span className={Classes.TEXT_MUTED}>›</span>
-                        <span className={Classes.TEXT_MUTED}>{item.section}</span>
-                      </>
-                    )}
-                  </Flex>
-                  <p style={{ fontWeight: 600, margin: '0 0 0.25rem' }}>{item.title}</p>
-                  <p className={Classes.TEXT_MUTED} style={{ margin: 0, lineHeight: 1.4 }}>{item.description}</p>
-                  {item.tags && item.tags.length > 0 && (
-                    <Flex gap={1} flexWrap="wrap" marginTop={2}>
-                      {item.tags.slice(0, 4).map(tag => (
-                        <Tag key={tag} minimal>
-                          {tag}
-                        </Tag>
-                      ))}
+            {results.map(({ item }) => {
+              const cfg = TYPE_CONFIG[item.type] ?? { label: item.type, intent: 'none' as const }
+              const href = getResultTo(item)
+              return (
+                <a
+                  key={`${item.type}/${item.slug}`}
+                  href={href}
+                  style={{ textDecoration: 'none' }}
+                  onClick={() => track(EVENTS.SEARCH_QUERY, { query: query.trim(), result_count: results.length })}
+                >
+                  <Card elevation={Elevation.ONE} interactive style={{ padding: '1rem' }}>
+                    <Flex gap={2} alignItems="center" marginBottom={1}>
+                      <Tag intent={cfg.intent} minimal>
+                        {cfg.label}
+                      </Tag>
+                      {item.section && (
+                        <>
+                          <span className={Classes.TEXT_MUTED}>›</span>
+                          <span className={Classes.TEXT_MUTED}>{item.section}</span>
+                        </>
+                      )}
+                      {item.category && (
+                        <>
+                          <span className={Classes.TEXT_MUTED}>›</span>
+                          <span className={Classes.TEXT_MUTED}>{item.category}</span>
+                        </>
+                      )}
                     </Flex>
-                  )}
-                </Card>
-              </Link>
-            ))}
+                    <p style={{ fontWeight: 600, margin: '0 0 0.25rem' }}>{item.title}</p>
+                    <p className={Classes.TEXT_MUTED} style={{ margin: 0, lineHeight: 1.4 }}>{item.description}</p>
+                    {item.tags && item.tags.length > 0 && (
+                      <Flex gap={1} flexWrap="wrap" marginTop={2}>
+                        {item.tags.slice(0, 4).map(tag => (
+                          <Tag key={tag} minimal>
+                            {tag}
+                          </Tag>
+                        ))}
+                      </Flex>
+                    )}
+                  </Card>
+                </a>
+              )
+            })}
           </Flex>
 
           {!query.trim() && (
             <Box marginTop={8}>
-              <p className={Classes.TEXT_MUTED}>
-                Searching across
-                {' '}
-                {documents.filter(d => d.type === 'blog').length}
-                {' '}
-                blog posts and
-                {' '}
-                {documents.filter(d => d.type === 'docs').length}
-                {' '}
-                docs pages.
-              </p>
+              <Flex gap={3} flexWrap="wrap">
+                {(Object.entries(counts) as [ContentType, number][]).map(([type, count]) => {
+                  const typeCfg = TYPE_CONFIG[type]
+                  if (!typeCfg)
+                    return null
+                  return (
+                    <span key={type} className={Classes.TEXT_MUTED}>
+                      {count}
+                      {' '}
+                      <Tag intent={typeCfg.intent} minimal>{typeCfg.label}</Tag>
+                    </span>
+                  )
+                })}
+              </Flex>
             </Box>
           )}
         </Box>
