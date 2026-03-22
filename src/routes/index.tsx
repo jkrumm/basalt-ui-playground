@@ -5,9 +5,6 @@ import {
   ButtonGroup,
   Callout,
   Card,
-  Dialog,
-  DialogBody,
-  DialogFooter,
   Divider,
   Elevation,
   H2,
@@ -15,12 +12,9 @@ import {
   HTMLSelect,
   HTMLTable,
   Intent,
-  Menu,
-  MenuItem,
   Navbar,
   NavbarGroup,
   NavbarHeading,
-  Popover,
   ProgressBar,
   Spinner,
   Tag,
@@ -30,11 +24,8 @@ import { Box, Flex } from '@blueprintjs/labs'
 import {
   IconAlertTriangle,
   IconBook,
-  IconBrandGithub,
   IconCircleCheck,
   IconCircleX,
-  IconCode,
-  IconFileText,
   IconFlame,
   IconInfoCircle,
   IconLayoutGrid,
@@ -42,7 +33,6 @@ import {
   IconNews,
   IconSearch,
   IconTable,
-  IconWorld,
 } from '@tabler/icons-react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
@@ -287,7 +277,6 @@ function CBBIDashboard() {
   const { price, confidence, indicators, date, history } = Route.useLoaderData()
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
   const [sortBy, setSortBy] = useState('default')
-  const [aboutOpen, setAboutOpen] = useState(false)
   // Chart is client-only: useEffect never runs on server, so isMounted
   // stays false during SSR — Recharts never touches document/window.
   const [isMounted, setIsMounted] = useState(false)
@@ -313,7 +302,7 @@ function CBBIDashboard() {
             <Divider />
             {/* Dialog trigger — Portal component test #1 */}
             <Link to="/table" style={{ textDecoration: 'none' }}>
-              <Button variant="minimal" icon={<IconTable size={16} />} text="Table Study" />
+              <Button variant="minimal" icon={<IconTable size={16} />} text="Tables" />
             </Link>
             <Link to="/blog" search={{ tag: '' }} style={{ textDecoration: 'none' }}>
               <Button variant="minimal" icon={<IconNews size={16} />} text="Blog" />
@@ -327,36 +316,6 @@ function CBBIDashboard() {
               text="Search"
               onClick={() => window.dispatchEvent(new CustomEvent('open-search'))}
             />
-            <Button
-              variant="minimal"
-              icon={<IconFileText size={16} />}
-              text="About CBBI"
-              onClick={() => setAboutOpen(true)}
-            />
-            {/* Popover — Portal component test #2 */}
-            <Popover
-              placement="bottom-start"
-              content={(
-                <Menu>
-                  <MenuItem
-                    icon={<IconBrandGithub size={16} />}
-                    text="CBBI Algorithm (GitHub)"
-                    href="https://github.com/Zaczero/CBBI"
-                    target="_blank"
-                    rel="noopener"
-                  />
-                  <MenuItem
-                    icon={<IconWorld size={16} />}
-                    text="colintalkscrypto.com/cbbi"
-                    href="https://colintalkscrypto.com/cbbi"
-                    target="_blank"
-                    rel="noopener"
-                  />
-                </Menu>
-              )}
-            >
-              <Button variant="minimal" icon={<IconCode size={16} />} text="Algorithm" />
-            </Popover>
           </NavbarGroup>
           <NavbarGroup align={Alignment.END}>
             <Tag large minimal style={{ marginRight: 8 }}>
@@ -370,49 +329,6 @@ function CBBIDashboard() {
             <ThemeToggle />
           </NavbarGroup>
         </Navbar>
-
-        {/* ------------------------------------------------------------------ */}
-        {/* Dialog — Portal component test #3                                  */}
-        {/* isOpen=false on server → no portal mount, no document.body access */}
-        {/* ------------------------------------------------------------------ */}
-        <Dialog
-          isOpen={aboutOpen}
-          onClose={() => setAboutOpen(false)}
-          title="About CBBI"
-          icon={<IconInfoCircle size={16} />}
-          style={{ width: 560 }}
-        >
-          <DialogBody>
-            <p>
-              The
-              {' '}
-              <strong>Colin's Bitcoin Bull Run Index (CBBI)</strong>
-              {' '}
-              is a composite
-              indicator that aggregates 9 independent on-chain metrics, each normalized to
-              a 0–1 scale and averaged with equal weight. A score near 0 indicates an early
-              cycle / accumulation phase; near 1 indicates proximity to a cycle top.
-            </p>
-            <H5>Indicators included</H5>
-            <ul style={{ paddingLeft: 20 }}>
-              {(Object.keys(INDICATORS) as IndicatorKey[]).map(key => (
-                <li key={key} style={{ marginBottom: 6 }}>
-                  <strong>{INDICATORS[key].name}</strong>
-                  {' '}
-                  —
-                  {INDICATORS[key].desc}
-                </li>
-              ))}
-            </ul>
-          </DialogBody>
-          <DialogFooter
-            actions={(
-              <Button intent={Intent.PRIMARY} onClick={() => setAboutOpen(false)}>
-                Close
-              </Button>
-            )}
-          />
-        </Dialog>
 
         <Box className={styles.container}>
           {/* ---------------------------------------------------------------- */}
