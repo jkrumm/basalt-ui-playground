@@ -1,15 +1,14 @@
 import type { Static } from '@sinclair/typebox'
-import type { BlogPost } from '../../lib/content'
+import type { BlogPost } from '../../../lib/content'
 import { H1, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { BlogPostCard } from '../../components/content/BlogPostCard'
-import { ContentNav } from '../../components/layout/ContentNav'
-import { PageLayout } from '../../components/layout/PageLayout'
-import { getBlogList } from '../../lib/content'
+import { BlogPostCard } from '../../../components/content/BlogPostCard'
+import { PageLayout } from '../../../components/layout/PageLayout'
+import { getBlogList } from '../../../lib/content'
 import styles from './index.module.css'
 
 const BlogSearchSchema = Type.Object({
@@ -17,7 +16,7 @@ const BlogSearchSchema = Type.Object({
 })
 type BlogSearchParams = Static<typeof BlogSearchSchema>
 
-export const Route = createFileRoute('/blog/')({
+export const Route = createFileRoute('/_content/blog/')({
   validateSearch: (search: Record<string, unknown>): BlogSearchParams => {
     const result = Value.Default(BlogSearchSchema, { ...search })
     return Value.Check(BlogSearchSchema, result) ? result as BlogSearchParams : { tag: '' }
@@ -56,7 +55,6 @@ function BlogListingPage() {
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <ContentNav />
 
         <Box className={styles.container}>
           <H1 style={{ marginBottom: '1rem' }}>Blog</H1>

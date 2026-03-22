@@ -4,7 +4,6 @@ import { Box, Flex } from '@blueprintjs/labs'
 import { IconArrowLeft, IconArrowRight, IconClock } from '@tabler/icons-react'
 import { Link } from '@tanstack/react-router'
 import { useReadingProgress } from '../../hooks/useReadingProgress'
-import { ContentNav } from '../layout/ContentNav'
 import { PageLayout } from '../layout/PageLayout'
 import styles from './GuideLayout.module.css'
 import { TableOfContents } from './TableOfContents'
@@ -33,8 +32,6 @@ export function GuideLayout({ frontmatter, readingTime, headings = [], prevNext,
       <Box className={styles.page}>
         {/* Reading progress bar */}
         <div className={styles.readingBar} style={{ width: `${progress}%` }} />
-
-        <ContentNav />
 
         <div className={styles.layout}>
           {/* Main content */}

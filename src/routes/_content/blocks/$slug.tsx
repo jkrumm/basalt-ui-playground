@@ -1,12 +1,12 @@
-import type { HeadingItem } from '../../lib/collection'
-import type { BlockFrontmatter } from '../../lib/content'
+import type { HeadingItem } from '../../../lib/collection'
+import type { BlockFrontmatter } from '../../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { BlockLayout } from '../../components/content/BlockLayout'
-import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { blocksCollection } from '../../lib/content'
+import { BlockLayout } from '../../../components/content/BlockLayout'
+import { mdxComponents } from '../../../components/mdx/MDXComponents'
+import { blocksCollection } from '../../../lib/content'
 
 const BASE_URL = 'https://cbbi.jkrumm.com'
 
@@ -16,7 +16,7 @@ interface BlockLoaderData {
   headings: HeadingItem[]
 }
 
-export const Route = createFileRoute('/blocks/$slug')({
+export const Route = createFileRoute('/_content/blocks/$slug')({
   loader: ({ params }): BlockLoaderData => {
     const { slug } = params
     const metaKey = `../content/blocks/${slug}.mdx`

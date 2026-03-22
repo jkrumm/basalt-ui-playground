@@ -1,14 +1,13 @@
 import type { Static } from '@sinclair/typebox'
-import type { BlockItem } from '../../lib/content'
+import type { BlockItem } from '../../../lib/content'
 import { Card, Elevation, H1, H5, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { Type } from '@sinclair/typebox'
 import { Value } from '@sinclair/typebox/value'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { ContentNav } from '../../components/layout/ContentNav'
-import { PageLayout } from '../../components/layout/PageLayout'
-import { getBlockList } from '../../lib/content'
+import { PageLayout } from '../../../components/layout/PageLayout'
+import { getBlockList } from '../../../lib/content'
 import styles from './index.module.css'
 
 const BlocksSearchSchema = Type.Object({
@@ -16,7 +15,7 @@ const BlocksSearchSchema = Type.Object({
 })
 type BlocksSearchParams = Static<typeof BlocksSearchSchema>
 
-export const Route = createFileRoute('/blocks/')({
+export const Route = createFileRoute('/_content/blocks/')({
   validateSearch: (search: Record<string, unknown>): BlocksSearchParams => {
     const result = Value.Default(BlocksSearchSchema, { ...search })
     return Value.Check(BlocksSearchSchema, result) ? result as BlocksSearchParams : { category: '' }
@@ -50,7 +49,6 @@ function BlocksGalleryPage() {
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <ContentNav />
 
         <Box className={styles.container}>
           <H1 style={{ marginBottom: '1rem' }}>Blocks</H1>

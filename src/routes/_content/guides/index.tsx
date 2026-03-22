@@ -1,5 +1,5 @@
 import type { Static } from '@sinclair/typebox'
-import type { GuideItem } from '../../lib/content'
+import type { GuideItem } from '../../../lib/content'
 import { H1, HTMLSelect, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { Type } from '@sinclair/typebox'
@@ -7,9 +7,8 @@ import { Value } from '@sinclair/typebox/value'
 import { IconClock } from '@tabler/icons-react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { ContentNav } from '../../components/layout/ContentNav'
-import { PageLayout } from '../../components/layout/PageLayout'
-import { getGuideList } from '../../lib/content'
+import { PageLayout } from '../../../components/layout/PageLayout'
+import { getGuideList } from '../../../lib/content'
 import styles from './index.module.css'
 
 const GuideSearchSchema = Type.Object({
@@ -24,7 +23,7 @@ const DIFFICULTY_INTENTS = {
   advanced: 'danger',
 } as const
 
-export const Route = createFileRoute('/guides/')({
+export const Route = createFileRoute('/_content/guides/')({
   validateSearch: (search: Record<string, unknown>): GuideSearchParams => {
     const result = Value.Default(GuideSearchSchema, { ...search })
     return Value.Check(GuideSearchSchema, result) ? result as GuideSearchParams : { category: '', difficulty: '' }
@@ -71,7 +70,6 @@ function GuidesListingPage() {
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <ContentNav />
 
         <Box className={styles.container}>
           <H1 style={{ marginBottom: '1rem' }}>Guides</H1>

@@ -10,25 +10,25 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TableRouteImport } from './routes/table'
-import { Route as SearchRouteImport } from './routes/search'
+import { Route as ContentRouteImport } from './routes/_content'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as GuidesIndexRouteImport } from './routes/guides/index'
-import { Route as DocsIndexRouteImport } from './routes/docs/index'
-import { Route as BlogIndexRouteImport } from './routes/blog/index'
-import { Route as BlocksIndexRouteImport } from './routes/blocks/index'
-import { Route as GuidesSlugRouteImport } from './routes/guides/$slug'
-import { Route as DocsSplatRouteImport } from './routes/docs/$'
-import { Route as BlogSlugRouteImport } from './routes/blog/$slug'
-import { Route as BlocksSlugRouteImport } from './routes/blocks/$slug'
+import { Route as ContentSearchRouteImport } from './routes/_content/search'
+import { Route as ContentGuidesIndexRouteImport } from './routes/_content/guides/index'
+import { Route as ContentDocsIndexRouteImport } from './routes/_content/docs/index'
+import { Route as ContentBlogIndexRouteImport } from './routes/_content/blog/index'
+import { Route as ContentBlocksIndexRouteImport } from './routes/_content/blocks/index'
+import { Route as ContentGuidesSlugRouteImport } from './routes/_content/guides/$slug'
+import { Route as ContentDocsSplatRouteImport } from './routes/_content/docs/$'
+import { Route as ContentBlogSlugRouteImport } from './routes/_content/blog/$slug'
+import { Route as ContentBlocksSlugRouteImport } from './routes/_content/blocks/$slug'
 
 const TableRoute = TableRouteImport.update({
   id: '/table',
   path: '/table',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
+const ContentRoute = ContentRouteImport.update({
+  id: '/_content',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -36,93 +36,99 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GuidesIndexRoute = GuidesIndexRouteImport.update({
+const ContentSearchRoute = ContentSearchRouteImport.update({
+  id: '/search',
+  path: '/search',
+  getParentRoute: () => ContentRoute,
+} as any)
+const ContentGuidesIndexRoute = ContentGuidesIndexRouteImport.update({
   id: '/guides/',
   path: '/guides/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
-const DocsIndexRoute = DocsIndexRouteImport.update({
+const ContentDocsIndexRoute = ContentDocsIndexRouteImport.update({
   id: '/docs/',
   path: '/docs/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
-const BlogIndexRoute = BlogIndexRouteImport.update({
+const ContentBlogIndexRoute = ContentBlogIndexRouteImport.update({
   id: '/blog/',
   path: '/blog/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
-const BlocksIndexRoute = BlocksIndexRouteImport.update({
+const ContentBlocksIndexRoute = ContentBlocksIndexRouteImport.update({
   id: '/blocks/',
   path: '/blocks/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
-const GuidesSlugRoute = GuidesSlugRouteImport.update({
+const ContentGuidesSlugRoute = ContentGuidesSlugRouteImport.update({
   id: '/guides/$slug',
   path: '/guides/$slug',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
-const DocsSplatRoute = DocsSplatRouteImport.update({
+const ContentDocsSplatRoute = ContentDocsSplatRouteImport.update({
   id: '/docs/$',
   path: '/docs/$',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
-const BlogSlugRoute = BlogSlugRouteImport.update({
+const ContentBlogSlugRoute = ContentBlogSlugRouteImport.update({
   id: '/blog/$slug',
   path: '/blog/$slug',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
-const BlocksSlugRoute = BlocksSlugRouteImport.update({
+const ContentBlocksSlugRoute = ContentBlocksSlugRouteImport.update({
   id: '/blocks/$slug',
   path: '/blocks/$slug',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ContentRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/search': typeof SearchRoute
   '/table': typeof TableRoute
-  '/blocks/$slug': typeof BlocksSlugRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/docs/$': typeof DocsSplatRoute
-  '/guides/$slug': typeof GuidesSlugRoute
-  '/blocks/': typeof BlocksIndexRoute
-  '/blog/': typeof BlogIndexRoute
-  '/docs/': typeof DocsIndexRoute
-  '/guides/': typeof GuidesIndexRoute
+  '/search': typeof ContentSearchRoute
+  '/blocks/$slug': typeof ContentBlocksSlugRoute
+  '/blog/$slug': typeof ContentBlogSlugRoute
+  '/docs/$': typeof ContentDocsSplatRoute
+  '/guides/$slug': typeof ContentGuidesSlugRoute
+  '/blocks/': typeof ContentBlocksIndexRoute
+  '/blog/': typeof ContentBlogIndexRoute
+  '/docs/': typeof ContentDocsIndexRoute
+  '/guides/': typeof ContentGuidesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/search': typeof SearchRoute
   '/table': typeof TableRoute
-  '/blocks/$slug': typeof BlocksSlugRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/docs/$': typeof DocsSplatRoute
-  '/guides/$slug': typeof GuidesSlugRoute
-  '/blocks': typeof BlocksIndexRoute
-  '/blog': typeof BlogIndexRoute
-  '/docs': typeof DocsIndexRoute
-  '/guides': typeof GuidesIndexRoute
+  '/search': typeof ContentSearchRoute
+  '/blocks/$slug': typeof ContentBlocksSlugRoute
+  '/blog/$slug': typeof ContentBlogSlugRoute
+  '/docs/$': typeof ContentDocsSplatRoute
+  '/guides/$slug': typeof ContentGuidesSlugRoute
+  '/blocks': typeof ContentBlocksIndexRoute
+  '/blog': typeof ContentBlogIndexRoute
+  '/docs': typeof ContentDocsIndexRoute
+  '/guides': typeof ContentGuidesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/search': typeof SearchRoute
+  '/_content': typeof ContentRouteWithChildren
   '/table': typeof TableRoute
-  '/blocks/$slug': typeof BlocksSlugRoute
-  '/blog/$slug': typeof BlogSlugRoute
-  '/docs/$': typeof DocsSplatRoute
-  '/guides/$slug': typeof GuidesSlugRoute
-  '/blocks/': typeof BlocksIndexRoute
-  '/blog/': typeof BlogIndexRoute
-  '/docs/': typeof DocsIndexRoute
-  '/guides/': typeof GuidesIndexRoute
+  '/_content/search': typeof ContentSearchRoute
+  '/_content/blocks/$slug': typeof ContentBlocksSlugRoute
+  '/_content/blog/$slug': typeof ContentBlogSlugRoute
+  '/_content/docs/$': typeof ContentDocsSplatRoute
+  '/_content/guides/$slug': typeof ContentGuidesSlugRoute
+  '/_content/blocks/': typeof ContentBlocksIndexRoute
+  '/_content/blog/': typeof ContentBlogIndexRoute
+  '/_content/docs/': typeof ContentDocsIndexRoute
+  '/_content/guides/': typeof ContentGuidesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/search'
     | '/table'
+    | '/search'
     | '/blocks/$slug'
     | '/blog/$slug'
     | '/docs/$'
@@ -134,8 +140,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/search'
     | '/table'
+    | '/search'
     | '/blocks/$slug'
     | '/blog/$slug'
     | '/docs/$'
@@ -147,30 +153,23 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/search'
+    | '/_content'
     | '/table'
-    | '/blocks/$slug'
-    | '/blog/$slug'
-    | '/docs/$'
-    | '/guides/$slug'
-    | '/blocks/'
-    | '/blog/'
-    | '/docs/'
-    | '/guides/'
+    | '/_content/search'
+    | '/_content/blocks/$slug'
+    | '/_content/blog/$slug'
+    | '/_content/docs/$'
+    | '/_content/guides/$slug'
+    | '/_content/blocks/'
+    | '/_content/blog/'
+    | '/_content/docs/'
+    | '/_content/guides/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SearchRoute: typeof SearchRoute
+  ContentRoute: typeof ContentRouteWithChildren
   TableRoute: typeof TableRoute
-  BlocksSlugRoute: typeof BlocksSlugRoute
-  BlogSlugRoute: typeof BlogSlugRoute
-  DocsSplatRoute: typeof DocsSplatRoute
-  GuidesSlugRoute: typeof GuidesSlugRoute
-  BlocksIndexRoute: typeof BlocksIndexRoute
-  BlogIndexRoute: typeof BlogIndexRoute
-  DocsIndexRoute: typeof DocsIndexRoute
-  GuidesIndexRoute: typeof GuidesIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -182,11 +181,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TableRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
+    '/_content': {
+      id: '/_content'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -196,77 +195,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/guides/': {
-      id: '/guides/'
+    '/_content/search': {
+      id: '/_content/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof ContentSearchRouteImport
+      parentRoute: typeof ContentRoute
+    }
+    '/_content/guides/': {
+      id: '/_content/guides/'
       path: '/guides'
       fullPath: '/guides/'
-      preLoaderRoute: typeof GuidesIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentGuidesIndexRouteImport
+      parentRoute: typeof ContentRoute
     }
-    '/docs/': {
-      id: '/docs/'
+    '/_content/docs/': {
+      id: '/_content/docs/'
       path: '/docs'
       fullPath: '/docs/'
-      preLoaderRoute: typeof DocsIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentDocsIndexRouteImport
+      parentRoute: typeof ContentRoute
     }
-    '/blog/': {
-      id: '/blog/'
+    '/_content/blog/': {
+      id: '/_content/blog/'
       path: '/blog'
       fullPath: '/blog/'
-      preLoaderRoute: typeof BlogIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentBlogIndexRouteImport
+      parentRoute: typeof ContentRoute
     }
-    '/blocks/': {
-      id: '/blocks/'
+    '/_content/blocks/': {
+      id: '/_content/blocks/'
       path: '/blocks'
       fullPath: '/blocks/'
-      preLoaderRoute: typeof BlocksIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentBlocksIndexRouteImport
+      parentRoute: typeof ContentRoute
     }
-    '/guides/$slug': {
-      id: '/guides/$slug'
+    '/_content/guides/$slug': {
+      id: '/_content/guides/$slug'
       path: '/guides/$slug'
       fullPath: '/guides/$slug'
-      preLoaderRoute: typeof GuidesSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentGuidesSlugRouteImport
+      parentRoute: typeof ContentRoute
     }
-    '/docs/$': {
-      id: '/docs/$'
+    '/_content/docs/$': {
+      id: '/_content/docs/$'
       path: '/docs/$'
       fullPath: '/docs/$'
-      preLoaderRoute: typeof DocsSplatRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentDocsSplatRouteImport
+      parentRoute: typeof ContentRoute
     }
-    '/blog/$slug': {
-      id: '/blog/$slug'
+    '/_content/blog/$slug': {
+      id: '/_content/blog/$slug'
       path: '/blog/$slug'
       fullPath: '/blog/$slug'
-      preLoaderRoute: typeof BlogSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentBlogSlugRouteImport
+      parentRoute: typeof ContentRoute
     }
-    '/blocks/$slug': {
-      id: '/blocks/$slug'
+    '/_content/blocks/$slug': {
+      id: '/_content/blocks/$slug'
       path: '/blocks/$slug'
       fullPath: '/blocks/$slug'
-      preLoaderRoute: typeof BlocksSlugRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ContentBlocksSlugRouteImport
+      parentRoute: typeof ContentRoute
     }
   }
 }
 
+interface ContentRouteChildren {
+  ContentSearchRoute: typeof ContentSearchRoute
+  ContentBlocksSlugRoute: typeof ContentBlocksSlugRoute
+  ContentBlogSlugRoute: typeof ContentBlogSlugRoute
+  ContentDocsSplatRoute: typeof ContentDocsSplatRoute
+  ContentGuidesSlugRoute: typeof ContentGuidesSlugRoute
+  ContentBlocksIndexRoute: typeof ContentBlocksIndexRoute
+  ContentBlogIndexRoute: typeof ContentBlogIndexRoute
+  ContentDocsIndexRoute: typeof ContentDocsIndexRoute
+  ContentGuidesIndexRoute: typeof ContentGuidesIndexRoute
+}
+
+const ContentRouteChildren: ContentRouteChildren = {
+  ContentSearchRoute: ContentSearchRoute,
+  ContentBlocksSlugRoute: ContentBlocksSlugRoute,
+  ContentBlogSlugRoute: ContentBlogSlugRoute,
+  ContentDocsSplatRoute: ContentDocsSplatRoute,
+  ContentGuidesSlugRoute: ContentGuidesSlugRoute,
+  ContentBlocksIndexRoute: ContentBlocksIndexRoute,
+  ContentBlogIndexRoute: ContentBlogIndexRoute,
+  ContentDocsIndexRoute: ContentDocsIndexRoute,
+  ContentGuidesIndexRoute: ContentGuidesIndexRoute,
+}
+
+const ContentRouteWithChildren =
+  ContentRoute._addFileChildren(ContentRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SearchRoute: SearchRoute,
+  ContentRoute: ContentRouteWithChildren,
   TableRoute: TableRoute,
-  BlocksSlugRoute: BlocksSlugRoute,
-  BlogSlugRoute: BlogSlugRoute,
-  DocsSplatRoute: DocsSplatRoute,
-  GuidesSlugRoute: GuidesSlugRoute,
-  BlocksIndexRoute: BlocksIndexRoute,
-  BlogIndexRoute: BlogIndexRoute,
-  DocsIndexRoute: DocsIndexRoute,
-  GuidesIndexRoute: GuidesIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,11 +1,11 @@
-import type { GuideFrontmatter, GuideItem, HeadingItem } from '../../lib/content'
+import type { GuideFrontmatter, GuideItem, HeadingItem } from '../../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { GuideLayout } from '../../components/content/GuideLayout'
-import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { getGuideList, getPrevNextGuides, guidesCollection } from '../../lib/content'
+import { GuideLayout } from '../../../components/content/GuideLayout'
+import { mdxComponents } from '../../../components/mdx/MDXComponents'
+import { getGuideList, getPrevNextGuides, guidesCollection } from '../../../lib/content'
 
 const BASE_URL = 'https://cbbi.jkrumm.com'
 
@@ -17,7 +17,7 @@ interface GuideLoaderData {
   prevNext: { prev: GuideItem | null, next: GuideItem | null }
 }
 
-export const Route = createFileRoute('/guides/$slug')({
+export const Route = createFileRoute('/_content/guides/$slug')({
   loader: ({ params }): GuideLoaderData => {
     const { slug } = params
     const metaKey = `../content/guides/${slug}.mdx`

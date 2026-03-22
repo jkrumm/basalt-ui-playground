@@ -1,12 +1,12 @@
-import type { HeadingItem } from '../../lib/collection'
-import type { DocsFrontmatter } from '../../lib/content'
+import type { HeadingItem } from '../../../lib/collection'
+import type { DocsFrontmatter } from '../../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { DocsLayout } from '../../components/content/DocsLayout'
-import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { docsCollection, docsMeta, getDocsSidebar } from '../../lib/content'
+import { DocsLayout } from '../../../components/content/DocsLayout'
+import { mdxComponents } from '../../../components/mdx/MDXComponents'
+import { docsCollection, docsMeta, getDocsSidebar } from '../../../lib/content'
 
 interface DocsPageData {
   slug: string
@@ -15,7 +15,7 @@ interface DocsPageData {
   sections: ReturnType<typeof getDocsSidebar>
 }
 
-export const Route = createFileRoute('/docs/$')({
+export const Route = createFileRoute('/_content/docs/$')({
   loader: ({ params }): DocsPageData => {
     const splat = params._splat ?? ''
     const directKey = `../content/docs/${splat}.mdx`

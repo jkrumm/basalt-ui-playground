@@ -1,13 +1,13 @@
-import type { HeadingItem } from '../../lib/collection'
-import type { BlogFrontmatter, BlogPost, PrevNext } from '../../lib/content'
+import type { HeadingItem } from '../../../lib/collection'
+import type { BlogFrontmatter, BlogPost, PrevNext } from '../../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute, notFound } from '@tanstack/react-router'
 import { useMemo } from 'react'
-import { BlogLayout } from '../../components/content/BlogLayout'
-import { RelatedPosts } from '../../components/content/RelatedPosts'
-import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { blogCollection, getBlogList, getPrevNextPosts, getRelatedPosts, getSeriesPosts } from '../../lib/content'
+import { BlogLayout } from '../../../components/content/BlogLayout'
+import { RelatedPosts } from '../../../components/content/RelatedPosts'
+import { mdxComponents } from '../../../components/mdx/MDXComponents'
+import { blogCollection, getBlogList, getPrevNextPosts, getRelatedPosts, getSeriesPosts } from '../../../lib/content'
 
 const BASE_URL = 'https://cbbi.jkrumm.com'
 
@@ -21,7 +21,7 @@ interface PostLoaderData {
   prevNext: PrevNext
 }
 
-export const Route = createFileRoute('/blog/$slug')({
+export const Route = createFileRoute('/_content/blog/$slug')({
   loader: ({ params }): PostLoaderData => {
     const { slug } = params
     if (!blogCollection.meta[`../content/blog/${slug}.mdx`])

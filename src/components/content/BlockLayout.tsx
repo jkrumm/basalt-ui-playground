@@ -2,7 +2,6 @@ import type { HeadingItem } from '../../lib/collection'
 import type { BlockFrontmatter } from '../../lib/content'
 import { Classes, H1, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
-import { ContentNav } from '../layout/ContentNav'
 import { PageLayout } from '../layout/PageLayout'
 import styles from './BlockLayout.module.css'
 import { TableOfContents } from './TableOfContents'
@@ -17,7 +16,6 @@ export function BlockLayout({ frontmatter, headings, children }: BlockLayoutProp
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <ContentNav />
 
         <div className={styles.layout}>
           <div className={`mdx-prose ${styles.content}`}>

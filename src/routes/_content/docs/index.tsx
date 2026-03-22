@@ -1,10 +1,10 @@
-import type { DocsFrontmatter } from '../../lib/content'
+import type { DocsFrontmatter } from '../../../lib/content'
 import { NonIdealState } from '@blueprintjs/core'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { createFileRoute } from '@tanstack/react-router'
-import { DocsLayout } from '../../components/content/DocsLayout'
-import { mdxComponents } from '../../components/mdx/MDXComponents'
-import { docsMeta, docsModules, getDocsSidebar } from '../../lib/content'
+import { DocsLayout } from '../../../components/content/DocsLayout'
+import { mdxComponents } from '../../../components/mdx/MDXComponents'
+import { docsMeta, docsModules, getDocsSidebar } from '../../../lib/content'
 
 const DOCS_INDEX_KEY = '../content/docs/index.mdx'
 
@@ -13,7 +13,7 @@ interface DocsIndexData {
   sections: ReturnType<typeof getDocsSidebar>
 }
 
-export const Route = createFileRoute('/docs/')({
+export const Route = createFileRoute('/_content/docs/')({
   loader: (): DocsIndexData => {
     const fm = docsMeta[DOCS_INDEX_KEY]
     if (!fm)

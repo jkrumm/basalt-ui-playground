@@ -6,7 +6,6 @@ import { IconArrowLeft, IconArrowRight } from '@tabler/icons-react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useReadingProgress } from '../../hooks/useReadingProgress'
 import { INDEX_SUFFIX_RE } from '../../lib/content'
-import { ContentNav } from '../layout/ContentNav'
 import { PageLayout } from '../layout/PageLayout'
 import styles from './DocsLayout.module.css'
 import { DocsSidebar } from './DocsSidebar'
@@ -50,8 +49,6 @@ export function DocsLayout({ sections, headings = [], children }: DocsLayoutProp
       <Box className={styles.page}>
         {/* Reading progress bar */}
         <div className={styles.readingBar} style={{ width: `${progress}%` }} />
-
-        <ContentNav />
 
         <div className={styles.body}>
           {/* Sidebar — sticky with own scroll */}

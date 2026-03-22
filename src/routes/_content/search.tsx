@@ -1,18 +1,17 @@
-import type { ContentType } from '../lib/collection'
-import type { SearchDocument } from '../lib/content'
+import type { ContentType } from '../../lib/collection'
+import type { SearchDocument } from '../../lib/content'
 import { Card, Classes, Elevation, H1, InputGroup, Tag } from '@blueprintjs/core'
 import { Box, Flex } from '@blueprintjs/labs'
 import { IconSearch } from '@tabler/icons-react'
 import { createFileRoute } from '@tanstack/react-router'
 import Fuse from 'fuse.js'
 import { useMemo, useState } from 'react'
-import { ContentNav } from '../components/layout/ContentNav'
-import { PageLayout } from '../components/layout/PageLayout'
-import { EVENTS, track } from '../lib/analytics'
-import { getSearchIndex, INDEX_SUFFIX_RE } from '../lib/content'
+import { PageLayout } from '../../components/layout/PageLayout'
+import { EVENTS, track } from '../../lib/analytics'
+import { getSearchIndex, INDEX_SUFFIX_RE } from '../../lib/content'
 import styles from './search.module.css'
 
-export const Route = createFileRoute('/search')({
+export const Route = createFileRoute('/_content/search')({
   loader: (): SearchDocument[] => getSearchIndex(),
   head: () => ({
     meta: [
@@ -78,7 +77,6 @@ function SearchPage() {
   return (
     <PageLayout>
       <Box className={styles.page}>
-        <ContentNav />
 
         <Box className={styles.container}>
           <H1 style={{ marginBottom: '1.5rem' }}>Search</H1>
