@@ -3,14 +3,11 @@ import { Link, useMatchRoute } from '@tanstack/react-router'
 import { ThemeToggle } from '../ThemeToggle'
 import styles from './ContentNav.module.css'
 
-/**
- * Shared sticky navbar for all content layouts (Blog, Docs, Guides, Blocks).
- * Uses TanStack Router's useMatchRoute for active state detection — no manual
- * pathname string comparison needed.
- */
 export function ContentNav() {
   const matchRoute = useMatchRoute()
 
+  const isHomeActive = !!matchRoute({ to: '/', fuzzy: false })
+  const isTableActive = !!matchRoute({ to: '/table', fuzzy: false })
   const isDocsActive = !!matchRoute({ to: '/docs', fuzzy: true })
   const isBlogActive = !!matchRoute({ to: '/blog', fuzzy: true })
   const isGuidesActive = !!matchRoute({ to: '/guides', fuzzy: true })
@@ -20,9 +17,12 @@ export function ContentNav() {
     <Navbar style={{ position: 'sticky', top: 0, zIndex: 20 }}>
       <NavbarGroup align={Alignment.LEFT}>
         <Link to="/" className={styles.navLink}>
-          <Button variant="minimal" text="CBBI" />
+          <Button variant="minimal" text="CBBI" active={isHomeActive} />
         </Link>
         <Divider />
+        <Link to="/table" className={styles.navLink}>
+          <Button variant="minimal" text="Tables" active={isTableActive} />
+        </Link>
         <Link to="/docs" className={styles.navLink}>
           <Button variant="minimal" text="Docs" active={isDocsActive} />
         </Link>
