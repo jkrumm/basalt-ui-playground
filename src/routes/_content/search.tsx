@@ -1,8 +1,8 @@
 import type { ContentType } from '../../lib/collection'
 import type { SearchDocument } from '../../lib/content'
 import { Card, Classes, Elevation, H1, InputGroup, Tag } from '@blueprintjs/core'
+import { Search } from '@blueprintjs/icons'
 import { Box, Flex } from '@blueprintjs/labs'
-import { IconSearch } from '@tabler/icons-react'
 import { createFileRoute } from '@tanstack/react-router'
 import Fuse from 'fuse.js'
 import { useMemo, useState } from 'react'
@@ -83,7 +83,7 @@ function SearchPage() {
 
           <InputGroup
             large
-            leftIcon={<IconSearch size={16} />}
+            leftIcon={<Search />}
             placeholder="Search blog, docs, guides, blocks…"
             value={query}
             onChange={e => setQuery(e.target.value)}

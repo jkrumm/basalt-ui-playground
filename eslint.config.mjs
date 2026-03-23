@@ -33,18 +33,29 @@ export default antfu(
     plugins: { 'react-compiler': reactCompiler },
     rules: { 'react-compiler/react-compiler': 'error' },
   },
-  // Ban Blueprint icon name strings — use Tabler icon components exclusively
+  // Blueprint icon usage rules — enforce tree-shaken icon components
   {
     rules: {
       'no-restricted-syntax': [
         'error',
+        // Ban icon name strings — Blueprint loads both 16px and 20px chunks lazily
+        // for string names, which is not tree-shakeable. Use a component instead.
         {
           selector: 'JSXAttribute[name.name=/^(icon|leftIcon|rightIcon)$/][value.type=\'Literal\']',
-          message: 'Use a Tabler icon component instead of a Blueprint icon name string (e.g. leftIcon={<IconSearch size={16} />}).',
+          message: 'Use a Blueprint icon component from @blueprintjs/icons (e.g. leftIcon={<Search />}) or a Tabler component in leftElement/rightElement. String names load all icons lazily and are not tree-shakeable.',
         },
+        // Ban Tabler icons in leftIcon/rightIcon — Blueprint wraps these props through
+        // <Icon> which causes layout issues (icon floats outside the input boundary).
+        // Use a Blueprint icon component for leftIcon/rightIcon, or leftElement/rightElement for Tabler.
         {
-          selector: 'ImportDeclaration[source.value=\'@blueprintjs/icons\']',
-          message: 'Import from @blueprintjs/icons is banned. Use @tabler/icons-react exclusively.',
+          selector: 'JSXAttribute[name.name=/^(leftIcon|rightIcon)$/] JSXOpeningElement[name.name=/^Icon[A-Z]/]',
+          message: 'Tabler icons cannot be used in leftIcon/rightIcon — Blueprint routes these through <Icon> and layout breaks. Use a Blueprint icon component (e.g. leftIcon={<Search />}) or move the Tabler icon to leftElement/rightElement.',
+        },
+        // Ban non-tree-shakeable @blueprintjs/icons barrel exports — these pull in all
+        // SVG path data for every icon in a single chunk.
+        {
+          selector: 'ImportDeclaration[source.value=\'@blueprintjs/icons\'] > ImportSpecifier[imported.name=/^(IconSvgPaths16|IconSvgPaths20|getIconPaths|allPaths)$/]',
+          message: 'IconSvgPaths16/20, getIconPaths, and allPaths load every icon path into one chunk — defeats tree-shaking. Import individual icon components: import { Search } from \'@blueprintjs/icons\'.',
         },
       ],
     },

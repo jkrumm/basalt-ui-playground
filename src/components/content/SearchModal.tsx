@@ -1,7 +1,7 @@
 import type { SearchDocument } from '../../lib/content'
 import { Card, Classes, Dialog, Elevation, InputGroup, Tag } from '@blueprintjs/core'
+import { Search } from '@blueprintjs/icons'
 import { Box, Flex } from '@blueprintjs/labs'
-import { IconSearch } from '@tabler/icons-react'
 import { Link } from '@tanstack/react-router'
 import Fuse from 'fuse.js'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -64,7 +64,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
         <InputGroup
           inputRef={inputRef}
           large
-          leftIcon={<IconSearch size={16} />}
+          leftIcon={<Search />}
           placeholder="Search posts and docs…"
           value={query}
           onChange={e => setQuery(e.target.value)}

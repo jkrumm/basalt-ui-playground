@@ -1,7 +1,7 @@
 import type { DocNavSection } from '../../lib/content'
 import { InputGroup } from '@blueprintjs/core'
+import { Search } from '@blueprintjs/icons'
 import { Box } from '@blueprintjs/labs'
-import { IconSearch } from '@tabler/icons-react'
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { INDEX_SUFFIX_RE } from '../../lib/content'
@@ -79,7 +79,7 @@ export function DocsSidebar({ sections }: DocsSidebarProps) {
         className={styles.searchTrigger}
       >
         <InputGroup
-          leftIcon={<IconSearch size={16} />}
+          leftIcon={<Search />}
           placeholder="Search..."
           readOnly
           rightElement={(
