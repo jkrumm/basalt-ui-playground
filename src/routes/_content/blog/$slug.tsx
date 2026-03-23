@@ -45,6 +45,12 @@ export const Route = createFileRoute('/_content/blog/$slug')({
       return {}
     const fm = ld.frontmatter
     const url = `${BASE_URL}/blog/${ld.slug}`
+    const canonical = fm.canonicalUrl ?? url
+    // ogImage takes precedence; image is the fallback (in-content hero).
+    const socialImage = fm.ogImage ?? fm.image
+    const resolvedImage = socialImage
+      ? (socialImage.startsWith('http') ? socialImage : `${BASE_URL}${socialImage}`)
+      : undefined
     const jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
@@ -52,8 +58,12 @@ export const Route = createFileRoute('/_content/blog/$slug')({
       'description': fm.description,
       'datePublished': fm.publishedAt,
       'dateModified': fm.updatedAt ?? fm.publishedAt,
-      'author': { '@type': 'Person', 'name': fm.author },
-      ...(fm.image ? { image: fm.image.startsWith('http') ? fm.image : `${BASE_URL}${fm.image}` } : {}),
+      'author': {
+        '@type': 'Person',
+        'name': fm.author,
+        ...(fm.authorUrl ? { url: fm.authorUrl } : {}),
+      },
+      ...(resolvedImage ? { image: resolvedImage } : {}),
       url,
       'keywords': fm.tags.join(', '),
     }
@@ -61,20 +71,21 @@ export const Route = createFileRoute('/_content/blog/$slug')({
       meta: [
         { title: `${fm.title} — CBBI Blueprint` },
         { name: 'description', content: fm.description },
+        ...(fm.noindex ? [{ name: 'robots', content: 'noindex' }] : []),
         { property: 'og:title', content: fm.title },
         { property: 'og:description', content: fm.description },
         { property: 'og:type', content: 'article' },
-        { property: 'og:url', content: url },
-        ...(fm.image ? [{ property: 'og:image', content: fm.image.startsWith('http') ? fm.image : `${BASE_URL}${fm.image}` }] : []),
+        { property: 'og:url', content: canonical },
+        ...(resolvedImage ? [{ property: 'og:image', content: resolvedImage }] : []),
         { name: 'article:published_time', content: fm.publishedAt },
         ...(fm.updatedAt ? [{ name: 'article:modified_time', content: fm.updatedAt }] : []),
         ...fm.tags.map(tag => ({ name: 'article:tag', content: tag })),
-        { name: 'twitter:card', content: fm.image ? 'summary_large_image' : 'summary' },
+        { name: 'twitter:card', content: resolvedImage ? 'summary_large_image' : 'summary' },
         { name: 'twitter:title', content: fm.title },
         { name: 'twitter:description', content: fm.description },
-        ...(fm.image ? [{ name: 'twitter:image', content: fm.image.startsWith('http') ? fm.image : `${BASE_URL}${fm.image}` }] : []),
+        ...(resolvedImage ? [{ name: 'twitter:image', content: resolvedImage }] : []),
       ],
-      links: [{ rel: 'canonical', href: url }],
+      links: [{ rel: 'canonical', href: canonical }],
       scripts: [{ type: 'application/ld+json', children: JSON.stringify(jsonLd) }],
     }
   },

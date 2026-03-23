@@ -38,6 +38,7 @@ export const Route = createFileRoute('/_content/blocks/$slug')({
       meta: [
         { title: `${fm.title} — CBBI Blueprint` },
         { name: 'description', content: fm.description },
+        ...(fm.noindex ? [{ name: 'robots', content: 'noindex' }] : []),
         { property: 'og:title', content: fm.title },
         { property: 'og:description', content: fm.description },
         { property: 'og:type', content: 'article' },

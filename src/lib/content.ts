@@ -12,56 +12,89 @@ export const INDEX_SUFFIX_RE = /\/index$/
 // TypeBox schemas — runtime + compile-time validation
 // ---------------------------------------------------------------------------
 
-export const BlogFrontmatterSchema = Type.Object({
+// Shared base — present on every content type.
+// noindex: suppress search indexing without hiding the page (useful for drafts-in-progress,
+// preview links, or stub pages that are live but not ready for discovery).
+export const BaseContentSchema = Type.Object({
   title: Type.String(),
-  description: Type.String(),
-  publishedAt: Type.String(),
-  updatedAt: Type.Optional(Type.String()),
-  tags: Type.Array(Type.String()),
-  author: Type.String(),
   draft: Type.Optional(Type.Boolean()),
-  image: Type.Optional(Type.String()),
-  series: Type.Optional(Type.String()),
-  seriesOrder: Type.Optional(Type.Number()),
-  // Injected at build time by the remarkReadingTime remark plugin.
-  readingTime: Type.Optional(Type.String()),
+  noindex: Type.Optional(Type.Boolean()),
 })
 
-export const DocsFrontmatterSchema = Type.Object({
-  title: Type.String(),
-  description: Type.Optional(Type.String()),
-  order: Type.Optional(Type.Number()),
-  section: Type.Optional(Type.String()),
-})
+export const BlogFrontmatterSchema = Type.Composite([
+  BaseContentSchema,
+  Type.Object({
+    description: Type.String(),
+    publishedAt: Type.String(),
+    updatedAt: Type.Optional(Type.String()),
+    tags: Type.Array(Type.String()),
+    author: Type.String(),
+    // image: general in-content image (hero, social share fallback)
+    // ogImage: explicit OG/twitter override — 1200×630px, takes precedence over image
+    image: Type.Optional(Type.String()),
+    ogImage: Type.Optional(Type.String()),
+    // canonicalUrl: override generated canonical — use when cross-posting to dev.to / Medium
+    canonicalUrl: Type.Optional(Type.String()),
+    // excerpt: short listing blurb, separate from description (meta tag). Falls back to description.
+    excerpt: Type.Optional(Type.String()),
+    // authorUrl: profile URL for article:author OG meta and JSON-LD author.url
+    authorUrl: Type.Optional(Type.String()),
+    series: Type.Optional(Type.String()),
+    seriesOrder: Type.Optional(Type.Number()),
+    // Injected at build time by the remarkReadingTime remark plugin.
+    readingTime: Type.Optional(Type.String()),
+  }),
+])
 
-export const GuideFrontmatterSchema = Type.Object({
-  title: Type.String(),
-  description: Type.String(),
-  publishedAt: Type.String(),
-  updatedAt: Type.Optional(Type.String()),
-  category: Type.String(),
-  difficulty: Type.Union([
-    Type.Literal('beginner'),
-    Type.Literal('intermediate'),
-    Type.Literal('advanced'),
-  ]),
-  estimatedTime: Type.Optional(Type.String()),
-  tags: Type.Array(Type.String()),
-  prerequisites: Type.Optional(Type.Array(Type.String())),
-  draft: Type.Optional(Type.Boolean()),
-  // Injected at build time by the remarkReadingTime remark plugin.
-  readingTime: Type.Optional(Type.String()),
-})
+// Docs: description is intentionally optional — many reference/stub pages have no natural summary.
+export const DocsFrontmatterSchema = Type.Composite([
+  BaseContentSchema,
+  Type.Object({
+    description: Type.Optional(Type.String()),
+    order: Type.Optional(Type.Number()),
+    section: Type.Optional(Type.String()),
+  }),
+])
 
-export const BlockFrontmatterSchema = Type.Object({
-  title: Type.String(),
-  description: Type.String(),
-  category: Type.String(),
-  tags: Type.Array(Type.String()),
-  component: Type.Optional(Type.String()),
-  draft: Type.Optional(Type.Boolean()),
-})
+export const GuideFrontmatterSchema = Type.Composite([
+  BaseContentSchema,
+  Type.Object({
+    description: Type.String(),
+    publishedAt: Type.String(),
+    updatedAt: Type.Optional(Type.String()),
+    category: Type.String(),
+    difficulty: Type.Union([
+      Type.Literal('beginner'),
+      Type.Literal('intermediate'),
+      Type.Literal('advanced'),
+    ]),
+    estimatedTime: Type.Optional(Type.String()),
+    tags: Type.Array(Type.String()),
+    prerequisites: Type.Optional(Type.Array(Type.String())),
+    // author: optional — guides may be org-authored or have a named contributor
+    author: Type.Optional(Type.String()),
+    ogImage: Type.Optional(Type.String()),
+    // Injected at build time by the remarkReadingTime remark plugin.
+    readingTime: Type.Optional(Type.String()),
+  }),
+])
 
+export const BlockFrontmatterSchema = Type.Composite([
+  BaseContentSchema,
+  Type.Object({
+    description: Type.String(),
+    category: Type.String(),
+    tags: Type.Array(Type.String()),
+    // component: the React component name this block demonstrates
+    component: Type.Optional(Type.String()),
+    // previewUrl: live demo iframe URL (separate from the block's /blocks/slug page)
+    previewUrl: Type.Optional(Type.String()),
+    // dependencies: other blocks or npm packages this block requires
+    dependencies: Type.Optional(Type.Array(Type.String())),
+  }),
+])
+
+export type BaseContent = Static<typeof BaseContentSchema>
 export type BlogFrontmatter = Static<typeof BlogFrontmatterSchema>
 export type DocsFrontmatter = Static<typeof DocsFrontmatterSchema>
 export type GuideFrontmatter = Static<typeof GuideFrontmatterSchema>

@@ -40,6 +40,9 @@ export const Route = createFileRoute('/_content/guides/$slug')({
       return {}
     const fm = ld.frontmatter
     const url = `${BASE_URL}/guides/${ld.slug}`
+    const resolvedImage = fm.ogImage
+      ? (fm.ogImage.startsWith('http') ? fm.ogImage : `${BASE_URL}${fm.ogImage}`)
+      : undefined
     const jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'Article',
@@ -47,6 +50,8 @@ export const Route = createFileRoute('/_content/guides/$slug')({
       'description': fm.description,
       'datePublished': fm.publishedAt,
       'dateModified': fm.updatedAt ?? fm.publishedAt,
+      ...(fm.author ? { author: { '@type': 'Person', name: fm.author } } : {}),
+      ...(resolvedImage ? { image: resolvedImage } : {}),
       url,
       'keywords': fm.tags.join(', '),
     }
@@ -54,13 +59,19 @@ export const Route = createFileRoute('/_content/guides/$slug')({
       meta: [
         { title: `${fm.title} — CBBI Blueprint` },
         { name: 'description', content: fm.description },
+        ...(fm.noindex ? [{ name: 'robots', content: 'noindex' }] : []),
         { property: 'og:title', content: fm.title },
         { property: 'og:description', content: fm.description },
         { property: 'og:type', content: 'article' },
         { property: 'og:url', content: url },
+        ...(resolvedImage ? [{ property: 'og:image', content: resolvedImage }] : []),
         { name: 'article:published_time', content: fm.publishedAt },
         ...(fm.updatedAt ? [{ name: 'article:modified_time', content: fm.updatedAt }] : []),
         ...fm.tags.map(tag => ({ name: 'article:tag', content: tag })),
+        { name: 'twitter:card', content: resolvedImage ? 'summary_large_image' : 'summary' },
+        { name: 'twitter:title', content: fm.title },
+        { name: 'twitter:description', content: fm.description },
+        ...(resolvedImage ? [{ name: 'twitter:image', content: resolvedImage }] : []),
       ],
       links: [{ rel: 'canonical', href: url }],
       scripts: [{ type: 'application/ld+json', children: JSON.stringify(jsonLd) }],
