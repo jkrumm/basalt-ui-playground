@@ -1,0 +1,141 @@
+---
+title: "Collection System"
+description: "How defineCollection works — slugify, eager imports, Value.Check validation, and search/sitemap integration."
+order: 3
+section: "Reference"
+---
+
+## Overview
+
+All four content types (Blog, Docs, Guides, Blocks) run through a shared `defineCollection` factory
+in `src/lib/collection.ts`. This page explains the internals — useful when adding a new content type
+or debugging why a page isn't showing up.
+
+---
+
+## defineCollection
+
+```typescript
+export function defineCollection<TFrontmatter>({
+  schema,     // TypeBox TObject — validates each MDX file's frontmatter
+  meta,       // import.meta.glob result for frontmatter-only imports (eager)
+  modules,    // import.meta.glob result for full module imports (eager)
+  slugify,    // path → slug string
+  sort,       // optional comparator for getAll()
+}) { ... }
+```
+
+The factory returns an object with `getAll`, `getBySlug`, `getComponent`, `getHeadings`,
+`getSitemapEntries`, `getSearchDocuments`, and a `meta` map for key-existence checks.
+
+---
+
+## Why eager imports
+
+```typescript
+const _blogMeta = import.meta.glob('../content/blog/*.mdx', { eager: true, import: 'frontmatter' })
+```
+
+`{ eager: true }` loads all matching files synchronously at module initialization time. This is
+required because TanStack Start's SSR loader runs synchronously — there is no `await` budget at
+the loader level for dynamic imports to resolve.
+
+Without `eager: true`, `getBySlug` would return `undefined` during SSR and every blog page would
+throw a 404.
+
+<Admonition type="warning" title="String literal requirement">
+  `import.meta.glob()` calls must use string literals — the glob pattern cannot be a variable or
+  function argument. Vite resolves glob patterns at build time via static analysis. This is why
+  each content type has its own `_meta` and `_modules` declarations at the top level of `content.ts`
+  rather than inside a factory function.
+</Admonition>
+
+---
+
+## Slugify
+
+The slugify function strips the file path down to the slug used in the URL:
+
+```typescript
+// Blog: ../content/blog/my-post.mdx → my-post
+slugify: path => path.replace('../content/blog/', '').replace('.mdx', '')
+
+// Docs: ../content/docs/getting-started/installation.mdx → getting-started/installation
+slugify: path => path.replace('../content/docs/', '').replace('.mdx', '')
+```
+
+The slug is derived entirely from the filesystem path. To change a slug, rename the file with
+`git mv`. There is no separate `slug` frontmatter field — that would create two sources of truth.
+
+---
+
+## Frontmatter validation
+
+At startup, `defineCollection` validates every file's frontmatter against its TypeBox schema:
+
+```typescript
+for (const [path, rawFm] of Object.entries(meta)) {
+  const result = Value.Default(schema, { ...rawFm })
+  if (!Value.Check(schema, result)) {
+    console.warn(`[collection] Invalid frontmatter in ${path}:`, [...Value.Errors(schema, result)])
+    continue  // skip invalid files rather than throwing
+  }
+  validated[path] = result as TFrontmatter
+}
+```
+
+`Value.Default` fills optional fields with their schema defaults before validation.
+Invalid files are skipped with a warning — a malformed MDX file won't crash the server.
+
+---
+
+## Search index
+
+`getSearchDocuments` maps each validated entry to a `SearchDocument` shape for the Fuse.js
+full-text index. The mapping is defined per-collection, not in the factory:
+
+```typescript
+// In content.ts:
+export function getSearchIndex(): SearchDocument[] {
+  const blog = blogCollection.getSearchDocuments((slug, fm) => ({
+    type: 'blog' as const,
+    slug,
+    title: fm.title,
+    description: fm.description,
+    tags: fm.tags,
+  }))
+  // ... guides, docs, blocks
+  return [...blog, ...docs, ...guides, ...blocks]
+}
+```
+
+The search index is built lazily on first use in the `SearchModal` component and memoized for
+the session.
+
+---
+
+## Sitemap entries
+
+```typescript
+export function getBlogSitemapEntries(): SitemapEntry[] {
+  return blogCollection.getSitemapEntries((slug, fm) => ({
+    url: `/blog/${slug}`,
+    lastmod: fm.updatedAt ?? fm.publishedAt,
+  }))
+}
+```
+
+`lastmod` comes from frontmatter — if you revise a post, update `updatedAt` so Google sees
+the change and re-crawls the page. Docs and Blocks omit `lastmod` (no dates in their schemas).
+
+---
+
+## Draft and noindex filtering
+
+`draft: true` files are excluded from `getAll()`, `getSearchDocuments()`, and
+`getSitemapEntries()`. They are still accessible directly by slug (the route's loader will
+resolve them) — this allows preview links to work before a post is published.
+
+`noindex: true` is not handled by the collection layer — it is emitted as a
+`<meta name="robots" content="noindex">` tag in the route's `head()` function. The page remains
+in the collection and sitemap unless `draft: true` is also set.

@@ -1,0 +1,98 @@
+---
+title: "Configuration"
+description: "Environment variables, Umami analytics setup, and runtime configuration for CBBI Blueprint."
+order: 3
+section: "Getting Started"
+---
+
+## Environment variables
+
+Create a `.env.local` file in the project root. All VITE_ prefixed variables are exposed to the
+client bundle; non-prefixed variables are server-only.
+
+```bash filename=".env.local"
+# Analytics — Umami (optional; analytics are disabled if these are absent)
+VITE_UMAMI_SCRIPT_URL=https://analytics.example.com/script.js
+VITE_UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+
+# Production domain — used to build absolute URLs in sitemap and canonical tags
+VITE_BASE_URL=https://cbbi.jkrumm.com
+```
+
+<Admonition type="note" title="Secrets in Doppler">
+  Actual values live in Doppler, not in `.env.local`. The `.env.local` file is gitignored.
+  Run `doppler run -- bun dev` to inject secrets automatically in development.
+</Admonition>
+
+---
+
+## Analytics (Umami)
+
+Umami is injected conditionally in `__root.tsx`:
+
+```tsx
+{import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
+  <script
+    defer
+    src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
+    data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+    data-auto-track="false"
+  />
+)}
+```
+
+`data-auto-track="false"` disables Umami's default pageview tracking. Pageviews are tracked
+manually via `RouteTracker` in `src/components/analytics/RouteTracker.tsx` — this gives precise
+control over what counts as a pageview and allows filtering internal navigation.
+
+Custom events are tracked programmatically via the `track()` utility:
+
+```typescript
+import { track, EVENTS } from '../lib/analytics'
+
+track(EVENTS.VIEW_TOGGLED, { component: 'indicator-grid', view: 'table' })
+```
+
+See `src/lib/analytics.ts` for the full event registry and `CLAUDE.md` for the event naming
+convention.
+
+---
+
+## Theme cookie
+
+The selected theme (`light`, `dark`, or `system`) is persisted in a cookie read by the root loader:
+
+```typescript
+// src/lib/theme.ts
+export const getThemeFn = createServerFn().handler(async () => {
+  const cookie = getCookie('theme')
+  return (VALID_THEMES.includes(cookie) ? cookie : 'system') as Theme
+})
+```
+
+The cookie approach eliminates the flash-of-wrong-theme that occurs with `localStorage`-based
+theme systems, because the value is available during SSR before the HTML is sent to the browser.
+
+---
+
+## Production server
+
+The production server is `server.ts` — a plain Bun HTTP server that:
+
+1. Preloads static assets from `dist/client/` into memory (configurable size limit)
+2. Serves `/sitemap.xml` and `/llms.txt` directly (no TanStack SSR involvement)
+3. Delegates all other requests to the TanStack Start SSR handler at `dist/server/server.js`
+
+Key environment variables for the server:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `3000` | HTTP port |
+| `ASSET_PRELOAD_MAX_SIZE` | `5242880` (5 MB) | Max bytes to preload into memory |
+| `ASSET_PRELOAD_VERBOSE_LOGGING` | `false` | Log loaded/skipped files on startup |
+
+Start the production server after building:
+
+```bash
+bun run build && bun run server.ts
+```

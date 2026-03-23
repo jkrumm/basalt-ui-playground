@@ -1,0 +1,113 @@
+---
+title: "SSR Data Loading Patterns in TanStack Start"
+description: "Route loaders, server functions, and the boundary between SSR and client rendering — a practical guide to data fetching in TanStack Start."
+publishedAt: "2026-03-01"
+tags: ["tanstack-start", "ssr", "react", "typescript"]
+author: "Johannes Krumm"
+authorUrl: "https://github.com/jkrumm"
+canonicalUrl: "https://dev.to/jkrumm/ssr-data-loading-tanstack-start"
+series: "TanStack Deep Dives"
+seriesOrder: 2
+---
+
+## Route loaders vs server functions
+
+TanStack Start offers two mechanisms for server-side data fetching:
+
+| | Route loader | Server function (`createServerFn`) |
+|-|-|-|
+| Triggered by | Navigation to the route | Explicit call from client or loader |
+| Runs on | Server (SSR) + client (hydration) | Server only |
+| Return type | Any serializable value | Any serializable value |
+| Good for | Initial page data | Mutations, on-demand fetches |
+
+For the CBBI dashboard, the live score is fetched in the root loader — it runs on every SSR request and is available to all child routes without prop-drilling.
+
+## Basic route loader
+
+```typescript filename="routes/index.tsx"
+import { createServerFn } from '@tanstack/react-start/server'
+import { createFileRoute } from '@tanstack/react-router'
+
+const fetchCbbiScore = createServerFn().handler(async () => {
+  const res = await fetch('https://api.cbbi.info/v1/score')
+  if (!res.ok) throw new Error('CBBI API unavailable')
+  return res.json() as Promise<{ score: number; confidence: number }>
+})
+
+export const Route = createFileRoute('/')({
+  loader: () => fetchCbbiScore(),
+  component: Dashboard,
+})
+
+function Dashboard() {
+  const { score, confidence } = Route.useLoaderData()
+  return <CBBIChart score={score} confidence={confidence} />
+}
+```
+
+<Admonition type="tip" title="Why createServerFn?">
+  Wrapping the fetch in `createServerFn` gives you a typed RPC boundary. The function is stripped from the client bundle — only the network call remains. This is how TanStack Start avoids leaking API keys or server-only dependencies to the browser.
+</Admonition>
+
+## Error handling in loaders
+
+Loaders should throw, not catch. TanStack Router's `ErrorBoundary` and `notFound()` are the right escalation paths:
+
+```typescript
+loader: async ({ params }) => {
+  const post = blogCollection.meta[`../content/blog/${params.slug}.mdx`]
+  if (!post) throw notFound()          // renders 404
+  return blogCollection.getBySlug(params.slug)
+},
+```
+
+For network errors, let them propagate to the nearest `ErrorComponent`:
+
+```typescript
+// In the route definition:
+errorComponent: ({ error }) => (
+  <NonIdealState title="Failed to load" description={error.message} />
+),
+```
+
+## The SSR / client split
+
+The `/` route fetches live data on every SSR request — it deliberately opts out of TanStack Start's prerender filter in `vite.config.ts`:
+
+```typescript filename="vite.config.ts"
+prerender: {
+  filter: ({ path }) =>
+    path.startsWith('/blog')      // SSG — content doesn't change per-request
+    || path.startsWith('/docs')
+    // '/' is NOT here — it must stay SSR for live CBBI data
+},
+```
+
+Content routes (`/blog`, `/docs`, `/guides`) are prerendered at build time. The dashboard is SSR on every request. The distinction is intentional — mixing them would either serve stale data or blow the build budget.
+
+## Parallel data loading
+
+Loaders return a single value, but you can parallelize fetches inside:
+
+```typescript
+loader: async ({ params }) => {
+  const [score, history] = await Promise.all([
+    fetchCbbiScore(),
+    fetchScoreHistory({ days: 365 }),
+  ])
+  return { score, history }
+}
+```
+
+TanStack Router runs sibling route loaders in parallel automatically — a parent and a layout can fetch independently without coordination.
+
+<Admonition type="warning" title="Avoid waterfalls">
+  Never `await` inside a loader sequentially when the requests are independent. A `Promise.all` at the loader level is the correct pattern. Sequential awaits create request waterfalls that double or triple your TTFB.
+</Admonition>
+
+## Conclusion
+
+TanStack Start's loader + `createServerFn` model keeps the data/UI boundary explicit and type-safe. The key distinction for this project: content routes are SSG (prerendered, zero server cost), live data routes are SSR (fresh on every request). That boundary is enforced by the `prerender.filter` in `vite.config.ts`.
+
+Next in this series: nested layouts and how parent loaders share data with children without prop-drilling.

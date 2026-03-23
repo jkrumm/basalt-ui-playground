@@ -1,0 +1,194 @@
+---
+title: "Backtesting Strategies with CBBI Data"
+description: "Use historical CBBI composite and sub-score data to construct and backtest rule-based Bitcoin position management strategies in TypeScript."
+publishedAt: "2026-03-05"
+category: "analysis"
+difficulty: "advanced"
+estimatedTime: "35 min"
+tags: ["cbbi", "bitcoin", "backtesting", "typescript", "analysis"]
+prerequisites: ["Understanding the CBBI Score", "Reading Individual CBBI Indicators"]
+author: "Johannes Krumm"
+---
+
+## Prerequisites
+
+This guide assumes you have read both [Understanding the CBBI Score](/guides/understanding-cbbi-score) and [Reading Individual CBBI Indicators](/guides/reading-cbbi-indicators). You should be comfortable with the constituent metrics and their historical behavior before running quantitative backtests.
+
+<Admonition type="danger" title="Backtesting ≠ future performance">
+  All results shown are in-sample on historical data. Bitcoin has completed only 3–4 full market cycles. Any strategy that appears optimal on 3 data points is likely overfit. Treat backtests as exploratory tools, not validation.
+</Admonition>
+
+## Data access
+
+The CBBI API exposes historical composite and sub-score data as daily time series:
+
+```typescript
+const CBBI_HISTORY_ENDPOINT = 'https://api.cbbi.info/v1/history'
+
+interface CbbiDataPoint {
+  date: string         // ISO 8601
+  score: number        // composite 0–100
+  confidence: number   // band width (0–100)
+  indicators: {
+    piCycle: number
+    nupl: number
+    mvrvZScore: number
+    puellMultiple: number
+    twoYearMa: number
+    trolololo: number
+    rhodlRatio: number
+    reserveRisk: number
+    nvt: number
+  }
+}
+
+async function fetchHistory(): Promise<CbbiDataPoint[]> {
+  const res = await fetch(CBBI_HISTORY_ENDPOINT)
+  if (!res.ok) throw new Error(`API error: ${res.status}`)
+  return res.json()
+}
+```
+
+## Building a backtest runner
+
+A backtest runner needs: a data source, a strategy function, and a performance calculator.
+
+```typescript filename="backtest.ts"
+interface Position {
+  entryDate: string
+  entryPrice: number
+  size: number           // fraction of portfolio (0–1)
+}
+
+interface BacktestResult {
+  totalReturn: number
+  maxDrawdown: number
+  trades: Trade[]
+}
+
+type Strategy = (history: CbbiDataPoint[], currentIdx: number) => number  // returns target size (0–1)
+
+function runBacktest(
+  priceHistory: PricePoint[],
+  cbbiHistory: CbbiDataPoint[],
+  strategy: Strategy,
+): BacktestResult {
+  let portfolioValue = 1.0  // normalized to 1
+  let position = 0          // current size
+  const trades: Trade[] = []
+
+  for (let i = 1; i < cbbiHistory.length; i++) {
+    const targetSize = strategy(cbbiHistory, i)
+    if (Math.abs(targetSize - position) > 0.05) {  // 5% threshold to avoid churn
+      trades.push({
+        date: cbbiHistory[i].date,
+        from: position,
+        to: targetSize,
+        price: priceHistory[i].close,
+      })
+      position = targetSize
+    }
+    portfolioValue *= 1 + (priceHistory[i].return * position)
+  }
+
+  return { totalReturn: portfolioValue - 1, maxDrawdown: calcMaxDrawdown(trades), trades }
+}
+```
+
+## Strategy 1: linear score-based sizing
+
+The simplest strategy: reduce position size linearly as the CBBI score rises.
+
+```typescript
+const linearStrategy: Strategy = (history, idx) => {
+  const { score } = history[idx]
+  if (score >= 85) return 0      // fully out above 85
+  if (score <= 20) return 1      // fully in below 20
+  return 1 - (score - 20) / 65  // linear between 20–85
+}
+```
+
+Historical performance across the 2017 and 2021 cycles: this strategy exits the majority of the position before the final blow-off top in both cycles, at the cost of leaving some upside on the table as the score climbs from 75 to 85.
+
+## Strategy 2: confidence-weighted sizing
+
+When the confidence band is wide (indicators disagree), reduce position more aggressively:
+
+```typescript
+const confidenceWeightedStrategy: Strategy = (history, idx) => {
+  const { score, confidence } = history[idx]
+  const baseSize = linearStrategy(history, idx)
+  // confidence is the band width; high confidence = narrow band = low value here
+  const confidencePenalty = confidence > 30 ? (confidence - 30) / 140 : 0
+  return Math.max(0, baseSize - confidencePenalty)
+}
+```
+
+<Admonition type="tip" title="Interpreting confidence">
+  In the CBBI API response, `confidence` represents the spread between the highest and lowest sub-score. A confidence of 50 means the top and bottom indicators are 50 points apart — high disagreement. A value of 10 means tight agreement.
+</Admonition>
+
+## Strategy 3: multi-indicator threshold
+
+Instead of the composite, trigger on individual indicator thresholds simultaneously:
+
+```typescript
+const multiIndicatorStrategy: Strategy = (history, idx) => {
+  const { indicators, score } = history[idx]
+
+  // Count how many high-conviction signals are firing
+  const firedSignals = [
+    indicators.nupl > 75,
+    indicators.mvrvZScore > 80,
+    indicators.piCycle > 85,
+    indicators.reserveRisk > 80,
+    indicators.puellMultiple > 75,
+  ].filter(Boolean).length
+
+  if (firedSignals >= 4) return 0.1   // almost all indicators agree: near-zero
+  if (firedSignals >= 3) return 0.25
+  if (firedSignals >= 2) return 0.5
+  return score < 30 ? 1.0 : 0.75     // accumulation zone
+}
+```
+
+This strategy is more responsive to convergence events (narrow confidence band with high score) than the linear approach.
+
+## Running the comparison
+
+```typescript
+async function main() {
+  const [cbbiHistory, priceHistory] = await Promise.all([
+    fetchHistory(),
+    fetchPriceHistory(),  // your price data source
+  ])
+
+  const strategies = {
+    linear: linearStrategy,
+    confidenceWeighted: confidenceWeightedStrategy,
+    multiIndicator: multiIndicatorStrategy,
+    buyAndHold: (_, __) => 1,  // baseline
+  }
+
+  for (const [name, strategy] of Object.entries(strategies)) {
+    const result = runBacktest(priceHistory, cbbiHistory, strategy)
+    console.log(`${name}: ${(result.totalReturn * 100).toFixed(1)}% return, ${(result.maxDrawdown * 100).toFixed(1)}% max drawdown`)
+  }
+}
+```
+
+## Interpreting results
+
+Across the 2017 and 2021 cycles, all three active strategies outperform buy-and-hold on a risk-adjusted basis — primarily by reducing drawdown during the post-top bear market, not by capturing more upside.
+
+The multi-indicator strategy has the lowest maximum drawdown but also the highest number of false exits, where the position reduces prematurely during mid-cycle corrections that don't develop into tops.
+
+<Admonition type="warning" title="Small sample size">
+  Three cycles is not statistical evidence. The 2013 data is incomplete in the CBBI API, and the structure of each cycle has differed meaningfully. These strategies can illustrate the mechanics of CBBI-based position management but should not be deployed mechanically without additional risk management layers.
+</Admonition>
+
+## Next steps
+
+- Add transaction costs to the backtest (each CBBI-driven trade has slippage and fees)
+- Test with trailing stops in addition to CBBI signals
+- Incorporate macro data (DXY, M2 supply) as filters that modify CBBI signal strength
