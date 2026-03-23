@@ -34,6 +34,30 @@ export const Route = createRootRoute({
       { rel: 'preload', href: jbMonoFont, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
       { rel: 'stylesheet', href: appCss },
     ],
+    scripts: [
+      {
+        type: 'application/ld+json',
+        children: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'WebSite',
+              '@id': 'https://cbbi.jkrumm.com/#website',
+              'url': 'https://cbbi.jkrumm.com',
+              'name': 'CBBI Blueprint',
+              'description': 'Bitcoin Cycle Bull Index dashboard and developer knowledge base built with Blueprint and TanStack Start',
+            },
+            {
+              '@type': 'Person',
+              '@id': 'https://cbbi.jkrumm.com/#author',
+              'name': 'Johannes Krumm',
+              'url': 'https://jkrumm.com',
+              'sameAs': ['https://github.com/jkrumm'],
+            },
+          ],
+        }),
+      },
+    ],
   }),
   component: RootComponent,
 })

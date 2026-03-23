@@ -87,7 +87,24 @@ export default defineConfig({
     viteReact({ include: /\.(jsx|js|mdx|md|tsx|ts)$/ }),
     // 3. React Compiler processes MDX-compiled output the same as .tsx
     babel({ presets: [reactCompilerPreset()] }),
-    // 4. Sitemap dev middleware — serves /sitemap.xml in development
+    // 4. llms.txt dev middleware — serves /llms.txt in development
+    {
+      name: 'llms-txt-dev',
+      configureServer(server) {
+        server.middlewares.use('/llms.txt', async (_req, res) => {
+          try {
+            const sitemap = await server.ssrLoadModule('/src/lib/sitemap.ts')
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+            res.end((sitemap.buildLlmsTxt as () => string)())
+          }
+          catch (e) {
+            res.statusCode = 500
+            res.end(`llms.txt generation failed: ${String(e)}`)
+          }
+        })
+      },
+    },
+    // 5. Sitemap dev middleware — serves /sitemap.xml in development
     {
       name: 'sitemap-dev',
       configureServer(server) {

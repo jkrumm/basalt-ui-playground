@@ -28,3 +28,23 @@ ${urls}
 export function collectSitemapEntries(...entryGroups: SitemapEntry[][]): SitemapEntry[] {
   return [...STATIC_ROUTES, ...entryGroups.flat()]
 }
+
+export function buildLlmsTxt(): string {
+  return `# CBBI Blueprint
+
+> Bitcoin Cycle Bull Index (CBBI) dashboard and developer knowledge base.
+> Built with Blueprint component library, TanStack Start, React, and MDX.
+
+## Key Pages
+
+- [Dashboard](${BASE_URL}/) — Live CBBI score with full indicator breakdown and historical chart
+- [Blog](${BASE_URL}/blog) — Technical articles on React, TanStack, Blueprint, and Bitcoin analytics
+- [Docs](${BASE_URL}/docs) — Developer documentation for Blueprint and the content system
+- [Guides](${BASE_URL}/guides) — Step-by-step implementation guides
+- [Blocks](${BASE_URL}/blocks) — Reusable UI component examples and patterns
+
+## Optional
+
+- [Sitemap](${BASE_URL}/sitemap.xml)
+`
+}

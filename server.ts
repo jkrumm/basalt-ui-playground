@@ -64,6 +64,13 @@
  */
 
 import path from 'node:path'
+import { buildSitemapXml, buildLlmsTxt, collectSitemapEntries } from './src/lib/sitemap'
+import {
+  getBlogSitemapEntries,
+  getDocsSitemapEntries,
+  getGuidesSitemapEntries,
+  getBlocksSitemapEntries,
+} from './src/lib/content'
 
 // Configuration
 const SERVER_PORT = Number(process.env.PORT ?? 3000)
@@ -525,6 +532,37 @@ async function initializeServer() {
     routes: {
       // Serve static assets (preloaded or on-demand)
       ...routes,
+
+      // Crawlable content — served directly, not through TanStack SSR
+      '/sitemap.xml': () => {
+        try {
+          const xml = buildSitemapXml(
+            collectSitemapEntries(
+              getBlogSitemapEntries(),
+              getDocsSitemapEntries(),
+              getGuidesSitemapEntries(),
+              getBlocksSitemapEntries(),
+            ),
+          )
+          return new Response(xml, {
+            headers: {
+              'Content-Type': 'application/xml; charset=utf-8',
+              'Cache-Control': 'public, max-age=3600',
+            },
+          })
+        }
+        catch (error) {
+          log.error(`Sitemap generation failed: ${String(error)}`)
+          return new Response('Sitemap generation failed', { status: 500 })
+        }
+      },
+      '/llms.txt': () =>
+        new Response(buildLlmsTxt(), {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600',
+          },
+        }),
 
       // Fallback to TanStack Start handler for all other routes
       '/*': (req: Request) => {
