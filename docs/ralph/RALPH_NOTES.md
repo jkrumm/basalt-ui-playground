@@ -180,3 +180,30 @@ None beyond existing CORS + credentials pattern.
 - Group 8 will implement the full settings page at `_protected/settings.tsx`.
 - Add a `loader` to `_protected/settings.tsx` that prefetches `userPreferencesQuery` via `queryClient.ensureQueryData()`.
 - `auth.functions-CepVPkMd.js` server chunk is 1.2 MB (includes Elysia + BetterAuth). Consider lazy-loading or splitting the auth server function to reduce cold start time.
+
+---
+
+## Group 7: TanStack Form v1 + Blueprint Integration
+
+### What was implemented
+Installed `@tanstack/react-form@1.28.5`, created a TypeBox → TanStack Form adapter (`validation.ts`), and a `createFormHook`-based form infrastructure (`form.tsx`) with pre-wired Blueprint `TextField`, `SelectField`, and `CheckboxField` field components. Upgraded `sign-in.tsx` and `sign-up.tsx` from raw `useState` forms to `useAppForm` with TypeBox schema validation.
+
+### Deviations from prompt
+
+- **`form.AppField` not `form.Field`**: The `createFormHook` pattern exposes `form.AppField` (not `form.Field`) for rendering field components registered via `fieldComponents`. The prompt sketched `form.Field` — the actual API is `form.AppField`.
+- **`useState` for auth errors**: The prompt suggested `form.setErrorMap({ onSubmit: errorString })`, but TanStack Form infers `errorMap.onSubmit` type from the validator's return type. Since `typeboxFormValidator` returns `{ fields: Record<string, string> } | undefined`, a plain string is not assignable. Auth errors (wrong credentials) are server-side, not field validation — `useState` is the correct separation.
+- **TypeBox does not implement Standard Schema**: Verified for `@sinclair/typebox@0.34.48` — no `standard-schema` export in the package map. Adapter is needed.
+
+### Gotchas & surprises
+
+- **`react-refresh/only-export-components` on non-exported components**: ESLint's React Refresh rule fires on component function definitions (PascalCase) in files that also export non-component values — even if those components are not exported. `form.tsx` intentionally mixes internal field components with `createFormHook` outputs. Fixed with a file-level `/* eslint-disable */` block comment.
+- **`eslint-disable-next-line` vs `/* eslint-disable */`**: Line-level disable comments placed at the wrong position report as "Unused directive" while the actual errors still fire. File-level block comments are required when the suppressed pattern spans the whole file.
+- **`selectField` generic constraint delimiter**: `{ value: T; label: string }` (semicolons) triggers `style/member-delimiter-style` from `@antfu/eslint-config` which prefers commas in inline type literals. Changed to `{ value: T, label: string }`.
+- **`typeboxFormValidator` return format**: TanStack Form form-level validators that map errors to specific fields must return `{ fields: Record<string, string> }`. Field names in TypeBox error paths use `/fieldName` format — the leading slash must be stripped.
+
+### Security notes
+None.
+
+### Future improvements
+- Add `typeboxValidator` (field-level) usage examples for cases where per-field schema validation is needed instead of whole-form validation.
+- Consider exporting field components if they're needed outside the form hook (e.g., for standalone Blueprint integration).
