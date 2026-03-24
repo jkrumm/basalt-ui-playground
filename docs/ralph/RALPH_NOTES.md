@@ -148,3 +148,35 @@ BetterAuth client wired in `apps/web` with `auth-client.ts` (from `better-auth/r
 - Validate redirect param is same-origin before `window.location.assign(redirect)`.
 - Settings link in NavUserMenu (Group 8 will add the settings page).
 - Consider same-origin BetterAuth setup to eliminate `credentials: include` CORS complexity in production.
+
+---
+
+## Group 6: TanStack Query v5 + Eden Treaty Isomorphic Client
+
+### What was implemented
+Installed `@tanstack/react-query@5.95.2`, `@elysiajs/eden@1.4.8`, and `@tanstack/react-query-devtools@5.95.2`. Created `query-client.ts` singleton, `api.ts` with `createIsomorphicFn` server/client split, wired `QueryClientProvider` + `ReactQueryDevtools` into `__root.tsx`, and created `queries/preferences.queries.ts` with `userPreferencesQuery` and `updatePreferencesMutation` factory functions. Also fixed two pre-existing build failures from Group 5.
+
+### Deviations from prompt
+
+**`await getApi()` in query factories** — The server branch of `createIsomorphicFn` is `async` (requires dynamic import to get the Elysia app instance), making `getApi()` return `Promise<ApiClient>` on the server. The client branch returns `ApiClient` synchronously. Rather than forcing both to async, the query factories use `const api = await getApi()` — since `await nonPromise === nonPromise`, this works transparently on both branches without changing the `getApi` signature.
+
+**Elysia not in client bundle — verified by inspection** — `grep -r "elysia" dist/client/ --include="*.js"` returned no matches. The dynamic import inside the `.server()` branch of `createIsomorphicFn` is tree-shaken from the client bundle by TanStack Start's Vite plugin. Only the Eden Treaty HTTP client code (using `treaty<App>(url)`) appears in client chunks.
+
+**Fixed pre-existing build failure from Group 5 (route conflict)** — `_protected.tsx` had no corresponding `_protected/` directory. TanStack Router's build-time route generator treats a pathless layout with no child files as a regular route at `/`, causing a conflict with `index.tsx`. Fixed by creating `apps/web/src/routes/_protected/settings.tsx` as a stub (Group 8 will flesh it out).
+
+**Fixed pre-existing prerender failure from Group 5 (wrong slug format in guide prerequisites)** — `backtesting-cbbi-strategies.mdx` and `reading-cbbi-indicators.mdx` had `prerequisites: ["Understanding the CBBI Score"]` (human-readable title), but `GuideLayout.tsx` passes these directly as route slugs (`<Link params={{ slug: prereq }}>`). The prerender crawled the link, found 404, and failed. Fixed by changing prerequisites to use the slug format: `"understanding-cbbi-score"`, `"reading-cbbi-indicators"`.
+
+### Gotchas & surprises
+
+- **`createIsomorphicFn` async server branch**: If the server branch needs a dynamic import, it's async and returns a Promise. Callers must `await` the result. `await` on a non-Promise is a no-op, so using `await getApi()` everywhere is safe for both branches without any runtime penalty on the client.
+- **`treaty<App>(url)` vs `treaty(app)` types**: Both produce structurally identical types since `App = typeof app`. TypeScript and Eden Treaty infer route paths correctly from either form — the former for HTTP clients, the latter for direct in-process calls.
+- **`_protected.tsx` pathless layout requires a `_protected/` directory**: Without at least one child route file in `_protected/`, the TanStack Router generator cannot infer that it's a pathless layout and falls back to treating it as a route at `/`. The `_content.tsx` layout works because it has a `_content/` directory with children.
+- **Guide prerequisites must use slug format, not title**: The `GuideLayout.tsx` prerequisite renderer passes the value directly as a URL slug param. Frontmatter `prerequisites` arrays must contain file slugs (e.g., `understanding-cbbi-score`), not human-readable titles.
+
+### Security notes
+None beyond existing CORS + credentials pattern.
+
+### Future improvements
+- Group 8 will implement the full settings page at `_protected/settings.tsx`.
+- Add a `loader` to `_protected/settings.tsx` that prefetches `userPreferencesQuery` via `queryClient.ensureQueryData()`.
+- `auth.functions-CepVPkMd.js` server chunk is 1.2 MB (includes Elysia + BetterAuth). Consider lazy-loading or splitting the auth server function to reduce cold start time.

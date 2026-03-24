@@ -9,12 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProtectedRouteImport } from './routes/_protected'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as TableRouteImport } from './routes/table'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ContentRouteImport } from './routes/_content'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ContentSearchRouteImport } from './routes/_content/search'
 import { Route as ContentGuidesIndexRouteImport } from './routes/_content/guides/index'
 import { Route as ContentDocsIndexRouteImport } from './routes/_content/docs/index'
@@ -25,13 +26,9 @@ import { Route as ContentDocsSplatRouteImport } from './routes/_content/docs/$'
 import { Route as ContentBlogSlugRouteImport } from './routes/_content/blog/$slug'
 import { Route as ContentBlocksSlugRouteImport } from './routes/_content/blocks/$slug'
 
-const ProtectedRoute = ProtectedRouteImport.update({
-  id: '/_protected',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
+const TableRoute = TableRouteImport.update({
+  id: '/table',
+  path: '/table',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignUpRoute = SignUpRouteImport.update({
@@ -39,9 +36,13 @@ const SignUpRoute = SignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
-const TableRoute = TableRouteImport.update({
-  id: '/table',
-  path: '/table',
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedRoute = ProtectedRouteImport.update({
+  id: '/_protected',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContentRoute = ContentRouteImport.update({
@@ -52,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 const ContentSearchRoute = ContentSearchRouteImport.update({
   id: '/search',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
+  '/settings': typeof ProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
   '/docs/$': typeof ContentDocsSplatRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
+  '/settings': typeof ProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
   '/docs/$': typeof ContentDocsSplatRoute
@@ -132,12 +140,13 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/_protected': typeof ProtectedRoute
+  '/_content': typeof ContentRouteWithChildren
+  '/_protected': typeof ProtectedRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
-  '/_content': typeof ContentRouteWithChildren
   '/table': typeof TableRoute
   '/_content/search': typeof ContentSearchRoute
+  '/_protected/settings': typeof ProtectedSettingsRoute
   '/_content/blocks/$slug': typeof ContentBlocksSlugRoute
   '/_content/blog/$slug': typeof ContentBlogSlugRoute
   '/_content/docs/$': typeof ContentDocsSplatRoute
@@ -155,6 +164,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/table'
     | '/search'
+    | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
     | '/docs/$'
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/table'
     | '/search'
+    | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
     | '/docs/$'
@@ -181,12 +192,13 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_content'
     | '/_protected'
     | '/sign-in'
     | '/sign-up'
-    | '/_content'
     | '/table'
     | '/_content/search'
+    | '/_protected/settings'
     | '/_content/blocks/$slug'
     | '/_content/blog/$slug'
     | '/_content/docs/$'
@@ -199,27 +211,20 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ProtectedRoute: typeof ProtectedRoute
+  ContentRoute: typeof ContentRouteWithChildren
+  ProtectedRoute: typeof ProtectedRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
-  ContentRoute: typeof ContentRouteWithChildren
   TableRoute: typeof TableRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_protected': {
-      id: '/_protected'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof ProtectedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
+    '/table': {
+      id: '/table'
+      path: '/table'
+      fullPath: '/table'
+      preLoaderRoute: typeof TableRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-up': {
@@ -229,11 +234,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/table': {
-      id: '/table'
-      path: '/table'
-      fullPath: '/table'
-      preLoaderRoute: typeof TableRouteImport
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ProtectedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_content': {
@@ -249,6 +261,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_protected/settings': {
+      id: '/_protected/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof ProtectedSettingsRouteImport
+      parentRoute: typeof ProtectedRoute
     }
     '/_content/search': {
       id: '/_content/search'
@@ -343,12 +362,24 @@ const ContentRouteChildren: ContentRouteChildren = {
 const ContentRouteWithChildren =
   ContentRoute._addFileChildren(ContentRouteChildren)
 
+interface ProtectedRouteChildren {
+  ProtectedSettingsRoute: typeof ProtectedSettingsRoute
+}
+
+const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedSettingsRoute: ProtectedSettingsRoute,
+}
+
+const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
+  ProtectedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ProtectedRoute: ProtectedRoute,
+  ContentRoute: ContentRouteWithChildren,
+  ProtectedRoute: ProtectedRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
-  ContentRoute: ContentRouteWithChildren,
   TableRoute: TableRoute,
 }
 export const routeTree = rootRouteImport

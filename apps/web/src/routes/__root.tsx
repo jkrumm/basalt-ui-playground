@@ -3,6 +3,8 @@ import { Classes, FocusStyleManager } from '@blueprintjs/core'
 import geistFont from '@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url'
 import jbMonoFont from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2?url'
 import { useHotkey } from '@tanstack/react-hotkeys'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {
   createRootRoute,
   HeadContent,
@@ -19,6 +21,7 @@ import { SearchModal } from '../components/content/SearchModal'
 import { ContentNav } from '../components/layout/ContentNav'
 import { ThemeContext, useSystemTheme } from '../context/theme-context'
 import { EVENTS, track } from '../lib/analytics'
+import { queryClient } from '../lib/query-client'
 import { getThemeFn, setThemeFn } from '../lib/theme'
 import appCss from '../styles/app.css?url'
 import 'jotai-devtools/styles.css'
@@ -110,36 +113,39 @@ function RootComponent() {
   )
 
   return (
-    <Provider>
-      {import.meta.env.DEV && <DevTools />}
-      <ThemeContext value={{ theme, effectiveTheme, setTheme }}>
-        <html lang="en">
-          <head>
-            <HeadContent />
-            {/* Umami analytics — injected only when env vars are set; absent in dev by default */}
-            {import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
-              <script
-                defer
-                src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
-                data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
-                data-auto-track="false"
-              />
-            )}
-          </head>
-          {/* bp6-dark resolved server-side from cookie (explicit) or from OS pref on client (system). */}
-          {/* suppressHydrationWarning: expected when 'system' resolves differently on server vs client. */}
-          <body
-            className={effectiveTheme === 'dark' ? Classes.DARK : undefined}
-            suppressHydrationWarning
-          >
-            <RouteTracker />
-            <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
-            <ContentNav />
-            <Outlet />
-            <Scripts />
-          </body>
-        </html>
-      </ThemeContext>
-    </Provider>
+    <QueryClientProvider client={queryClient}>
+      <Provider>
+        {import.meta.env.DEV && <DevTools />}
+        <ThemeContext value={{ theme, effectiveTheme, setTheme }}>
+          <html lang="en">
+            <head>
+              <HeadContent />
+              {/* Umami analytics — injected only when env vars are set; absent in dev by default */}
+              {import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
+                <script
+                  defer
+                  src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
+                  data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+                  data-auto-track="false"
+                />
+              )}
+            </head>
+            {/* bp6-dark resolved server-side from cookie (explicit) or from OS pref on client (system). */}
+            {/* suppressHydrationWarning: expected when 'system' resolves differently on server vs client. */}
+            <body
+              className={effectiveTheme === 'dark' ? Classes.DARK : undefined}
+              suppressHydrationWarning
+            >
+              <RouteTracker />
+              <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+              <ContentNav />
+              <Outlet />
+              <Scripts />
+            </body>
+          </html>
+        </ThemeContext>
+      </Provider>
+      {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
+    </QueryClientProvider>
   )
 }
