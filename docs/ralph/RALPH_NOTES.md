@@ -235,3 +235,27 @@ None. Settings page is fully protected by `_protected.tsx` beforeLoad which redi
 - Move the server-authoritative atom override to a global auth observer so it fires immediately on login, not only when the user visits `/settings`.
 - Theme saved to server but not synced back to the cookie-based SSR system. A future improvement would call `setThemeFn` after a theme save to keep the cookie in sync.
 - Add debounced auto-save for viewMode/sortBy atom changes as a background optimization (fire and forget, no loading state needed).
+
+---
+
+## Group 9: Cmd+K Global Search Wiring
+
+### What was implemented
+Wired `searchOpenAtom` to the global Cmd+K hotkey in `__root.tsx` and added a visible search button (magnifying glass icon) to `ContentNav`. The `SearchModal` already accepted `isOpen`/`onClose` props and used Blueprint `Dialog` with `canEscapeKeyClose` — no changes to the modal itself were needed.
+
+### Deviations from prompt
+- **Most of the implementation was already done.** The `useHotkey` call in `__root.tsx`, the `SearchModal` rendering, and the `searchOpenAtom` binding were all present from prior sessions. Group 9 only added the nav bar search button.
+- **`useHotkey` (singular), not `useHotkeys` (plural).** The installed `@tanstack/react-hotkeys` API uses `useHotkey` (no trailing `s`) with a `{ preventDefault: true }` options object — not the array-of-tuples format described in the prompt.
+- **Window custom event bridge.** `__root.tsx` also listens for a `'open-search'` window event as a fallback bridge for non-atom-aware components. Not needed with direct atom access but kept for flexibility.
+- **`data-umami-event-component` added** to the search button alongside `data-umami-event` for richer analytics properties (matches the CLAUDE.md convention of always including a `component` property).
+
+### Gotchas & surprises
+- `@tanstack/react-hotkeys` `useHotkey` signature: `useHotkey(key: string, handler: () => void, options?: { preventDefault?: boolean })`. The `mod` key maps to ⌘ on Mac and Ctrl on Windows/Linux as expected.
+- Blueprint `Dialog` already handles Escape key natively via `canEscapeKeyClose` prop — no additional hotkey handler needed for closing.
+- `OverlaysProvider` was not required — Blueprint v6 `Dialog` works without it in this setup (TanStack Start SSR environment).
+
+### Security notes
+None.
+
+### Future improvements
+- Add a keyboard shortcut hint (⌘K) displayed in the search button tooltip or as a small `kbd` element next to the button text for discoverability.

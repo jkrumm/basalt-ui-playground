@@ -1,5 +1,8 @@
 import { Alignment, Button, Divider, Menu, MenuItem, Navbar, NavbarGroup, Popover, Spinner } from '@blueprintjs/core'
+import { Search } from '@blueprintjs/icons'
 import { Link, useMatchRoute, useNavigate } from '@tanstack/react-router'
+import { useSetAtom } from 'jotai'
+import { searchOpenAtom } from '../../atoms'
 import { authClient } from '../../lib/auth-client'
 import { ThemeToggle } from '../ThemeToggle'
 import styles from './ContentNav.module.css'
@@ -40,9 +43,24 @@ export function ContentNav() {
       <NavbarGroup align={Alignment.RIGHT}>
         <NavUserMenu />
         <Divider />
+        <SearchButton />
+        <Divider />
         <ThemeToggle />
       </NavbarGroup>
     </Navbar>
+  )
+}
+
+function SearchButton() {
+  const setSearchOpen = useSetAtom(searchOpenAtom)
+  return (
+    <Button
+      variant="minimal"
+      icon={<Search />}
+      onClick={() => setSearchOpen(true)}
+      data-umami-event="search-opened"
+      data-umami-event-component="content-nav"
+    />
   )
 }
 
