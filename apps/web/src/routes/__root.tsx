@@ -10,7 +10,10 @@ import {
   Scripts,
   useRouter,
 } from '@tanstack/react-router'
+import { Provider, useAtom } from 'jotai'
+import { DevTools } from 'jotai-devtools'
 import { useCallback, useEffect, useState } from 'react'
+import { searchOpenAtom } from '../atoms'
 import { RouteTracker } from '../components/analytics/RouteTracker'
 import { SearchModal } from '../components/content/SearchModal'
 import { ContentNav } from '../components/layout/ContentNav'
@@ -18,6 +21,7 @@ import { ThemeContext, useSystemTheme } from '../context/theme-context'
 import { EVENTS, track } from '../lib/analytics'
 import { getThemeFn, setThemeFn } from '../lib/theme'
 import appCss from '../styles/app.css?url'
+import 'jotai-devtools/styles.css'
 
 export const Route = createRootRoute({
   loader: () => getThemeFn(),
@@ -68,7 +72,7 @@ function RootComponent() {
   // Optimistic override during theme change — null means "use loader value"
   const [pendingTheme, setPendingTheme] = useState<Theme | null>(null)
   const theme = pendingTheme ?? loaderTheme
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom)
 
   useHotkey('Mod+K', () => {
     setSearchOpen(true)
@@ -106,33 +110,36 @@ function RootComponent() {
   )
 
   return (
-    <ThemeContext value={{ theme, effectiveTheme, setTheme }}>
-      <html lang="en">
-        <head>
-          <HeadContent />
-          {/* Umami analytics — injected only when env vars are set; absent in dev by default */}
-          {import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
-            <script
-              defer
-              src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
-              data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
-              data-auto-track="false"
-            />
-          )}
-        </head>
-        {/* bp6-dark resolved server-side from cookie (explicit) or from OS pref on client (system). */}
-        {/* suppressHydrationWarning: expected when 'system' resolves differently on server vs client. */}
-        <body
-          className={effectiveTheme === 'dark' ? Classes.DARK : undefined}
-          suppressHydrationWarning
-        >
-          <RouteTracker />
-          <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
-          <ContentNav />
-          <Outlet />
-          <Scripts />
-        </body>
-      </html>
-    </ThemeContext>
+    <Provider>
+      {import.meta.env.DEV && <DevTools />}
+      <ThemeContext value={{ theme, effectiveTheme, setTheme }}>
+        <html lang="en">
+          <head>
+            <HeadContent />
+            {/* Umami analytics — injected only when env vars are set; absent in dev by default */}
+            {import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
+              <script
+                defer
+                src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
+                data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+                data-auto-track="false"
+              />
+            )}
+          </head>
+          {/* bp6-dark resolved server-side from cookie (explicit) or from OS pref on client (system). */}
+          {/* suppressHydrationWarning: expected when 'system' resolves differently on server vs client. */}
+          <body
+            className={effectiveTheme === 'dark' ? Classes.DARK : undefined}
+            suppressHydrationWarning
+          >
+            <RouteTracker />
+            <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+            <ContentNav />
+            <Outlet />
+            <Scripts />
+          </body>
+        </html>
+      </ThemeContext>
+    </Provider>
   )
 }

@@ -57,6 +57,16 @@ export default antfu(
           selector: 'ImportDeclaration[source.value=\'@blueprintjs/icons\'] > ImportSpecifier[imported.name=/^(IconSvgPaths16|IconSvgPaths20|getIconPaths|allPaths)$/]',
           message: 'IconSvgPaths16/20, getIconPaths, and allPaths load every icon path into one chunk — defeats tree-shaking. Import individual icon components: import { Search } from \'@blueprintjs/icons\'.',
         },
+        // Enforce Jotai atom naming convention — atoms must use the *Atom suffix
+        {
+          selector: 'VariableDeclarator[init.type=\'CallExpression\'][init.callee.name=/^atom/]:not([id.name=/.+Atom$/])',
+          message: 'Jotai atoms must use the *Atom naming convention (e.g., viewModeAtom, not viewMode).',
+        },
+        // Ban atomFamily — broken with React Compiler (infinite re-render)
+        {
+          selector: 'CallExpression[callee.name=\'atomFamily\']',
+          message: 'atomFamily is broken with React Compiler. Use static atoms instead.',
+        },
       ],
     },
   },

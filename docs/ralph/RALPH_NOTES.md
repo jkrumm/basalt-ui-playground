@@ -49,3 +49,26 @@ None.
 
 ### Future improvements
 - When `packages/api` is populated (Group 4+), verify Elysia's `t` (TypeBox superset) can consume these plain TypeBox schemas without wrapping. Expected to work but worth a quick smoke test.
+
+---
+
+## Group 3: Jotai v2 State Layer
+
+### What was implemented
+Installed Jotai v2.19.0 and jotai-devtools v0.13.0. Created `src/atoms/` with three files: `ui.atoms.ts` (searchOpenAtom, viewModeAtom, sortByAtom), `preferences.atoms.ts` (serverPreferencesAtom), and `index.ts` barrel. Wired `<Provider>` and conditional `<DevTools />` into `__root.tsx`. Migrated `searchOpen` (root), `viewMode` and `sortBy` (index) from `useState` to atom reads.
+
+### Deviations from prompt
+- **ESLint `no-restricted-syntax` merging**: The prompt suggested adding a new flat config object for the Jotai naming rules. In ESLint flat config, a later config object with the same rule name OVERRIDES the earlier one — it does NOT merge. Adding a separate config would have silently dropped all existing Blueprint/icon restrictions. Instead, the new Jotai selectors were appended to the existing `no-restricted-syntax` array. Both rules now have `'error'` severity (consistent with the existing rules).
+- **`sortBy` cast**: `atomWithStorage` with `UserPreferences['sortBy']` type requires an explicit `as UserPreferences['sortBy']` cast when assigning from `HTMLSelect`'s `e.target.value` (which is `string`). This is correct — the options in the JSX constrain valid values but TypeScript can't infer that from a DOM event.
+
+### Gotchas & surprises
+- jotai-devtools v0.13.0 emits a peer dependency warning for `react@^18` (we have React 19). Works correctly at runtime — the warning is a version range oversight in jotai-devtools' `peerDependencies`.
+- Jotai's `useAtom` setter is stable across renders (same reference), but `react-hooks/exhaustive-deps` doesn't have a special case for it the way it does for React's own `useState` setter. This produces a pre-existing-style warning in `__root.tsx` (`setSearchOpen` missing from deps). Functionally correct to leave omitted — the effect's cleanup is the important part.
+- CSS import for jotai-devtools must be a side-effect import (`import 'jotai-devtools/styles.css'`). The Vite Inline (`?inline`) pattern is also valid but unnecessary when CSS is bundled normally.
+
+### Security notes
+None.
+
+### Future improvements
+- The `react-hooks/exhaustive-deps` warning for `setSearchOpen` could be suppressed with a `useSetAtom` split (read and write atoms separately), but this is cosmetic — the behavior is identical.
+- jotai-devtools `position` prop can be configured if the default overlaps with Blueprint UI elements.

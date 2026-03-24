@@ -1,3 +1,4 @@
+import type { UserPreferences } from '@cbbi/schemas'
 import type { HistoryPoint } from '../components/CBBIChart'
 import {
   Button,
@@ -27,7 +28,9 @@ import {
 } from '@tabler/icons-react'
 import { createFileRoute } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
+import { useAtom } from 'jotai'
 import { lazy, Suspense, useEffect, useState } from 'react'
+import { sortByAtom, viewModeAtom } from '../atoms'
 import { PageLayout } from '../components/layout/PageLayout'
 import { EVENTS, track } from '../lib/analytics'
 import { formatDateLong } from '../lib/date'
@@ -265,8 +268,8 @@ function getSortedKeys(
 
 function CBBIDashboard() {
   const { price, confidence, indicators, history } = Route.useLoaderData()
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid')
-  const [sortBy, setSortBy] = useState('default')
+  const [viewMode, setViewMode] = useAtom(viewModeAtom)
+  const [sortBy, setSortBy] = useAtom(sortByAtom)
   // Chart is client-only: useEffect never runs on server, so isMounted
   // stays false during SSR — Recharts never touches document/window.
   const [isMounted, setIsMounted] = useState(false)
@@ -352,7 +355,7 @@ function CBBIDashboard() {
             <HTMLSelect
               value={sortBy}
               onChange={(e) => {
-                setSortBy(e.target.value)
+                setSortBy(e.target.value as UserPreferences['sortBy'])
                 track(EVENTS.SELECT_CHANGED, { component: 'indicator-grid', field: 'sort', value: e.target.value })
               }}
               options={[
