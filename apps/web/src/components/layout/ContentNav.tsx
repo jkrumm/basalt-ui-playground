@@ -66,6 +66,10 @@ function NavUserMenu() {
       content={(
         <Menu>
           <MenuItem
+            text="Settings"
+            onClick={() => void navigate({ to: '/settings' })}
+          />
+          <MenuItem
             text="Sign out"
             intent="danger"
             onClick={async () => {

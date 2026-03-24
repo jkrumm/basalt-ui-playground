@@ -207,3 +207,31 @@ None.
 ### Future improvements
 - Add `typeboxValidator` (field-level) usage examples for cases where per-field schema validation is needed instead of whole-form validation.
 - Consider exporting field components if they're needed outside the form hook (e.g., for standalone Blueprint integration).
+
+---
+
+## Group 8: User Preferences Server-Sync Pattern
+
+### What was implemented
+Created `apps/web/src/routes/_protected/settings.tsx` — a protected settings page that loads user preferences via `useSuspenseQuery`, applies them to localStorage atoms on mount, and saves changes to the Elysia backend via `useMutation`. Updated `ContentNav.tsx` to add a "Settings" menu item under the user menu.
+
+### Deviations from prompt
+
+**No auto-sync from the home page.** The prompt suggested a `usePreferenceSyncer` hook that fires a mutation on every atom change on the home page. This was rejected: it would call the API on every viewMode/sortBy toggle without a debounce, creating excessive network traffic. The explicit save from the settings page is the correct UX pattern — users set their preferences once, not continuously. Documented with inline comment.
+
+**No route loader preload.** The prompt specified `loader: () => queryClient.ensureQueryData(userPreferencesQuery())`. This was omitted because `getApi`'s server branch creates a direct in-process Elysia call without forwarding request cookies (the `treaty(app)` call has no auth headers). The authenticated preferences query would return 401 during SSR. `useSuspenseQuery` runs client-side after hydration where `credentials: 'include'` sends the auth cookie correctly. A Suspense boundary wraps the form component, showing a Spinner during the brief client-side fetch.
+
+**Navigation uses `/settings` not `/_protected/settings`.** `_protected` is a pathless layout route — it has no URL segment. The actual full path is `/settings`. TanStack Router's `to:` parameter takes the path, not the route ID. The TypeScript compiler caught this immediately.
+
+### Gotchas & surprises
+- **Route tree was already regenerated.** The `_protected/settings.tsx` stub from an earlier group had already caused the TanStack Router Vite plugin to regenerate `routeTree.gen.ts` with the route included. Running `bunx tsr generate` from the workspace root produced confusing output and exit code 1 — this is normal for the `tsr` CLI when run outside the router's configured root (the Vite plugin handles generation during `vite dev`/`vite build`).
+- **`onSuccess` data is `UserPreferences` not `PatchUserPreferences`.** The `patchPreferences` Elysia route returns the full saved record. The `onSuccess` callback can therefore directly call `setViewMode(data.viewMode)` and `setSortBy(data.sortBy)` without null checks — the returned data is always a complete object.
+- **`mutation.error` is typed as `unknown`.** TanStack Query v5 defaults to `unknown` for error types unless explicitly typed at the QueryClient level. The `mutation.error instanceof Error` guard is required before accessing `.message`.
+
+### Security notes
+None. Settings page is fully protected by `_protected.tsx` beforeLoad which redirects unauthenticated users to `/sign-in`.
+
+### Future improvements
+- Move the server-authoritative atom override to a global auth observer so it fires immediately on login, not only when the user visits `/settings`.
+- Theme saved to server but not synced back to the cookie-based SSR system. A future improvement would call `setThemeFn` after a theme save to keep the cookie in sync.
+- Add debounced auto-save for viewMode/sortBy atom changes as a background optimization (fire and forget, no loading state needed).
