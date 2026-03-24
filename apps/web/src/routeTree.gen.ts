@@ -9,6 +9,9 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ProtectedRouteImport } from './routes/_protected'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as TableRouteImport } from './routes/table'
 import { Route as ContentRouteImport } from './routes/_content'
 import { Route as IndexRouteImport } from './routes/index'
@@ -22,6 +25,20 @@ import { Route as ContentDocsSplatRouteImport } from './routes/_content/docs/$'
 import { Route as ContentBlogSlugRouteImport } from './routes/_content/blog/$slug'
 import { Route as ContentBlocksSlugRouteImport } from './routes/_content/blocks/$slug'
 
+const ProtectedRoute = ProtectedRouteImport.update({
+  id: '/_protected',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TableRoute = TableRouteImport.update({
   id: '/table',
   path: '/table',
@@ -84,6 +101,8 @@ const ContentBlocksSlugRoute = ContentBlocksSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
@@ -97,6 +116,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
@@ -111,6 +132,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_protected': typeof ProtectedRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-up': typeof SignUpRoute
   '/_content': typeof ContentRouteWithChildren
   '/table': typeof TableRoute
   '/_content/search': typeof ContentSearchRoute
@@ -127,6 +151,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/sign-in'
+    | '/sign-up'
     | '/table'
     | '/search'
     | '/blocks/$slug'
@@ -140,6 +166,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/sign-in'
+    | '/sign-up'
     | '/table'
     | '/search'
     | '/blocks/$slug'
@@ -153,6 +181,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_protected'
+    | '/sign-in'
+    | '/sign-up'
     | '/_content'
     | '/table'
     | '/_content/search'
@@ -168,12 +199,36 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ProtectedRoute: typeof ProtectedRoute
+  SignInRoute: typeof SignInRoute
+  SignUpRoute: typeof SignUpRoute
   ContentRoute: typeof ContentRouteWithChildren
   TableRoute: typeof TableRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_protected': {
+      id: '/_protected'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof ProtectedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sign-up': {
+      id: '/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof SignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/table': {
       id: '/table'
       path: '/table'
@@ -290,6 +345,9 @@ const ContentRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ProtectedRoute: ProtectedRoute,
+  SignInRoute: SignInRoute,
+  SignUpRoute: SignUpRoute,
   ContentRoute: ContentRouteWithChildren,
   TableRoute: TableRoute,
 }

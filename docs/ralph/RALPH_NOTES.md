@@ -115,3 +115,36 @@ Built the complete Elysia 1.4 API backend in `packages/api/`. Includes: `bun:sql
 - Add `BETTER_AUTH_SECRET` env var (required for production — BetterAuth generates a random secret if not set, breaking sessions across restarts).
 - Consider switching from cross-origin cookies (localhost:3001) to same-origin by mounting the Elysia API under the TanStack Start server (via a proxy or TanStack Start's `createAPIHandler`). This avoids `credentials: include` complexity.
 - Drizzle relations between `userPreferences` and `user` (foreign key + `references(() => user.id)`) deferred — add when Group 8 (settings sync) is built.
+
+---
+
+## Group 5: BetterAuth Client + Auth Pages
+
+### What was implemented
+BetterAuth client wired in `apps/web` with `auth-client.ts` (from `better-auth/react`), server function `getSessionFn` in `auth.functions.ts` using direct auth import, `_protected.tsx` pathless layout route with `beforeLoad` redirect, sign-in and sign-up pages using Blueprint components, and `NavUserMenu` component in ContentNav.
+
+### Deviations from prompt
+
+**Direct auth import via `@cbbi/api/auth` subpath export** — instead of HTTP fetch in the server function, `auth.api.getSession({ headers })` is called directly (zero HTTP overhead during SSR). Added `"./auth": "./src/auth.ts"` to `packages/api/package.json` exports to expose just the auth config without pulling in `app.listen()`.
+
+**`bun-types` added to `apps/web`** — importing `@cbbi/api/auth` transitively pulls in `packages/api/src/db.ts` which uses `bun:sqlite`. TypeScript in `apps/web` can't resolve `bun:sqlite` without `bun-types`. Added `bun-types` as devDep + to `tsconfig.json` types. This is appropriate since TanStack Start server functions run in Bun.
+
+**TypeBox Optional for redirect search param** — `validateSearch` in `sign-in.tsx` uses `Type.Optional(Type.String())` so `/sign-in` links don't require `search={{ redirect }}`. Plain function `validateSearch` returning `{ redirect: string }` would make the param required in all TanStack Router Link and navigate calls.
+
+**`window.location.assign(redirect)` for post-login navigation** — TanStack Router's `navigate({ to: ... })` is strongly typed to registered route paths. For a dynamic redirect string (e.g. `/settings`), there's no clean typed escape hatch. `window.location.assign` does a full-page redirect which also ensures session state is fresh after `router.invalidate()`.
+
+**routeTree.gen.ts manually updated** — `bunx tsr generate` runs in check-mode (exit code 1 = outdated, but doesn't write). Route tree was manually updated following the established pattern for `_content` layout route.
+
+### Gotchas & surprises
+
+- **`tsr generate` check-mode**: The CLI detects outdated route trees and exits with code 1 but does NOT write the updated file — manual update or running `vite dev` is needed to trigger auto-generation.
+- **`better-auth/react` import path**: The React-specific client is at `better-auth/react` (not `better-auth/client` with a React plugin). Exports `createAuthClient` which returns `useSession`, `signIn`, `signUp`, `signOut` directly.
+- **`validateSearch` return type determines TanStack Router param requiredness**: Any non-optional field in the returned type becomes required in all Link and navigate calls to that route.
+
+### Security notes
+- Post-login redirect uses `window.location.assign(redirect)` where `redirect` comes from a URL search param set by `_protected.tsx`. In production, this should validate the redirect URL is same-origin to prevent open redirect attacks.
+
+### Future improvements
+- Validate redirect param is same-origin before `window.location.assign(redirect)`.
+- Settings link in NavUserMenu (Group 8 will add the settings page).
+- Consider same-origin BetterAuth setup to eliminate `credentials: include` CORS complexity in production.

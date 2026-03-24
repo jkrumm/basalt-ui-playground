@@ -1,5 +1,6 @@
-import { Alignment, Button, Divider, Navbar, NavbarGroup } from '@blueprintjs/core'
-import { Link, useMatchRoute } from '@tanstack/react-router'
+import { Alignment, Button, Divider, Menu, MenuItem, Navbar, NavbarGroup, Popover, Spinner } from '@blueprintjs/core'
+import { Link, useMatchRoute, useNavigate } from '@tanstack/react-router'
+import { authClient } from '../../lib/auth-client'
 import { ThemeToggle } from '../ThemeToggle'
 import styles from './ContentNav.module.css'
 
@@ -37,8 +38,46 @@ export function ContentNav() {
         </Link>
       </NavbarGroup>
       <NavbarGroup align={Alignment.RIGHT}>
+        <NavUserMenu />
+        <Divider />
         <ThemeToggle />
       </NavbarGroup>
     </Navbar>
+  )
+}
+
+function NavUserMenu() {
+  const { data: session, isPending } = authClient.useSession()
+  const navigate = useNavigate()
+
+  if (isPending)
+    return <Spinner size={14} />
+
+  if (!session) {
+    return (
+      <Link to="/sign-in" className={styles.navLink}>
+        <Button variant="minimal" text="Sign in" />
+      </Link>
+    )
+  }
+
+  return (
+    <Popover
+      content={(
+        <Menu>
+          <MenuItem
+            text="Sign out"
+            intent="danger"
+            onClick={async () => {
+              await authClient.signOut()
+              void navigate({ to: '/' })
+            }}
+          />
+        </Menu>
+      )}
+      placement="bottom-end"
+    >
+      <Button variant="minimal" text={session.user.name} />
+    </Popover>
   )
 }
