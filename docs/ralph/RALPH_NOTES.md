@@ -28,3 +28,24 @@ None.
 
 ### Future improvements
 - Consider adding a root-level `typecheck` script that runs typecheck across all workspaces (not just `apps/web`) for a single pre-commit check.
+
+---
+
+## Group 2: Shared TypeBox Schemas Package
+
+### What was implemented
+Populated `packages/schemas/` with two schema files: `user-preferences.ts` (UserPreferences + PatchUserPreferences) and `auth.ts` (SignIn + SignUp). Both export TypeBox schemas and inferred TypeScript types. The index re-exports everything. `@cbbi/schemas` was already wired as a workspace dep in `apps/web/package.json` from Group 1.
+
+### Deviations from prompt
+- Skipped the temporary type-check import in `index.tsx` — the workspace dep was already declared and `bun run typecheck` in `apps/web` validates resolution directly. No need to add noise to source files.
+- `name-asc` included in `sortBy` union per spec, even though the current app's HTMLSelect only has three options. This is intentional forward-compatibility for Group 8+ settings page.
+
+### Gotchas & surprises
+- No surprises. TypeBox 0.34.48 API matches the spec exactly. `Type.Partial`, `Type.Union`, `Type.Literal`, and `Type.Static` all work as documented. No context7 lookup needed — existing codebase already uses the same TypeBox version.
+- The `packages/schemas` tsconfig uses `"moduleResolution": "bundler"` with `"allowImportingTsExtensions": true`, which means the `.ts` export in `package.json` (`"./src/index.ts"`) resolves correctly in the Bun workspace without a build step.
+
+### Security notes
+None.
+
+### Future improvements
+- When `packages/api` is populated (Group 4+), verify Elysia's `t` (TypeBox superset) can consume these plain TypeBox schemas without wrapping. Expected to work but worth a quick smoke test.
