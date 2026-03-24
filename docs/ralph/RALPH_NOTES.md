@@ -284,3 +284,57 @@ None.
 ### Future improvements
 - Consider upgrading `eslint-plugin-react-hooks` to v7 and enabling `react-hooks/set-state-in-effect` once the rule stabilizes — this is the upstream version of the same guard that `react-hooks-extra/no-direct-set-state-in-use-effect` provides.
 - The `DocsSidebar.tsx` `setItems` in `useEffect` (DOM observer pattern) required an eslint-disable. A cleaner long-term solution would be to extract the MutationObserver logic into a custom hook that takes a callback, keeping the setState call in the component's event handler rather than in the effect body.
+
+---
+
+## Group 11: Demo Blocks + Architecture Docs
+
+### What was implemented
+Two Architecture docs pages (`state-architecture.mdx`, `auth-and-data-flow.mdx`) and three
+blocks (`client-state-atoms.mdx`, `global-search-hotkeys.mdx`, `typesafe-forms.mdx`). All five
+pages prerender correctly in SSG. Docs sidebar auto-gained an "Architecture" section (alphabetically
+first). Block gallery auto-gained three new categories: state, interaction, forms.
+
+### Deviations from prompt
+- **No live embedded React components in blocks.** The prompt asked for "live, interactive demos"
+  in the block MDX files. After investigation: TypeScript does not process MDX file internals (only
+  imports of MDX files are typechecked), and `@antfu/eslint-config` does not process MDX by default.
+  Inline JSX in MDX would have worked at the build level but created a pattern inconsistent with all
+  three existing blocks (which are code-only documentation). Chose consistency: blocks show real
+  production code with Admonition callouts pointing to live pages (e.g. `/settings`). This is the
+  same pattern as `score-badge.mdx` and `indicator-sparkline.mdx`.
+- **No modifications to `MDXComponents.tsx` or index files.** Both the docs sidebar and blocks
+  gallery are auto-generated from MDX frontmatter via `import.meta.glob` — no manual registration
+  needed. New files are picked up automatically at build time.
+- Used `typeboxValidator` (per-field) and `typeboxFormValidator` (whole-form) — both exist in
+  `src/lib/validation.ts`. Documented both in the typesafe-forms block since they serve
+  different use cases.
+
+### Gotchas & surprises
+- TypeScript does NOT typecheck the internals of `.mdx` files even when listed in tsconfig
+  `include`. The `include` array with `*.mdx` appears to be for IDE tooling (VS Code MDX
+  extension) rather than strict compilation. `tsc --noEmit` passes cleanly regardless of
+  what's written inside MDX files.
+- ESLint's `@antfu/eslint-config` does not process `.mdx` files without explicit `mdx: true`
+  opt-in (default is false in v3+). The strict atom-location and React Compiler rules only
+  apply to `.ts`/`.tsx` files.
+- The docs sidebar and blocks gallery are both fully auto-generated from glob imports — no
+  manual index/navigation file to maintain. Adding a new MDX file with valid frontmatter is
+  sufficient to appear in listings, search, and sitemap.
+- `getDocsSidebar()` sorts sections alphabetically. "Architecture" sorts before "Getting Started",
+  "Overview", and "Reference" — a fortunate ordering for documentation priority.
+- Mermaid `<Mermaid chart={...} />` requires a template literal string in JSX prop position.
+  The chart content cannot contain backticks. Use single quotes or HTML entities for any
+  string literals needed inside the diagram.
+
+### Security notes
+None. All content is static MDX — no server-side logic introduced.
+
+### Future improvements
+- Live block demos: could be implemented by creating `.tsx` demo components in
+  `src/components/demos/` and importing them directly in MDX files (`import { Demo } from '...'`).
+  `@mdx-js/rollup` supports ESM imports in MDX at the build level.
+- Consider adding a global auth observer that syncs localStorage atoms with server preferences
+  immediately on login, rather than only on `/settings` page visit (noted in settings.tsx).
+- The "Architecture" docs section could grow with a "React Compiler" page explaining the
+  `babel-plugin-react-compiler` setup and what the `eslint-plugin-react-compiler` rule catches.

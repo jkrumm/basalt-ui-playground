@@ -1,0 +1,218 @@
+---
+title: "Auth & Data Flow"
+description: "BetterAuth authentication flow, Eden Treaty isomorphic API client, query factory pattern, and TypeBox E2E type sharing."
+section: "Architecture"
+order: 2
+---
+
+## Architecture Overview
+
+TanStack Start (port 3000) and the Elysia API (port 3001) are two separate processes.
+BetterAuth runs on the Elysia side — not inside TanStack Start. This is the split-backend
+pattern.
+
+```
+Browser
+  ↕  HTTP (port 3000)
+TanStack Start :3000     ← React SSR/SSG + createServerFn
+  ↕  HTTP (credentials: include) / in-process (SSR)
+Elysia API :3001         ← BetterAuth handler + /api/user/* routes
+  ↕  better-sqlite3
+SQLite                   ← sessions + users + preferences
+```
+
+This separation keeps auth concerns in the backend (Elysia + BetterAuth) and frontend
+concerns in TanStack Start. The API is independently deployable and reusable by other clients.
+
+---
+
+## Auth Flow
+
+<Mermaid chart={`
+sequenceDiagram
+  participant B as Browser
+  participant TS as TanStack Start :3000
+  participant E as Elysia API :3001
+  participant DB as SQLite
+
+  B->>TS: Navigate to /sign-in
+  TS-->>B: Render sign-in form (SSR)
+  B->>E: POST /api/auth/sign-in (email + password)
+  E->>DB: Verify credentials
+  DB-->>E: User record
+  E-->>B: 200 OK + Set-Cookie: session=...
+  B->>TS: Navigate to / (cookie attached automatically)
+  TS->>E: GET /api/user/preferences (credentials: include)
+  E->>DB: SELECT preferences WHERE userId=...
+  DB-->>E: Preferences row
+  E-->>TS: UserPreferences JSON
+  TS-->>B: Render dashboard with user preferences
+`} />
+
+The session cookie is set by Elysia on `localhost:3001`. In local development,
+`credentials: 'include'` sends the cross-origin cookie to all API requests. In production,
+both services share a domain so same-origin cookie rules apply automatically.
+
+---
+
+## Protected Routes
+
+TanStack Start uses a pathless layout route (`_protected.tsx`) to guard all auth-required
+pages. Any route nested under `_protected/` inherits the guard automatically.
+
+```typescript filename="apps/web/src/routes/_protected.tsx"
+export const Route = createFileRoute('/_protected')({
+  beforeLoad: async () => {
+    const session = await getSessionFn()
+    if (!session) throw redirect({ to: '/sign-in' })
+    return { session }
+  },
+  component: Outlet,
+})
+```
+
+`getSessionFn` is a `createServerFn` wrapper that forwards the request cookie to Elysia
+for session validation. The protected layout renders `<Outlet />` — it is invisible in the
+URL but enforces the auth check for every nested route.
+
+---
+
+## Eden Treaty — Isomorphic API Client
+
+Eden Treaty provides a fully-typed API client inferred directly from the Elysia `App` type.
+No code generation required — TypeScript inference does all the work.
+
+```typescript filename="apps/web/src/lib/api.ts"
+import { createIsomorphicFn } from '@tanstack/react-start'
+import { treaty } from '@elysiajs/eden'
+import type { App } from '@cbbi/api'
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
+
+export const getApi = createIsomorphicFn()
+  .server(async () => {
+    // Dynamic import avoids bundling Elysia into the frontend bundle.
+    // In-process call — zero HTTP overhead during SSR.
+    const { app } = await import('@cbbi/api')
+    return treaty(app).api
+  })
+  .client(() => treaty<App>(API_URL).api)  // standard fetch with credentials: include
+```
+
+`createIsomorphicFn` returns different implementations depending on where it runs:
+
+| Context | Implementation | Latency |
+|-|-|-|
+| **Server (SSR/SSG)** | Direct in-process Elysia call | ~0ms |
+| **Client (browser)** | `fetch` to Elysia at `VITE_API_URL` | network RTT |
+
+The return type is identical in both branches — TypeScript infers the full Elysia route
+tree including request/response types, with no manual type annotations needed.
+
+---
+
+## Isomorphic Data Flow
+
+<Mermaid chart={`
+sequenceDiagram
+  participant C as Component
+  participant Q as TanStack Query
+  participant A as getApi()
+  participant E as Elysia :3001
+
+  C->>Q: useSuspenseQuery(userPreferencesQuery())
+  Q->>A: queryFn()
+  Note over A: Server: in-process call<br/>Client: HTTP fetch
+  A->>E: GET /api/user/preferences
+  E-->>A: { viewMode, sortBy, theme }
+  A-->>Q: typed UserPreferences
+  Q-->>C: data (never undefined — Suspense handles loading)
+`} />
+
+---
+
+## Query Factory Pattern
+
+All server state is defined as `queryOptions()` factory functions in `src/queries/`. Never
+call `useQuery` with an inline `queryFn` — that duplicates the query key and prevents
+cache sharing between components.
+
+```typescript filename="apps/web/src/queries/preferences.queries.ts"
+import { queryOptions, mutationOptions } from '@tanstack/react-query'
+import type { PatchUserPreferences } from '@cbbi/schemas'
+import { getApi } from '~/lib/api'
+
+// Read — factory function returns a stable queryOptions object
+export const userPreferencesQuery = () => queryOptions({
+  queryKey: ['user', 'preferences'],
+  queryFn: async () => {
+    const { data, error } = await getApi().user.preferences.get()
+    if (error) throw error.value
+    return data!
+  },
+})
+
+// Write — mutationOptions factory for consistent error handling
+export const updatePreferencesMutation = () => mutationOptions({
+  mutationFn: async (patch: PatchUserPreferences) => {
+    const { data, error } = await getApi().user.preferences.patch({ ...patch })
+    if (error) throw error.value
+    return data!
+  },
+})
+```
+
+**Why factory functions?** They enable:
+- Loader preloading: `loader: () => queryClient.ensureQueryData(userPreferencesQuery())`
+- Consistent `queryKey` reuse across `invalidateQueries` and `useSuspenseQuery`
+- Single place to update error handling, caching config, or the query key
+
+---
+
+## Server-Sync Preferences Pattern
+
+When a user visits `/settings`, their server preferences override the localStorage atoms.
+This ensures local state converges with the server after login or a change from another
+session or device.
+
+```tsx filename="apps/web/src/routes/_protected/settings.tsx"
+function SettingsForm() {
+  const { data: serverPrefs } = useSuspenseQuery(userPreferencesQuery())
+  const setViewMode = useSetAtom(viewModeAtom)
+  const setSortBy = useSetAtom(sortByAtom)
+
+  // Server-authoritative override on settings page mount.
+  // Runs whenever serverPrefs changes (e.g. after a successful save),
+  // not on every render — useSetAtom references are stable.
+  useEffect(() => {
+    setViewMode(serverPrefs.viewMode)
+    setSortBy(serverPrefs.sortBy)
+  }, [serverPrefs, setViewMode, setSortBy])
+}
+```
+
+**Design note:** The override is scoped to the settings page visit, not triggered globally
+on login. A global auth observer that syncs on every login is a future improvement noted
+in the codebase comments.
+
+---
+
+## TypeBox End-to-End
+
+TypeBox schemas defined in `packages/schemas/` flow through every layer without duplication:
+
+```
+packages/schemas/src/user-preferences.ts
+  ↓ imported by
+packages/api/src/routes/preferences.ts      ← Elysia route validation (request body + response)
+  ↓ via Eden Treaty type inference
+apps/web/src/lib/api.ts                     ← getApi() return type
+  ↓ consumed in
+apps/web/src/queries/preferences.queries.ts ← queryFn return type
+  ↓ used in
+apps/web/src/routes/_protected/settings.tsx ← useAppForm + typeboxFormValidator
+```
+
+The same schema validates the Elysia API request, types the Eden Treaty response, and
+drives TanStack Form validation on the client. A breaking schema change surfaces at every
+layer simultaneously — TypeScript catches it before runtime.
