@@ -4,3 +4,16 @@ dist/
 .output/
 .tanstack/
 *.local
+
+# Monorepo packages
+packages/api/data/
+apps/web/dist/
+apps/web/.vite/
+apps/web/.output/
+apps/web/.tanstack/
+apps/web/node_modules/
+packages/*/node_modules/
+
+# RALPH runner state and logs
+.ralph-tasks.json
+.ralph-logs/
