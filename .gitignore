@@ -1,19 +1,20 @@
-node_modules/
-dist/
-.vite/
-.output/
-.tanstack/
-*.local
+# RALPH runner state and logs
+.ralph-tasks.json
+.ralph-logs/
 
-# Monorepo packages
+# Workspace packages
 packages/api/data/
+packages/api/node_modules/
+packages/schemas/node_modules/
+
+# Web app
 apps/web/dist/
 apps/web/.vite/
 apps/web/.output/
 apps/web/.tanstack/
 apps/web/node_modules/
-packages/*/node_modules/
 
-# RALPH runner state and logs
-.ralph-tasks.json
-.ralph-logs/
+# Environment
+apps/web/.env.local
+.env.local
+*.local

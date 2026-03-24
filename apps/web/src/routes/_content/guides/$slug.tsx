@@ -50,7 +50,7 @@ export const Route = createFileRoute('/_content/guides/$slug')({
       'description': fm.description,
       'datePublished': fm.publishedAt,
       'dateModified': fm.updatedAt ?? fm.publishedAt,
-      ...(fm.author ? { author: { '@type': 'Person', name: fm.author } } : {}),
+      ...(fm.author ? { author: { '@type': 'Person', 'name': fm.author } } : {}),
       ...(resolvedImage ? { image: resolvedImage } : {}),
       url,
       'keywords': fm.tags.join(', '),

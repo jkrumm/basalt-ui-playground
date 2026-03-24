@@ -1,0 +1,21 @@
+{
+  "name": "@cbbi/api",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun --watch src/index.ts",
+    "start": "bun src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cbbi/schemas": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "6.0.1-rc",
+    "@types/node": "^22.0.0"
+  }
+}
