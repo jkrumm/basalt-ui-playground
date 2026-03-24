@@ -3,6 +3,39 @@ import blueprintPlugin from '@blueprintjs/eslint-plugin'
 import pluginRouter from '@tanstack/eslint-plugin-router'
 import reactCompiler from 'eslint-plugin-react-compiler'
 
+// Selectors that apply to ALL source files — icons, atom naming, atomFamily ban
+const GLOBAL_RESTRICTED_SYNTAX = [
+  // Ban icon name strings — Blueprint loads both 16px and 20px chunks lazily
+  // for string names, which is not tree-shakeable. Use a component instead.
+  {
+    selector: 'JSXAttribute[name.name=/^(icon|leftIcon|rightIcon)$/][value.type=\'Literal\']',
+    message: 'Use a Blueprint icon component from @blueprintjs/icons (e.g. leftIcon={<Search />}) or a Tabler component in leftElement/rightElement. String names load all icons lazily and are not tree-shakeable.',
+  },
+  // Ban Tabler icons in leftIcon/rightIcon — Blueprint wraps these props through
+  // <Icon> which causes layout issues (icon floats outside the input boundary).
+  // Use a Blueprint icon component for leftIcon/rightIcon, or leftElement/rightElement for Tabler.
+  {
+    selector: 'JSXAttribute[name.name=/^(leftIcon|rightIcon)$/] JSXOpeningElement[name.name=/^Icon[A-Z]/]',
+    message: 'Tabler icons cannot be used in leftIcon/rightIcon — Blueprint routes these through <Icon> and layout breaks. Use a Blueprint icon component (e.g. leftIcon={<Search />}) or move the Tabler icon to leftElement/rightElement.',
+  },
+  // Ban non-tree-shakeable @blueprintjs/icons barrel exports — these pull in all
+  // SVG path data for every icon in a single chunk.
+  {
+    selector: 'ImportDeclaration[source.value=\'@blueprintjs/icons\'] > ImportSpecifier[imported.name=/^(IconSvgPaths16|IconSvgPaths20|getIconPaths|allPaths)$/]',
+    message: 'IconSvgPaths16/20, getIconPaths, and allPaths load every icon path into one chunk — defeats tree-shaking. Import individual icon components: import { Search } from \'@blueprintjs/icons\'.',
+  },
+  // Enforce Jotai atom naming convention — atoms must use the *Atom suffix
+  {
+    selector: 'VariableDeclarator[init.type=\'CallExpression\'][init.callee.name=/^atom/]:not([id.name=/.+Atom$/])',
+    message: 'Jotai atoms must use the *Atom naming convention (e.g., viewModeAtom, not viewMode).',
+  },
+  // Ban atomFamily — broken with React Compiler (infinite re-render)
+  {
+    selector: 'CallExpression[callee.name=\'atomFamily\']',
+    message: 'atomFamily is broken with React Compiler. Use static atoms instead.',
+  },
+]
+
 export default antfu(
   {
     react: true,
@@ -33,39 +66,44 @@ export default antfu(
     plugins: { 'react-compiler': reactCompiler },
     rules: { 'react-compiler/react-compiler': 'error' },
   },
-  // Blueprint icon usage rules — enforce tree-shaken icon components
+  // Blueprint icon usage rules + atom naming + atomFamily ban — all files
   {
+    rules: {
+      'no-restricted-syntax': ['error', ...GLOBAL_RESTRICTED_SYNTAX],
+    },
+  },
+  // Atom location enforcement — ban atom creation outside src/atoms/
+  // NOTE: This config overrides no-restricted-syntax for non-atoms files,
+  // so it must repeat all global selectors plus add the location selector.
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/atoms/**'],
     rules: {
       'no-restricted-syntax': [
         'error',
-        // Ban icon name strings — Blueprint loads both 16px and 20px chunks lazily
-        // for string names, which is not tree-shakeable. Use a component instead.
+        ...GLOBAL_RESTRICTED_SYNTAX,
         {
-          selector: 'JSXAttribute[name.name=/^(icon|leftIcon|rightIcon)$/][value.type=\'Literal\']',
-          message: 'Use a Blueprint icon component from @blueprintjs/icons (e.g. leftIcon={<Search />}) or a Tabler component in leftElement/rightElement. String names load all icons lazily and are not tree-shakeable.',
+          selector: 'CallExpression[callee.name=/^atom/]',
+          message: 'Jotai atoms must be defined in src/atoms/, not inline in components or routes.',
         },
-        // Ban Tabler icons in leftIcon/rightIcon — Blueprint wraps these props through
-        // <Icon> which causes layout issues (icon floats outside the input boundary).
-        // Use a Blueprint icon component for leftIcon/rightIcon, or leftElement/rightElement for Tabler.
+      ],
+      // Ban importing atom/atomWithStorage from jotai outside of src/atoms/
+      // (reading atoms via useAtom/useSetAtom from 'jotai' is still allowed)
+      'no-restricted-imports': [
+        'error',
         {
-          selector: 'JSXAttribute[name.name=/^(leftIcon|rightIcon)$/] JSXOpeningElement[name.name=/^Icon[A-Z]/]',
-          message: 'Tabler icons cannot be used in leftIcon/rightIcon — Blueprint routes these through <Icon> and layout breaks. Use a Blueprint icon component (e.g. leftIcon={<Search />}) or move the Tabler icon to leftElement/rightElement.',
-        },
-        // Ban non-tree-shakeable @blueprintjs/icons barrel exports — these pull in all
-        // SVG path data for every icon in a single chunk.
-        {
-          selector: 'ImportDeclaration[source.value=\'@blueprintjs/icons\'] > ImportSpecifier[imported.name=/^(IconSvgPaths16|IconSvgPaths20|getIconPaths|allPaths)$/]',
-          message: 'IconSvgPaths16/20, getIconPaths, and allPaths load every icon path into one chunk — defeats tree-shaking. Import individual icon components: import { Search } from \'@blueprintjs/icons\'.',
-        },
-        // Enforce Jotai atom naming convention — atoms must use the *Atom suffix
-        {
-          selector: 'VariableDeclarator[init.type=\'CallExpression\'][init.callee.name=/^atom/]:not([id.name=/.+Atom$/])',
-          message: 'Jotai atoms must use the *Atom naming convention (e.g., viewModeAtom, not viewMode).',
-        },
-        // Ban atomFamily — broken with React Compiler (infinite re-render)
-        {
-          selector: 'CallExpression[callee.name=\'atomFamily\']',
-          message: 'atomFamily is broken with React Compiler. Use static atoms instead.',
+          paths: [
+            {
+              name: 'jotai',
+              importNames: ['atom'],
+              message: 'Define atoms in src/atoms/ and import from \'~/atoms\' instead.',
+            },
+            {
+              name: 'jotai/utils',
+              importNames: ['atomWithStorage'],
+              message: 'Define atoms in src/atoms/ and import from \'~/atoms\' instead.',
+            },
+          ],
         },
       ],
     },

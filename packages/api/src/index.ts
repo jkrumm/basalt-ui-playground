@@ -1,6 +1,6 @@
-import { Elysia } from 'elysia'
+import { PatchUserPreferencesSchema, UserPreferencesSchema } from '@cbbi/schemas'
 import { cors } from '@elysiajs/cors'
-import { UserPreferencesSchema, PatchUserPreferencesSchema } from '@cbbi/schemas'
+import { Elysia } from 'elysia'
 import { auth } from './auth'
 import { getPreferences, patchPreferences } from './routes/preferences'
 
@@ -9,9 +9,10 @@ const betterAuth = new Elysia({ name: 'better-auth' })
   .mount(auth.handler)
   .macro({
     auth: {
-      async resolve({ status, request: { headers } }: { status: Function; request: { headers: Headers } }) {
+      async resolve({ status, request: { headers } }: { status: (code: number) => void, request: { headers: Headers } }) {
         const session = await auth.api.getSession({ headers })
-        if (!session) return status(401)
+        if (!session)
+          return status(401)
         return { user: session.user, session: session.session }
       },
     },
@@ -25,7 +26,7 @@ export const app = new Elysia()
     }),
   )
   .use(betterAuth)
-  .group('/api', (api) =>
+  .group('/api', api =>
     api
       .get(
         '/user/preferences',
@@ -36,8 +37,7 @@ export const app = new Elysia()
         '/user/preferences',
         async ({ user, body }) => patchPreferences(user.id, body),
         { auth: true, body: PatchUserPreferencesSchema, response: UserPreferencesSchema },
-      ),
-  )
+      ))
 
 export type App = typeof app
 

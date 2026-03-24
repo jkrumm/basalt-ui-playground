@@ -89,7 +89,7 @@ function RootComponent() {
     }
     window.addEventListener('open-search', handler)
     return () => window.removeEventListener('open-search', handler)
-  }, [])
+  }, [setSearchOpen])
 
   // Resolve 'system' to actual dark/light via OS preference.
   // Always called (hooks must not be conditional); result used only for 'system'.

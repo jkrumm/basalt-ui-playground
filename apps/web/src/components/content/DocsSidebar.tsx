@@ -24,6 +24,7 @@ function useInlineToc() {
 
     const scan = () => {
       const headings = [...content.querySelectorAll('h2, h3')] as HTMLElement[]
+      // eslint-disable-next-line react-hooks-extra/no-direct-set-state-in-use-effect
       setItems(
         headings
           .filter(h => h.id)

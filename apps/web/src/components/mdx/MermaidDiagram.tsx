@@ -66,6 +66,7 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
     <div
       className="mdx-mermaid"
       // biome-ignore lint/security/noDangerouslySetInnerHtml: Mermaid output is sanitized SVG
+      // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
       dangerouslySetInnerHTML={{ __html: svg }}
     />
   )

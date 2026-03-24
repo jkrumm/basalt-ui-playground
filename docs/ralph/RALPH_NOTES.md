@@ -259,3 +259,28 @@ None.
 
 ### Future improvements
 - Add a keyboard shortcut hint (⌘K) displayed in the search button tooltip or as a small `kbd` element next to the button text for discoverability.
+
+---
+
+## Group 10: ESLint Hardening Sweep
+
+### What was implemented
+Audited and hardened the ESLint config to enforce architectural patterns. Fixed all 3 pre-existing violations. Added atom location enforcement (atoms must live in `src/atoms/`), `no-restricted-imports` for `atom`/`atomWithStorage` outside `src/atoms/`, and added `@antfu/eslint-config`-based ESLint to `packages/api` and `packages/schemas`. All three packages are now lint-clean with zero errors.
+
+### Deviations from prompt
+- `@eslint-react/eslint-plugin` v2 does NOT expose `no-unnecessary-use-memo` or `no-unnecessary-use-callback`. The `eslint-plugin-react-hooks-extra` sub-package only has a single rule: `no-direct-set-state-in-use-effect`. These rules were not added since they don't exist.
+- `react-hooks-extra/no-direct-set-state-in-use-effect` is already included by antfu's config as a warning — no extra configuration needed; it was already surfacing violations.
+- The `no-restricted-syntax` config had to be restructured using a shared `GLOBAL_RESTRICTED_SYNTAX` constant spread into both the global config and the files-specific config. In ESLint flat config, a later matching config object completely overrides the same rule key from earlier configs — simply adding a second `no-restricted-syntax` block for non-atoms files would have silently dropped all the global selectors for those files.
+- `packages/api` and `packages/schemas` had style violations from antfu defaults (quotes, semicolons, import sort order, `Function` type). Fixed with `eslint --fix` plus manual corrections.
+
+### Gotchas & surprises
+- ESLint flat config rule override semantics: two config objects targeting overlapping files do NOT merge arrays — the last one wins entirely for each rule key. This is unintuitive and requires careful duplication when extending `no-restricted-syntax` with file-scoped additions.
+- `eslint-plugin-react-hooks-extra` is a sub-package of the `@eslint-react` ecosystem but is NOT re-exported from `@eslint-react/eslint-plugin` v2's main entry — it must be accessed directly at the sub-package level.
+- `packages/api/src/index.ts` used `Function` as a type (from original code), which `ts/no-unsafe-function-type` rejects. Fixed to `(code: number) => void`.
+
+### Security notes
+None.
+
+### Future improvements
+- Consider upgrading `eslint-plugin-react-hooks` to v7 and enabling `react-hooks/set-state-in-effect` once the rule stabilizes — this is the upstream version of the same guard that `react-hooks-extra/no-direct-set-state-in-use-effect` provides.
+- The `DocsSidebar.tsx` `setItems` in `useEffect` (DOM observer pattern) required an eslint-disable. A cleaner long-term solution would be to extract the MutationObserver logic into a custom hook that takes a callback, keeping the setState call in the component's event handler rather than in the effect body.
