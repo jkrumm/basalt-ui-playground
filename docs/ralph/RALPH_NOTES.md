@@ -72,3 +72,46 @@ None.
 ### Future improvements
 - The `react-hooks/exhaustive-deps` warning for `setSearchOpen` could be suppressed with a `useSetAtom` split (read and write atoms separately), but this is cosmetic — the behavior is identical.
 - jotai-devtools `position` prop can be configured if the default overlaps with Blueprint UI elements.
+
+---
+
+## Group 4: Elysia API Backend + BetterAuth Server
+
+### What was implemented
+Built the complete Elysia 1.4 API backend in `packages/api/`. Includes: `bun:sqlite` via `drizzle-orm/bun-sqlite` for the database, Drizzle ORM schema for `user_preferences`, BetterAuth v1 with Drizzle adapter for email/password auth, preferences GET/PATCH routes with partial upsert, and BetterAuth's macro pattern for session injection. All auth tables created via `drizzle-kit push`. `export type App` ready for Eden Treaty in `apps/web`.
+
+### Deviations from prompt
+
+**`bun:sqlite` instead of `better-sqlite3`:** The prompt listed `better-sqlite3` as the preferred option with a note to check if `bun:sqlite` is supported. In practice, `better-sqlite3` **does not work in Bun at all** — it uses native C++ addons that Bun cannot load (Bun issue #4290). Switched to `import { Database } from 'bun:sqlite'` with `drizzle-orm/bun-sqlite`. BetterAuth's drizzle adapter is driver-agnostic (only uses the Drizzle ORM interface) and works fine with the `bun-sqlite` driver.
+
+**BetterAuth migration approach:** The RALPH prompt assumed `bunx @better-auth/cli migrate` would work. It does NOT for the Drizzle adapter — CLI outputs: "The migrate command only works with the built-in Kysely adapter. For Drizzle, run `@better-auth/cli generate` to create the schema, then use Drizzle's migrate or push." Correct workflow:
+1. `bunx @better-auth/cli generate --config src/auth.ts --output src/schema/auth-schema.ts`
+2. `drizzle-kit push` (applies both auth schema + user_preferences)
+
+`drizzle-kit push` uses its own SQLite driver internally, so it doesn't need `better-sqlite3`.
+
+**`db:setup` script:** Changed from `bun x auth@latest migrate` to `drizzle-kit push`. The `db:generate` script handles re-generating auth schema if BetterAuth plugins change.
+
+**`user_preferences` table:** Created with raw SQL `CREATE TABLE IF NOT EXISTS` at startup in `db.ts` (idempotent, ensures table exists without requiring a `db:setup` run). The `drizzle-kit push` also creates it, but the runtime SQL is a safety fallback.
+
+**BetterAuth schema passed to adapter:** The prompt showed `drizzleAdapter(db, { provider: 'sqlite' })` without passing schema. In practice, passing `schema: authSchema` is required for the adapter to locate the generated table definitions correctly.
+
+### Gotchas & surprises
+
+- **`better-sqlite3` is completely unsupported in Bun.** Do not install it for Bun projects. Use `bun:sqlite` (built-in) via `drizzle-orm/bun-sqlite`.
+- **`bun-types` required for `bun:sqlite`** in TypeScript projects. Must add `"types": ["bun-types"]` to `tsconfig.json` or TypeScript cannot find the `bun:sqlite` module declaration.
+- **BetterAuth CLI `migrate` vs `generate`:** `migrate` only works with Kysely (direct DB) adapter. Drizzle adapter requires the generate → drizzle-kit workflow.
+- **BetterAuth baseURL warning:** Without `baseURL` in the auth config, BetterAuth logs a warning on every request. Set `baseURL: 'http://localhost:3001'` in the auth config to suppress it.
+- **Elysia macro `resolve` syntax:** The correct BetterAuth + Elysia macro pattern uses `{ auth: { async resolve({ status, request: { headers } }) { ... } } }` — the `auth` key maps to a route option `{ auth: true }`. Elysia infers context types including the resolved `{ user, session }` via TypeScript generics.
+- **`@better-auth/cli generate` requires the output directory to exist.** The output path `src/schema/auth-schema.ts` requires `src/schema/` to be created first (`mkdir -p src/schema`).
+- **Drizzle `bun-sqlite` queries are synchronous** under the hood but the Drizzle ORM wraps results to be awaitable. Use `await` as normal.
+
+### Security notes
+- `trustedOrigins: ['http://localhost:3000']` restricts CORS for BetterAuth. Production should use the actual domain.
+- CORS `credentials: true` is required for cross-origin cookie-based auth in local dev (Elysia at 3001, web at 3000).
+- Auth tables store hashed passwords via BetterAuth's built-in email/password provider — no plain-text credentials.
+
+### Future improvements
+- Add `BETTER_AUTH_SECRET` env var (required for production — BetterAuth generates a random secret if not set, breaking sessions across restarts).
+- Consider switching from cross-origin cookies (localhost:3001) to same-origin by mounting the Elysia API under the TanStack Start server (via a proxy or TanStack Start's `createAPIHandler`). This avoids `credentials: include` complexity.
+- Drizzle relations between `userPreferences` and `user` (foreign key + `references(() => user.id)`) deferred — add when Group 8 (settings sync) is built.
