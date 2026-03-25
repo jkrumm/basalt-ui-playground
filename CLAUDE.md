@@ -1,5 +1,29 @@
 # cbbi-blueprint — Project Configuration
 
+## Project Purpose
+
+This is a **POC playground and greenfield boilerplate** — not a production application. Its goal
+is to align and optimise frontend stack patterns (TanStack Start, Blueprint v6, Jotai, TanStack
+Query, analytics, PWA, SSR/SSG, state architecture) so that individual apps built on top of it
+start from a well-considered baseline.
+
+**The CBBI dashboard content is the vehicle, not the destination.** Every architectural decision
+should be made with "what would downstream apps need?" in mind, not "what does this dashboard need?".
+
+### Documentation convention
+
+Learnings, patterns, and per-app setup requirements go into the internal docs as MDX files:
+
+```
+apps/web/src/content/docs/
+```
+
+When a pattern is established or a setup step is identified that future apps will need to repeat,
+write it up there. The docs are rendered at `/docs` and serve as the living spec for what this
+boilerplate provides and what each consuming app must configure itself.
+
+---
+
 ## Analytics (Umami)
 
 ### URL state vs custom events — the boundary

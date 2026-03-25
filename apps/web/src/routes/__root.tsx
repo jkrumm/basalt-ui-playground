@@ -36,11 +36,19 @@ export const Route = createRootRoute({
       { title: 'CBBI Dashboard — Blueprint + TanStack Start' },
       // Tell Dark Reader this site handles its own dark mode — opt out of auto-inversion
       { name: 'darkreader-lock', content: '' },
+      // Theme color for browser chrome — two entries with media for light/dark OS preference.
+      // Values match Blueprint's surface background (light) and dark-gray-1 palette (dark).
+      { name: 'theme-color', content: '#f6f7f9', media: '(prefers-color-scheme: light)' },
+      { name: 'theme-color', content: '#1c2127', media: '(prefers-color-scheme: dark)' },
+      // iOS "Add to Home Screen" — standalone mode, status bar adapts to OS color scheme
+      { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
     ],
     links: [
       { rel: 'preload', href: geistFont, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
       { rel: 'preload', href: jbMonoFont, as: 'font', type: 'font/woff2', crossOrigin: 'anonymous' },
       { rel: 'stylesheet', href: appCss },
+      { rel: 'manifest', href: '/manifest.webmanifest' },
     ],
     scripts: [
       {

@@ -94,6 +94,44 @@ h6.bp6-heading {
   letter-spacing: 0.08em;
 }
 
+/* ── Mobile & touch baseline ─────────────────────────────────────────────────
+   All properties below are either WebKit-vendor-specific (inert on other
+   engines), touch-only, or safe to apply globally. No media queries needed.
+   ──────────────────────────────────────────────────────────────────────── */
+
+html {
+  /* Prevent font-size inflation when rotating portrait→landscape on iOS */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /* Disable pull-to-refresh — unwanted in a data app on both mobile and desktop */
+  overscroll-behavior-y: none;
+}
+
+* {
+  /* Remove iOS blue flash on tap — inert on non-touch devices */
+  -webkit-tap-highlight-color: transparent;
+}
+
+img,
+a {
+  /* Disable iOS long-press action sheet (Save Image, Copy Link, etc.) */
+  -webkit-touch-callout: none;
+}
+
+/* Blueprint inputs inherit 14px body font-size — iOS zooms on focus when <16px.
+   max(16px, 1em) is safe on desktop and near-identical visually at Blueprint's
+   compact scale. Blueprint has no font-size token ≥16px for this. */
+.bp6-input,
+.bp6-select select,
+.bp6-input-ghost,
+textarea.bp6-input {
+  /* stylelint-disable-next-line declaration-property-value-allowed-list --
+     No Blueprint token ≥16px exists; required to prevent iOS input focus zoom */
+  font-size: max(16px, 1em);
+}
+
 /* ── Utility classes ────────────────────────────────────────────────────────
    KPI / data / label roles not covered by Blueprint's own class system.
    ──────────────────────────────────────────────────────────────────────── */

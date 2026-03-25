@@ -8,6 +8,8 @@
 
     "color-named": "never",
 
+    "unit-disallowed-list": ["vh"],
+
     "declaration-property-value-allowed-list": {
       "color": ["/^var\\(--bp-/", "inherit", "transparent", "currentColor"],
       "background-color": ["/^var\\(--bp-/", "inherit", "transparent"],
