@@ -64,6 +64,7 @@
  */
 
 import path from 'node:path'
+import { app as elysia } from '@cbbi/api'
 import { buildSitemapXml, buildLlmsTxt, collectSitemapEntries } from './src/lib/sitemap'
 import {
   getBlogSitemapEntries,
@@ -563,6 +564,9 @@ async function initializeServer() {
             'Cache-Control': 'public, max-age=3600',
           },
         }),
+
+      // API routes — handled by embedded Elysia (no separate process needed in prod)
+      '/api/*': (req: Request) => elysia.fetch(req),
 
       // Fallback to TanStack Start handler for all other routes
       '/*': (req: Request) => {

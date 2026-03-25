@@ -1,5 +1,4 @@
 import { PatchUserPreferencesSchema, UserPreferencesSchema } from '@cbbi/schemas'
-import { cors } from '@elysiajs/cors'
 import { Elysia } from 'elysia'
 import { auth } from './auth'
 import { getPreferences, patchPreferences } from './routes/preferences'
@@ -19,12 +18,6 @@ const betterAuth = new Elysia({ name: 'better-auth' })
   })
 
 export const app = new Elysia()
-  .use(
-    cors({
-      origin: 'http://localhost:3000',
-      credentials: true,
-    }),
-  )
   .use(betterAuth)
   .group('/api', api =>
     api
@@ -40,8 +33,3 @@ export const app = new Elysia()
       ))
 
 export type App = typeof app
-
-app.listen(3001, () => {
-  // eslint-disable-next-line no-console
-  console.log('API server running at http://localhost:3001')
-})

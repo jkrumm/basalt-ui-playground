@@ -23,7 +23,12 @@ import {
 import { remarkReadingTime } from './src/lib/remark-reading-time'
 
 export default defineConfig({
-  server: { port: 3000 },
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': 'http://localhost:3001',
+    },
+  },
   ssr: {
     // Vite 8 SSR externalization incorrectly loads the CJS build of these
     // packages instead of ESM, causing "does not provide an export named"

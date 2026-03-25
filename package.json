@@ -4,11 +4,15 @@
   "type": "module",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "cd apps/web && bun run dev",
+    "dev": "(cd apps/api && bun run dev) & (cd apps/web && bun run dev)",
+    "dev:api": "cd apps/api && bun run dev",
+    "dev:web": "cd apps/web && bun run dev",
     "build": "cd apps/web && bun run build",
+    "start": "cd apps/web && bun run start",
     "typecheck": "cd apps/web && bun run typecheck",
     "lint": "cd apps/web && bun run lint",
     "pre": "cd apps/web && bun run pre",
-    "dev:api": "cd packages/api && bun run dev"
+    "db:setup": "cd apps/api && bun run db:setup",
+    "db:generate": "cd apps/api && bun run db:generate"
   }
 }
