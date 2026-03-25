@@ -3,9 +3,10 @@
 .ralph-logs/
 
 # Workspace packages
-packages/api/data/
-packages/api/node_modules/
+apps/api/data/
+apps/api/node_modules/
 packages/schemas/node_modules/
+dist/
 
 # Web app
 apps/web/dist/
