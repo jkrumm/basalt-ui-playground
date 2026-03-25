@@ -5,6 +5,7 @@ import { getApi } from '~/lib/api'
 export function userPreferencesQuery() {
   return queryOptions({
     queryKey: ['user', 'preferences'] as const,
+    staleTime: 5 * 60 * 1000, // preferences rarely change; avoid refetch-driven atom overwrites
     queryFn: async () => {
       const api = await getApi()
       const { data, error } = await api.user.preferences.get()

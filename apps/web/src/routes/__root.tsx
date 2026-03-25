@@ -21,6 +21,7 @@ import { SearchModal } from '../components/content/SearchModal'
 import { ContentNav } from '../components/layout/ContentNav'
 import { ThemeContext, useSystemTheme } from '../context/theme-context'
 import { EVENTS, track } from '../lib/analytics'
+import { appStore } from '../lib/jotai-store'
 import { queryClient } from '../lib/query-client'
 import { getThemeFn, setThemeFn } from '../lib/theme'
 import appCss from '../styles/app.css?url'
@@ -75,7 +76,7 @@ function RootComponent() {
   // Optimistic override during theme change — null means "use loader value"
   const [pendingTheme, setPendingTheme] = useState<Theme | null>(null)
   const theme = pendingTheme ?? loaderTheme
-  const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom)
+  const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom, { store: appStore })
 
   useHotkey('Mod+K', () => {
     setSearchOpen(true)
@@ -114,7 +115,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Provider>
+      <Provider store={appStore}>
         {import.meta.env.DEV && <DevTools />}
         <ThemeContext value={{ theme, effectiveTheme, setTheme }}>
           <html lang="en">
