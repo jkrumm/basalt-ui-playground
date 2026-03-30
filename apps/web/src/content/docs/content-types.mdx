@@ -7,7 +7,7 @@ section: "Reference"
 
 ## Overview
 
-The site has four content types, each modelled by a Zod schema in `src/lib/content.ts`.
+The site has four content types, each modelled by a Zod schema in `content-collections.ts`.
 They share a common base and differ in the fields they require, how they are navigated,
 and what structured data they emit.
 
@@ -15,22 +15,22 @@ and what structured data they emit.
 
 ## Shared base
 
-Every content type extends `BaseContentSchema`:
+Every content type extends a shared `base` object in `content-collections.ts`:
 
 ```ts
-const BaseContentSchema = z.object({
+const base = {
   title: z.string(),
   draft: z.boolean().optional(),
   noindex: z.boolean().optional(),
-});
+};
+
+// Each collection uses: schema: z.object({ ...base, content: z.string(), ...fields })
 ```
 
 - **`draft`** — content exists but is excluded from listings and the search index.
 - **`noindex`** — page is live and accessible, but suppressed from search engines via
   `<meta name="robots" content="noindex">`. Use for preview links, stub pages, or content
   that is live but not ready for discovery.
-
-All four schemas use `BaseContentSchema.extend({...})` so shared fields are never duplicated.
 
 ---
 
@@ -66,7 +66,7 @@ noindex: true # suppress from search without hiding the page
 series: "TanStack Deep Dives"
 seriesOrder: 1
 
-# Auto-injected at build time — do not set manually
+# Computed at build time by content-collections — do not set manually
 readingTime: "5 min read"
 ---
 ```
@@ -114,7 +114,7 @@ author: "Johannes Krumm" # omit for org-authored guides
 ogImage: "/images/guide-og.jpg"
 noindex: true
 
-# Auto-injected — do not set manually
+# Computed at build time by content-collections — do not set manually
 readingTime: "8 min read"
 ---
 ```
@@ -245,11 +245,10 @@ Copy-paste component, no narrative?              → Block
 
 ## Adding a new content type
 
-1. Define a schema using `BaseContentSchema.extend({...})` in `content.ts`
-2. Add `import.meta.glob` calls (must be string literals — cannot be moved to a factory)
-3. Call `defineCollection({...})` with the schema and slugify function
-4. Add `get*SitemapEntries()` and wire into `collectSitemapEntries()` in both `vite.config.ts`
-   and `server.ts`
+1. Add a `defineCollection` in `content-collections.ts` with a Zod schema and async transform
+2. Export it from `defineConfig({ content: [...] })`
+3. Add derived type and helper functions to `src/lib/content.ts`
+4. Add `get*SitemapEntries()` and wire into `collectSitemapEntries()` in `src/lib/sitemap.ts`
 5. Add the new section to `buildLlmsTxt()` in `src/lib/sitemap.ts`
 6. Add the route under `src/routes/_content/<type>/`
-7. Update this doc
+7. Update this doc and `collection-system.mdx`

@@ -5,16 +5,12 @@ order: 2
 section: "Getting Started"
 ---
 
-## Installation
-
-Full installation guide for the CBBI Blueprint project.
-
 ## Requirements
 
-| Tool | Minimum version |
-|-|-|
-| Bun | 1.2 |
-| Node.js | 22.12.0 |
+| Tool    | Minimum version |
+| ------- | --------------- |
+| Node.js | 24.0.0          |
+| pnpm    | 10.0.0          |
 
 ## Environment
 
@@ -24,24 +20,41 @@ The CBBI API data is fetched from a public endpoint at runtime.
 ## Project structure
 
 ```
-src/
-  components/     # Blueprint + MDX components
-  content/        # MDX blog posts and docs
-  lib/            # Shared utilities
-  routes/         # TanStack Router file-based routes
-  styles/         # Global CSS
+apps/
+  web/           # TanStack Start frontend
+    content-collections.ts   # MDX pipeline config (Zod schemas, compileMDX)
+    src/
+      components/   # Blueprint + MDX components
+      content/      # MDX blog posts, docs, guides, blocks
+      lib/          # Shared utilities (content.ts, sitemap.ts, ...)
+      routes/       # TanStack Router file-based routes
+      styles/       # Global CSS
+  api/           # Hono API server
+
+packages/
+  schemas/       # Shared Zod schemas (workspace package)
 ```
 
 ## Available scripts
 
-| Script | Description |
-|-|-|
-| `bun run dev` | Start Vite dev server on port 3000 |
-| `bun run build` | Production build to `dist/` |
-| `bun run start` | Start the Bun production server |
-| `bun run typecheck` | TypeScript type checking |
-| `bun run lint` | ESLint |
+Run from `apps/web/`:
+
+| Script               | Description                        |
+| -------------------- | ---------------------------------- |
+| `pnpm run dev`       | Start Vite dev server on port 3000 |
+| `pnpm run build`     | Production build to `dist/`        |
+| `pnpm run start`     | Start the production server        |
+| `pnpm run typecheck` | TypeScript type checking           |
+
+Run from the workspace root:
+
+| Script     | Description                         |
+| ---------- | ----------------------------------- |
+| `vp lint`  | ESLint across all packages          |
+| `vp fmt`   | Format all files with Oxc formatter |
+| `vp build` | Build all apps                      |
 
 <Admonition type="note">
-  Run `bun run pre` to execute typecheck and lint together before committing.
+  `vp` is the `vite-plus` unified toolchain CLI — it wraps lint, format, build, and dev server in a
+  single command. Run `vp --help` to see all options.
 </Admonition>
