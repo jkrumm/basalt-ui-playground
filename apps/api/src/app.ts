@@ -7,9 +7,9 @@ import * as HttpStatusCodes from "stoker/http-status-codes";
 import jsonContent from "stoker/openapi/helpers/json-content";
 import jsonContentRequired from "stoker/openapi/helpers/json-content-required";
 import createErrorSchema from "stoker/openapi/schemas/create-error-schema";
-import { auth } from "./auth";
-import { env } from "./env";
-import { getPreferences, patchPreferences } from "./routes/preferences";
+import { auth } from "./auth.ts";
+import { env } from "./env.ts";
+import { getPreferences, patchPreferences } from "./routes/preferences.ts";
 
 type BetterAuthUser = {
   id: string;

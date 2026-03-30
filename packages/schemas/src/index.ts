@@ -1,3 +1,3 @@
-export * from "./auth";
-export * from "./user";
-export * from "./user-preferences";
+export * from "./auth.ts";
+export * from "./user.ts";
+export * from "./user-preferences.ts";

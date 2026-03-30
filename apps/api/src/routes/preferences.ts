@@ -1,6 +1,6 @@
 import type { PatchUserPreferences, UserPreferences } from "@cbbi/schemas";
-import { db } from "../db";
-import { userPreferences } from "../schema";
+import { db } from "../db.ts";
+import { userPreferences } from "../schema.ts";
 
 const DEFAULTS = {
   theme: "system" as const,

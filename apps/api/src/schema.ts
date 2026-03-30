@@ -1,6 +1,6 @@
 import { relations } from "drizzle-orm";
 import { pgTable, text } from "drizzle-orm/pg-core";
-import { user } from "./schema/auth-schema";
+import { user } from "./schema/auth-schema.ts";
 
 export const userPreferences = pgTable("user_preferences", {
   userId: text("user_id")

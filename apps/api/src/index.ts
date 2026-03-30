@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server";
-import { app } from "./app";
-import { env } from "./env";
+import { app } from "./app.ts";
+import { env } from "./env.ts";
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, () => {
   console.log(`API running on http://localhost:${env.PORT}`);
