@@ -51,6 +51,16 @@ function SignInPage() {
     >
       <Card style={{ width: 360 }}>
         <H4 style={{ marginTop: 0 }}>Sign in</H4>
+        <Button
+          variant="outlined"
+          text="Use demo account"
+          fill
+          style={{ marginBottom: "1rem" }}
+          onClick={() => {
+            form.setFieldValue("email", "demo@example.com");
+            form.setFieldValue("password", "demo1234");
+          }}
+        />
         <form
           onSubmit={(e) => {
             e.preventDefault();

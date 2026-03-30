@@ -15,6 +15,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ContentRouteImport } from './routes/_content'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ContentSearchRouteImport } from './routes/_content/search'
 import { Route as ContentGuidesIndexRouteImport } from './routes/_content/guides/index'
@@ -53,6 +54,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ProtectedAccountRoute = ProtectedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => ProtectedRoute,
 } as any)
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   id: '/settings',
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
+  '/account': typeof ProtectedAccountRoute
   '/settings': typeof ProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
+  '/account': typeof ProtectedAccountRoute
   '/settings': typeof ProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
   '/_content/search': typeof ContentSearchRoute
+  '/_protected/account': typeof ProtectedAccountRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
   '/_content/blocks/$slug': typeof ContentBlocksSlugRoute
   '/_content/blog/$slug': typeof ContentBlogSlugRoute
@@ -164,6 +173,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/table'
     | '/search'
+    | '/account'
     | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/table'
     | '/search'
+    | '/account'
     | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
@@ -198,6 +209,7 @@ export interface FileRouteTypes {
     | '/sign-up'
     | '/table'
     | '/_content/search'
+    | '/_protected/account'
     | '/_protected/settings'
     | '/_content/blocks/$slug'
     | '/_content/blog/$slug'
@@ -261,6 +273,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_protected/account': {
+      id: '/_protected/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof ProtectedAccountRouteImport
+      parentRoute: typeof ProtectedRoute
     }
     '/_protected/settings': {
       id: '/_protected/settings'
@@ -363,10 +382,12 @@ const ContentRouteWithChildren =
   ContentRoute._addFileChildren(ContentRouteChildren)
 
 interface ProtectedRouteChildren {
+  ProtectedAccountRoute: typeof ProtectedAccountRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedAccountRoute: ProtectedAccountRoute,
   ProtectedSettingsRoute: ProtectedSettingsRoute,
 }
 

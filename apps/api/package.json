@@ -12,7 +12,8 @@
     "start": "node --experimental-strip-types src/index.ts",
     "typecheck": "tsc --noEmit",
     "db:setup": "drizzle-kit migrate",
-    "db:generate": "pnpm dlx @better-auth/cli generate --config src/auth.ts --output src/schema/auth-schema.ts"
+    "db:generate": "pnpm dlx @better-auth/cli generate --config src/auth.ts --output src/schema/auth-schema.ts",
+    "db:seed": "node --env-file=.env.local --experimental-strip-types src/seed.ts"
   },
   "dependencies": {
     "@cbbi/schemas": "workspace:*",

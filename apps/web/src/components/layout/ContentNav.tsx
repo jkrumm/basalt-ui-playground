@@ -10,7 +10,7 @@ import {
   Spinner,
 } from "@blueprintjs/core";
 import { Search } from "@blueprintjs/icons";
-import { Link, useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { Link, useMatchRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useSetAtom } from "jotai";
 import { searchOpenAtom } from "../../atoms";
 import { authClient } from "../../lib/auth-client";
@@ -77,6 +77,7 @@ function SearchButton() {
 function NavUserMenu() {
   const { data: session, isPending } = authClient.useSession();
   const navigate = useNavigate();
+  const router = useRouter();
 
   if (isPending) return <Spinner size={14} />;
 
@@ -92,12 +93,14 @@ function NavUserMenu() {
     <Popover
       content={
         <Menu>
+          <MenuItem text="Account" onClick={() => void navigate({ to: "/account" })} />
           <MenuItem text="Settings" onClick={() => void navigate({ to: "/settings" })} />
           <MenuItem
             text="Sign out"
             intent="danger"
             onClick={async () => {
               await authClient.signOut();
+              await router.invalidate();
               void navigate({ to: "/" });
             }}
           />

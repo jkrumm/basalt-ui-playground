@@ -55,25 +55,195 @@ both services share a domain so same-origin cookie rules apply automatically.
 
 ---
 
-## Protected Routes
+## BetterAuth Backend Setup
+
+BetterAuth is configured in `apps/api/src/auth.ts` and mounted on the Hono router.
+The Drizzle adapter auto-generates the `user`, `session`, `account`, and `verification`
+tables via `@better-auth/cli generate`.
+
+```typescript filename="apps/api/src/auth.ts"
+export const auth = betterAuth({
+  baseURL: env.BETTER_AUTH_URL,
+  secret: env.BETTER_AUTH_SECRET,
+  database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
+  emailAndPassword: { enabled: true },
+});
+```
+
+Mount the handler so all `POST/GET /api/auth/**` requests are handled by BetterAuth:
+
+```typescript filename="apps/api/src/app.ts"
+app.on(["POST", "GET"], "/api/auth/**", (c) => auth.handler(c.req.raw));
+```
+
+The auth middleware validates sessions for all `/api/user/*` routes. It caches the full
+user object on the Hono context so handlers don't need a second DB lookup:
+
+```typescript filename="apps/api/src/app.ts"
+type Variables = { userId: string; user: BetterAuthUser };
+
+const authMiddleware = createMiddleware<{ Variables: Variables }>(async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "Unauthorized" }, 401);
+  c.set("userId", session.user.id);
+  c.set("user", session.user as BetterAuthUser);
+  await next();
+});
+```
+
+---
+
+## Protected Endpoints
+
+Custom authenticated endpoints sit behind `authMiddleware`. They are registered on the
+typed `userRoutes` sub-app so `hono/client` can infer their request/response types.
+
+```typescript filename="apps/api/src/app.ts"
+// GET /api/user/me — returns the authenticated user's profile
+const getMeRoute = createRoute({
+  method: "get",
+  path: "/api/user/me",
+  responses: {
+    200: jsonContent(UserSchema, "Authenticated user profile"),
+    401: jsonContent(z.object({ error: z.string() }), "Unauthorized"),
+  },
+});
+
+const userRoutes = new OpenAPIHono<{ Variables: Variables }>().openapi(getMeRoute, (c) => {
+  const u = c.get("user"); // no DB query — cached by middleware
+  return c.json(
+    {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      emailVerified: u.emailVerified,
+      image: u.image ?? null,
+      createdAt: u.createdAt.toISOString(),
+    },
+    200,
+  );
+});
+// ...preferences routes
+```
+
+The full OpenAPI spec including these routes is available at `/doc` (JSON) and `/scalar`
+(interactive UI) — no manual documentation required.
+
+---
+
+## Protected Routes (Frontend)
 
 TanStack Start uses a pathless layout route (`_protected.tsx`) to guard all auth-required
 pages. Any route nested under `_protected/` inherits the guard automatically.
 
 ```typescript filename="apps/web/src/routes/_protected.tsx"
 export const Route = createFileRoute("/_protected")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const session = await getSessionFn();
-    if (!session) throw redirect({ to: "/sign-in" });
-    return { session };
+    if (!session) throw redirect({ to: "/sign-in", search: { redirect: location.pathname } });
+    return {
+      user: session.user,
+      // Serialize as ISO string — Date objects don't survive router hydration reliably
+      sessionExpiresAt: session.session.expiresAt.toISOString(),
+    };
   },
-  component: Outlet,
+  component: () => <Outlet />,
 });
 ```
 
-`getSessionFn` is a `createServerFn` wrapper that forwards the request cookie to Hono
-for session validation. The protected layout renders `<Outlet />` — it is invisible in the
-URL but enforces the auth check for every nested route.
+`getSessionFn` is a `createServerFn` that forwards the request cookie to Hono for
+session validation. The context is available to all child routes via `Route.useRouteContext()`.
+
+---
+
+## SSR Route Context Pattern
+
+The `beforeLoad` return value is the cleanest way to pass SSR-loaded auth data to
+protected routes — no extra fetch, no query waterfall, available on first render.
+
+```typescript filename="apps/web/src/routes/_protected/account.tsx"
+export const Route = createFileRoute("/_protected/account")({
+  component: AccountPage,
+});
+
+function AccountPage() {
+  // Loaded server-side in _protected.tsx — zero additional requests
+  const { user, sessionExpiresAt } = Route.useRouteContext();
+
+  return (
+    <Card>
+      <H4>{user.name}</H4>
+      <p>{user.email}</p>
+      <Tag intent={user.emailVerified ? "success" : "warning"}>
+        {user.emailVerified ? "Verified" : "Not verified"}
+      </Tag>
+      <p>Session expires: {new Date(sessionExpiresAt).toLocaleString()}</p>
+    </Card>
+  );
+}
+```
+
+**When to use route context vs. a query:**
+
+| Data                          | Pattern                        | Reason                                          |
+| ----------------------------- | ------------------------------ | ----------------------------------------------- |
+| Auth identity (user, session) | Route context                  | Already fetched by `beforeLoad`; no waterfall   |
+| User preferences              | `useSuspenseQuery`             | Changes independently; needs cache invalidation |
+| Any data fetched by a loader  | Route context via `loaderData` | Loader result is the canonical pattern          |
+
+---
+
+## Frontend Auth Client
+
+`createAuthClient()` from `better-auth/react` provides:
+
+- `authClient.useSession()` — reactive session state (React Query-like)
+- `authClient.signIn.email()` — sign in with credentials
+- `authClient.signUp.email()` — create account
+- `authClient.signOut()` — clears session cookie + updates reactive state
+
+```typescript filename="apps/web/src/lib/auth-client.ts"
+export const authClient = createAuthClient();
+// No baseURL — same origin via Vite proxy in dev, Node server in prod
+```
+
+After sign-in, `router.invalidate()` forces `_protected` `beforeLoad` to re-run with the
+new cookie, so protected routes become accessible immediately:
+
+```typescript
+const { error } = await authClient.signIn.email(value);
+if (!error) {
+  await router.invalidate();
+  window.location.assign(redirect);
+}
+```
+
+After sign-out, `router.invalidate()` ensures stale protected-route context is discarded:
+
+```typescript
+await authClient.signOut();
+await router.invalidate();
+navigate({ to: "/" });
+```
+
+---
+
+## Server-Side Session Function
+
+`getSessionFn` is a `createServerFn` — it always runs on the server, even when called
+from client-side navigation. This ensures session validation always hits Hono, not the
+browser's local state.
+
+```typescript filename="apps/web/src/lib/auth.functions.ts"
+export const getSessionFn = createServerFn({ method: "GET" }).handler(async () => {
+  const headers = getRequestHeaders();
+  const session = await auth.api.getSession({ headers });
+  return session;
+});
+```
+
+The request headers (including the session cookie) are captured via `getRequestHeaders()`
+from `@tanstack/react-start/server` and forwarded to BetterAuth.
 
 ---
 
@@ -83,16 +253,17 @@ URL but enforces the auth check for every nested route.
 No code generation required — TypeScript inference does all the work.
 
 ```typescript filename="apps/web/src/lib/api.ts"
-import type { AppType } from "@cbbi/api";
-import { hc } from "hono/client";
-import { createIsomorphicFn } from "@tanstack/react-start";
-
 export const getApi = createIsomorphicFn()
   .server(async () => {
-    // Dynamic import avoids bundling Hono into the frontend bundle.
-    // Passing app.fetch gives zero-network SSR — no HTTP round trip.
     const { app } = await import("@cbbi/api");
-    return hc<AppType>("http://localhost", { fetch: app.fetch as typeof fetch });
+    const reqHeaders = getRequestHeaders();
+    return hc<AppType>("http://localhost", {
+      fetch: (input, init) => {
+        const merged = new Headers(reqHeaders);
+        new Headers(init?.headers).forEach((v, k) => merged.set(k, v));
+        return app.fetch(new Request(input as string, { ...init, headers: merged }));
+      },
+    });
   })
   .client(() =>
     hc<AppType>(import.meta.env.VITE_API_URL ?? "", {
@@ -108,28 +279,9 @@ export const getApi = createIsomorphicFn()
 | **Server (SSR/SSG)** | Direct in-process Hono call via `app.fetch` | ~0ms        |
 | **Client (browser)** | `fetch` to Hono API at `VITE_API_URL`       | network RTT |
 
-The return type is identical in both branches — TypeScript infers the full Hono route
-tree including request/response types, with no manual type annotations needed.
-
----
-
-## Isomorphic Data Flow
-
-<Mermaid chart={`
-sequenceDiagram
-  participant C as Component
-  participant Q as TanStack Query
-  participant A as getApi()
-  participant E as Hono :3001
-
-C->>Q: useSuspenseQuery(userPreferencesQuery())
-Q->>A: queryFn()
-Note over A: Server: in-process call<br/>Client: HTTP fetch
-A->>E: GET /api/user/preferences
-E-->>A: { viewMode, sortBy, theme }
-A-->>Q: typed UserPreferences
-Q-->>C: data (never undefined — Suspense handles loading)
-`} />
+The server branch merges incoming request headers so the auth cookie flows through
+to BetterAuth even during in-process calls. Caller-set headers (e.g. `Content-Type`)
+take precedence via the `merged.set(k, v)` override.
 
 ---
 
@@ -140,26 +292,11 @@ call `useQuery` with an inline `queryFn` — that duplicates the query key and p
 cache sharing between components.
 
 ```typescript filename="apps/web/src/queries/preferences.queries.ts"
-import { queryOptions, mutationOptions } from "@tanstack/react-query";
-import type { PatchUserPreferences } from "@cbbi/schemas";
-import { getApi } from "~/lib/api";
-
-// Read — factory function returns a stable queryOptions object
 export const userPreferencesQuery = () =>
   queryOptions({
     queryKey: ["user", "preferences"],
     queryFn: async () => {
       const { data, error } = await getApi().user.preferences.get();
-      if (error) throw error.value;
-      return data!;
-    },
-  });
-
-// Write — mutationOptions factory for consistent error handling
-export const updatePreferencesMutation = () =>
-  mutationOptions({
-    mutationFn: async (patch: PatchUserPreferences) => {
-      const { data, error } = await getApi().user.preferences.patch({ ...patch });
       if (error) throw error.value;
       return data!;
     },
@@ -174,31 +311,14 @@ export const updatePreferencesMutation = () =>
 
 ---
 
-## Server-Sync Preferences Pattern
+## Demo Setup
 
-When a user visits `/settings`, their server preferences override the localStorage atoms.
-This ensures local state converges with the server after login or a change from another
-session or device.
+Run `pnpm db:seed` to create the demo user (`demo@example.com` / `demo1234`).
+The sign-in page has a "Use demo account" button that pre-fills these credentials.
 
-```tsx filename="apps/web/src/routes/_protected/settings.tsx"
-function SettingsForm() {
-  const { data: serverPrefs } = useSuspenseQuery(userPreferencesQuery());
-  const setViewMode = useSetAtom(viewModeAtom);
-  const setSortBy = useSetAtom(sortByAtom);
-
-  // Server-authoritative override on settings page mount.
-  // Runs whenever serverPrefs changes (e.g. after a successful save),
-  // not on every render — useSetAtom references are stable.
-  useEffect(() => {
-    setViewMode(serverPrefs.viewMode);
-    setSortBy(serverPrefs.sortBy);
-  }, [serverPrefs, setViewMode, setSortBy]);
-}
-```
-
-**Design note:** The override is scoped to the settings page visit, not triggered globally
-on login. A global auth observer that syncs on every login is a future improvement noted
-in the codebase comments.
+The seed script uses BetterAuth's programmatic API — the same `auth.api.signUpEmail`
+that the sign-up form calls — so the demo user goes through the same hashing/storage
+path as real users.
 
 ---
 
@@ -207,7 +327,8 @@ in the codebase comments.
 Zod schemas defined in `packages/schemas/` flow through every layer without duplication:
 
 ```
-packages/schemas/src/user-preferences.ts
+packages/schemas/src/user.ts               → UserSchema (id, name, email, emailVerified, image, createdAt)
+packages/schemas/src/user-preferences.ts  → UserPreferencesSchema + PatchUserPreferencesSchema
   ↓ imported by
 apps/api/src/app.ts                         ← Hono route validation (request body + OpenAPI spec)
   ↓ via hono/client type inference

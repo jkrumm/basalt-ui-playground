@@ -12,7 +12,8 @@
     "ready": "vp fmt && vp lint && vp run typecheck -r && vp run build -r",
     "prepare": "vp config",
     "db:setup": "vp run api#db:setup",
-    "db:generate": "vp run api#db:generate"
+    "db:generate": "vp run api#db:generate",
+    "db:seed": "vp run api#db:seed"
   },
   "devDependencies": {
     "@blueprintjs/eslint-plugin": "^6.1.24",

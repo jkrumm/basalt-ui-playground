@@ -10,7 +10,11 @@ export const Route = createFileRoute("/_protected")({
         search: { redirect: location.pathname },
       });
     }
-    return { user: session.user };
+    return {
+      user: session.user,
+      // Serialize as ISO string — Date objects don't survive router hydration reliably
+      sessionExpiresAt: session.session.expiresAt.toISOString(),
+    };
   },
   component: () => <Outlet />,
 });

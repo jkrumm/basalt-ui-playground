@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
-import { PatchUserPreferencesSchema, UserPreferencesSchema } from "@cbbi/schemas";
+import { PatchUserPreferencesSchema, UserPreferencesSchema, UserSchema } from "@cbbi/schemas";
 import { cors } from "hono/cors";
 import { createMiddleware } from "hono/factory";
 import * as HttpStatusCodes from "stoker/http-status-codes";
@@ -11,16 +11,35 @@ import { auth } from "./auth";
 import { env } from "./env";
 import { getPreferences, patchPreferences } from "./routes/preferences";
 
-type Variables = { userId: string };
+type BetterAuthUser = {
+  id: string;
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  image: string | null | undefined;
+  createdAt: Date;
+  updatedAt: Date;
+};
+type Variables = { userId: string; user: BetterAuthUser };
 
 const authMiddleware = createMiddleware<{ Variables: Variables }>(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "Unauthorized" }, HttpStatusCodes.UNAUTHORIZED);
   c.set("userId", session.user.id);
+  c.set("user", session.user as BetterAuthUser);
   await next();
 });
 
 // Route definitions
+const getMeRoute = createRoute({
+  method: "get",
+  path: "/api/user/me",
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(UserSchema, "Authenticated user profile"),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(z.object({ error: z.string() }), "Unauthorized"),
+  },
+});
+
 const getPreferencesRoute = createRoute({
   method: "get",
   path: "/api/user/preferences",
@@ -46,6 +65,20 @@ const patchPreferencesRoute = createRoute({
 
 // Chained sub-app so AppType captures all typed routes for hono/client inference
 const userRoutes = new OpenAPIHono<{ Variables: Variables }>()
+  .openapi(getMeRoute, (c) => {
+    const u = c.get("user");
+    return c.json(
+      {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        emailVerified: u.emailVerified,
+        image: u.image ?? null,
+        createdAt: u.createdAt.toISOString(),
+      },
+      HttpStatusCodes.OK,
+    );
+  })
   .openapi(getPreferencesRoute, async (c) => {
     return c.json(await getPreferences(c.get("userId")), HttpStatusCodes.OK);
   })
