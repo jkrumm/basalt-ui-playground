@@ -21,6 +21,7 @@ The one task you must complete per app is providing the icon assets. Everything 
 These are set once in the boilerplate and require no per-app work:
 
 **`app.css` — mobile & touch baseline**
+
 - `-webkit-text-size-adjust: 100%` — prevents font inflation on iOS rotation
 - `overscroll-behavior-y: none` — disables pull-to-refresh in the app shell
 - `-webkit-tap-highlight-color: transparent` — removes the blue tap flash on iOS
@@ -28,6 +29,7 @@ These are set once in the boilerplate and require no per-app work:
 - Blueprint input font-size override (`max(16px, 1em)`) — prevents iOS zoom on input focus
 
 **`__root.tsx` — head meta**
+
 - `theme-color` (light + dark via `prefers-color-scheme`) — tints the browser chrome on Android
 - `apple-mobile-web-app-capable` + `apple-mobile-web-app-status-bar-style` — enables standalone
   mode when added to the iOS home screen
@@ -43,11 +45,11 @@ These are set once in the boilerplate and require no per-app work:
 
 The manifest references three icon files that you must create for each app:
 
-| File | Size | Purpose |
-|------|------|---------|
-| `public/icon-192.png` | 192×192 | Android home screen, PWA splash |
-| `public/icon-512.png` | 512×512 | Android launcher, maskable |
-| `public/apple-touch-icon.png` | 180×180 | iOS "Add to Home Screen" |
+| File                          | Size    | Purpose                         |
+| ----------------------------- | ------- | ------------------------------- |
+| `public/icon-192.png`         | 192×192 | Android home screen, PWA splash |
+| `public/icon-512.png`         | 512×512 | Android launcher, maskable      |
+| `public/apple-touch-icon.png` | 180×180 | iOS "Add to Home Screen"        |
 
 ### Generating icons
 
@@ -106,16 +108,19 @@ the status bar, which requires `env(safe-area-inset-top)` handling on any fixed 
 Add this when building a proper mobile navigation shell:
 
 **`__root.tsx`** — update viewport meta:
+
 ```ts
 { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' }
 ```
 
 **Fixed top element (e.g. nav):**
+
 ```css
 padding-top: env(safe-area-inset-top);
 ```
 
 **Fixed bottom element (e.g. mobile tab bar):**
+
 ```css
 padding-bottom: env(safe-area-inset-bottom);
 ```
@@ -151,11 +156,11 @@ See the [SEO doc](/docs/seo) for the full per-route meta pattern.
 
 ## Key files
 
-| File | Purpose |
-|------|---------|
-| `src/routes/__root.tsx` | `theme-color`, apple meta tags, manifest link |
-| `src/styles/app.css` | Mobile & touch baseline CSS |
+| File                          | Purpose                                              |
+| ----------------------------- | ---------------------------------------------------- |
+| `src/routes/__root.tsx`       | `theme-color`, apple meta tags, manifest link        |
+| `src/styles/app.css`          | Mobile & touch baseline CSS                          |
 | `public/manifest.webmanifest` | PWA manifest — display mode, colors, icon references |
-| `public/icon-192.png` | Android home screen icon *(you provide)* |
-| `public/icon-512.png` | Android launcher / maskable icon *(you provide)* |
-| `public/apple-touch-icon.png` | iOS "Add to Home Screen" icon *(you provide)* |
+| `public/icon-192.png`         | Android home screen icon _(you provide)_             |
+| `public/icon-512.png`         | Android launcher / maskable icon _(you provide)_     |
+| `public/apple-touch-icon.png` | iOS "Add to Home Screen" icon _(you provide)_        |

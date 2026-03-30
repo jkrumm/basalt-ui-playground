@@ -1,5 +1,5 @@
 interface PlantUMLStubProps {
-  src: string
+  src: string;
 }
 
 export function PlantUMLStub({ src }: PlantUMLStubProps) {
@@ -10,5 +10,5 @@ export function PlantUMLStub({ src }: PlantUMLStubProps) {
         {src}
       </span>
     </div>
-  )
+  );
 }

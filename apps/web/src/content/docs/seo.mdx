@@ -47,6 +47,7 @@ head: ({ loaderData: ld }) => ({
 ```
 
 **Review checklist:**
+
 - [ ] Title ≤ 60 characters, unique per page
 - [ ] Description 150–160 characters
 - [ ] `og:image` points to a real, accessible URL (1200×630px recommended)
@@ -60,6 +61,7 @@ head: ({ loaderData: ld }) => ({
 Two layers of structured data are injected:
 
 **Root (`__root.tsx`)** — site-level identity, loaded on every page:
+
 - `WebSite` — name, URL
 - `Person` — author identity with `sameAs` links to GitHub and other profiles
 
@@ -67,9 +69,11 @@ Two layers of structured data are injected:
 when new authoritative profiles are added.
 
 **Blog post (`$slug.tsx`)** — per-post data:
+
 - `BlogPosting` — headline, description, dates, author, image, keywords
 
 **Review checklist:**
+
 - [ ] `sameAs` in `Person` schema includes all current authoritative profiles
 - [ ] `BlogPosting` `dateModified` is updated when posts are revised
 - [ ] Validate with [Google Rich Results Test](https://search.google.com/test/rich-results) after structural changes
@@ -87,11 +91,12 @@ Key property: `<lastmod>` is sourced from `updatedAt` (or `publishedAt` as fallb
 MDX file's frontmatter — Google uses this to decide crawl frequency.
 
 **Review checklist:**
+
 - [ ] Every published content page appears in `/sitemap.xml`
 - [ ] `<lastmod>` reflects the actual last edit date (update `updatedAt` in frontmatter when revising)
 - [ ] `/sitemap.xml` is referenced in `public/robots.txt`
 - [ ] After adding a new content type, add its `get*SitemapEntries()` function in `src/lib/content.ts`
-  and wire it into both the Vite middleware and the `server.ts` route
+      and wire it into both the Vite middleware and the `server.ts` route
 
 ---
 
@@ -106,6 +111,7 @@ Stripe).
 **Source:** `buildLlmsTxt()` in `src/lib/sitemap.ts`.
 
 **Review checklist:**
+
 - [ ] Description accurately reflects the site's current purpose
 - [ ] Key page list is up to date (add new sections when launched)
 - [ ] Verify at `/llms.txt` after deploy
@@ -118,6 +124,7 @@ Located at `public/robots.txt`. Explicitly allows all crawlers including major A
 `GPTBot`, `Claude-Web`, `Anthropic-AI`, `PerplexityBot`.
 
 **Review checklist:**
+
 - [ ] Sitemap URL in `robots.txt` matches the actual deployed domain
 - [ ] No content pages are accidentally disallowed
 
@@ -157,12 +164,12 @@ When adding a new section (e.g. `/tutorials`):
 
 ## Key files
 
-| File | Purpose |
-|------|---------|
-| `src/routes/__root.tsx` | Root JSON-LD (WebSite + Person), global head |
-| `src/routes/_content/blog/$slug.tsx` | Per-post meta, OG, twitter:card, BlogPosting JSON-LD |
-| `src/lib/sitemap.ts` | `buildSitemapXml()`, `collectSitemapEntries()`, `buildLlmsTxt()` |
-| `src/lib/content.ts` | `get*SitemapEntries()` per content type |
-| `server.ts` | Production `/sitemap.xml` and `/llms.txt` routes |
-| `vite.config.ts` | Dev middleware for `/sitemap.xml` and `/llms.txt` |
-| `public/robots.txt` | Crawler rules, sitemap pointer |
+| File                                 | Purpose                                                          |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `src/routes/__root.tsx`              | Root JSON-LD (WebSite + Person), global head                     |
+| `src/routes/_content/blog/$slug.tsx` | Per-post meta, OG, twitter:card, BlogPosting JSON-LD             |
+| `src/lib/sitemap.ts`                 | `buildSitemapXml()`, `collectSitemapEntries()`, `buildLlmsTxt()` |
+| `src/lib/content.ts`                 | `get*SitemapEntries()` per content type                          |
+| `server.ts`                          | Production `/sitemap.xml` and `/llms.txt` routes                 |
+| `vite.config.ts`                     | Dev middleware for `/sitemap.xml` and `/llms.txt`                |
+| `public/robots.txt`                  | Crawler rules, sitemap pointer                                   |

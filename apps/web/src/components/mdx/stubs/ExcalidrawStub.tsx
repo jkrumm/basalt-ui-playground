@@ -1,5 +1,5 @@
 interface ExcalidrawStubProps {
-  src: string
+  src: string;
 }
 
 export function ExcalidrawStub({ src }: ExcalidrawStubProps) {
@@ -10,5 +10,5 @@ export function ExcalidrawStub({ src }: ExcalidrawStubProps) {
         {src}
       </span>
     </div>
-  )
+  );
 }

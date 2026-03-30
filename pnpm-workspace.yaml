@@ -1,10 +1,11 @@
 packages:
   - "apps/*"
   - "packages/*"
+disallowWorkspaceCycles: true
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
-  vite-plus: latest
+  vite: npm:@voidzero-dev/vite-plus-core@0.1.14
+  vitest: npm:@voidzero-dev/vite-plus-test@0.1.14
+  vite-plus: 0.1.14
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
@@ -12,9 +13,12 @@ peerDependencyRules:
   allowAny:
     - vite
     - vitest
+    - esbuild
   allowedVersions:
     vite: "*"
     vitest: "*"
-    react: "*"
-    react-dom: "*"
-    "@types/react": "*"
+    esbuild: "*"
+    typescript: "6"
+    react: "19"
+    react-dom: "19"
+    "@types/react": "19"

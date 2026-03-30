@@ -1,12 +1,12 @@
 /* Variable fonts — before Blueprint so @font-face is declared first */
-@import '@fontsource-variable/geist';
-@import '@fontsource-variable/jetbrains-mono';
-@import './mdx.css';
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/jetbrains-mono";
+@import "./mdx.css";
 
 /* Blueprint v6 — core, table, labs (icons package omitted: Tabler icons used exclusively) */
-@import '@blueprintjs/core/lib/css/blueprint.css';
-@import '@blueprintjs/table/lib/css/table.css';
-@import '@blueprintjs/labs/lib/css/blueprint-labs.css';
+@import "@blueprintjs/core/lib/css/blueprint.css";
+@import "@blueprintjs/table/lib/css/table.css";
+@import "@blueprintjs/labs/lib/css/blueprint-labs.css";
 
 /* ── Override Blueprint font vars ───────────────────────────────────────────
    Blueprint v6 uses CSS custom properties for font families. Overriding them
@@ -14,8 +14,8 @@
    ──────────────────────────────────────────────────────────────────────── */
 
 :root {
-  --bp-typography-family-default: 'Geist Variable', -apple-system, 'BlinkMacSystemFont', sans-serif;
-  --bp-typography-family-mono: 'JetBrains Mono Variable', monospace;
+  --bp-typography-family-default: "Geist Variable", -apple-system, "BlinkMacSystemFont", sans-serif;
+  --bp-typography-family-mono: "JetBrains Mono Variable", monospace;
 }
 
 /* ── Font overrides ─────────────────────────────────────────────────────────

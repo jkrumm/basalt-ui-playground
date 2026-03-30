@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp run web#dev",
-    "dev:api": "cd apps/api && node --import tsx --watch src/index.ts",
+    "dev:api": "vp run api#dev",
     "dev:web": "vp run web#dev",
     "build": "vp run web#build",
     "start": "vp run web#start",

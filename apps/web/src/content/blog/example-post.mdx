@@ -31,6 +31,7 @@ The pipeline uses `@mdx-js/rollup` with Shiki for compile-time syntax highlighti
     ```typescript
     { enforce: 'pre', ...mdx({ remarkPlugins: [...], rehypePlugins: [...] }) }
     ```
+
   </Step>
   <Step title="Create content files">
     Add `.mdx` files to `src/content/blog/` or `src/content/docs/`. Frontmatter is automatically exported as a named `frontmatter` constant.
@@ -42,16 +43,17 @@ The pipeline uses `@mdx-js/rollup` with Shiki for compile-time syntax highlighti
 ### TypeScript — with line highlighting
 
 ```typescript
-import type { ThemeRegistration } from 'shiki' // [!code highlight]
+import type { ThemeRegistration } from "shiki"; // [!code highlight]
 
-export const blueprintDarkTheme: ThemeRegistration = { // [!code highlight]
-  name: 'blueprint-dark',
-  type: 'dark',
+export const blueprintDarkTheme: ThemeRegistration = {
+  // [!code highlight]
+  name: "blueprint-dark",
+  type: "dark",
   colors: {
-    'editor.background': '#1c2127',
+    "editor.background": "#1c2127",
   },
   tokenColors: [],
-}
+};
 ```
 
 ### Bash — with diff markers
@@ -75,29 +77,25 @@ bun add @shikijs/rehype  # [!code ++]
 </Admonition>
 
 <Admonition type="danger" title="Do not do this">
-  Never commit secrets to your repository. Use environment variables and a secret manager like Doppler.
+  Never commit secrets to your repository. Use environment variables and a secret manager like
+  Doppler.
 </Admonition>
 
 ## Tabs
 
 <Tabs defaultTab="ts">
   <Tab id="ts" title="TypeScript">
-    ```typescript
-    const greeting: string = 'Hello, Blueprint!'
-    console.log(greeting)
-    ```
+    ```typescript const greeting: string = 'Hello, Blueprint!' console.log(greeting) ```
   </Tab>
   <Tab id="py" title="Python">
-    ```python
-    greeting: str = "Hello, Blueprint!"
-    print(greeting)
-    ```
+    ```python greeting: str = "Hello, Blueprint!" print(greeting) ```
   </Tab>
 </Tabs>
 
 ## Mermaid Diagram
 
-<Mermaid chart={`graph TD
+<Mermaid
+  chart={`graph TD
   A[vite.config.ts] -->|MDX plugin| B[remark pipeline]
   B --> C[rehype pipeline]
   C -->|Shiki| D[Highlighted HTML]
@@ -108,13 +106,13 @@ bun add @shikijs/rehype  # [!code ++]
 
 Tables work out of the box via `remark-gfm`:
 
-| Plugin | Role | Runs at |
-|-|-|-|
-| `remark-frontmatter` | Parse YAML frontmatter | Build |
-| `remark-mdx-frontmatter` | Export frontmatter as ESM | Build |
-| `remark-gfm` | Tables, task lists, strikethrough | Build |
-| `rehype-slug` | Add `id` to headings | Build |
-| `@shikijs/rehype` | Syntax highlighting | Build |
+| Plugin                   | Role                              | Runs at |
+| ------------------------ | --------------------------------- | ------- |
+| `remark-frontmatter`     | Parse YAML frontmatter            | Build   |
+| `remark-mdx-frontmatter` | Export frontmatter as ESM         | Build   |
+| `remark-gfm`             | Tables, task lists, strikethrough | Build   |
+| `rehype-slug`            | Add `id` to headings              | Build   |
+| `@shikijs/rehype`        | Syntax highlighting               | Build   |
 
 Task lists:
 

@@ -40,9 +40,9 @@ export default defineConfig({
           path === "/search",
       },
     }),
-    // 2. React plugin for .tsx/.ts/.jsx/.js files
+    // 2. React plugin for JSX transform (no babel option in @vitejs/plugin-react@6 / Rolldown era)
     viteReact(),
-    // 3. React Compiler via Babel — processes .tsx components for auto-memoization
+    // 3. React Compiler via @rolldown/plugin-babel — separate pass required for Rolldown/Vite 8
     babel({ presets: [reactCompilerPreset()] }),
     // 4. llms.txt dev middleware — serves /llms.txt in development
     {

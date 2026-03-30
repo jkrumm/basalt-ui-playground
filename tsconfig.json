@@ -1,0 +1,17 @@
+{
+  // Monorepo base config — shared by all apps and packages.
+  // Apps extend this and add only their specific settings.
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2025",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true
+  }
+}

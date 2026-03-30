@@ -1,15 +1,15 @@
 ---
 title: "Typesafe Forms"
-description: "TanStack Form v1 with TypeBox validation adapter and Blueprint field components — useAppForm, typeboxFormValidator, and the render-prop field API."
+description: "TanStack Form v1 with Zod v4 validation adapter and Blueprint field components — useAppForm, zodFormValidator, and the render-prop field API."
 category: "forms"
-tags: ["tanstack-form", "typebox", "validation", "blueprint", "forms"]
+tags: ["tanstack-form", "zod", "validation", "blueprint", "forms"]
 ---
 
 ## Overview
 
 Forms use TanStack Form v1's `createFormHook` API with Blueprint UI components pre-wired.
-TypeBox schemas drive validation via a `typeboxFormValidator` adapter — the same schema that
-validates the Elysia API request also validates the client-side form.
+Zod v4 schemas drive validation via a `zodFormValidator` adapter — the same schema that
+validates the Hono API request also validates the client-side form.
 
 TanStack Form is signals-based under the hood: components only re-render when their
 subscribed slice of form state changes. This makes it React Compiler-safe by design.
@@ -18,45 +18,39 @@ subscribed slice of form state changes. This makes it React Compiler-safe by des
 
 ## The Validator Adapter
 
-TypeBox v0.34 does not implement Standard Schema, so this adapter bridges the gap between
-TypeBox and TanStack Form's validator API:
+Zod v4 implements Standard Schema, but TanStack Form's whole-form validator expects
+a `{ fields }` error map. This adapter bridges the gap:
 
 ```typescript filename="apps/web/src/lib/validation.ts"
-import type { TSchema } from '@sinclair/typebox'
-import { Value } from '@sinclair/typebox/value'
+import type { ZodTypeAny } from "zod";
 
 // Per-field validator — used in form.AppField validators.onChange
-export function typeboxValidator<T extends TSchema>(schema: T) {
+export function zodValidator<T extends ZodTypeAny>(schema: T) {
   return ({ value }: { value: unknown }) => {
-    const input = structuredClone(value) ?? ''
-    const withDefaults = Value.Default(schema, input)
-    if (Value.Check(schema, withDefaults))
-      return undefined
-    return Array.from(Value.Errors(schema, withDefaults), e => e.message).join('; ')
-  }
+    const result = schema.safeParse(value ?? "");
+    if (result.success) return undefined;
+    return result.error.issues.map((i) => i.message).join("; ");
+  };
 }
 
-// Whole-form validator — maps TypeBox path errors to TanStack Form field-level errors
-export function typeboxFormValidator<T extends TSchema>(schema: T) {
+// Whole-form validator — maps Zod path errors to TanStack Form field-level errors
+export function zodFormValidator<T extends ZodTypeAny>(schema: T) {
   return ({ value }: { value: unknown }) => {
-    const withDefaults = Value.Default(schema, structuredClone(value) ?? {})
-    if (Value.Check(schema, withDefaults))
-      return undefined
-    const fields = Array.from(Value.Errors(schema, withDefaults)).reduce<Record<string, string>>(
-      (acc, err) => {
-        const field = err.path.replace(/^\//, '') || 'root'
-        if (!acc[field]) acc[field] = err.message
-        return acc
-      },
-      {},
-    )
-    return { fields }
-  }
+    const result = schema.safeParse(value ?? {});
+    if (result.success) return undefined;
+    const fields = result.error.issues.reduce<Record<string, string>>((acc, issue) => {
+      const field = issue.path.join(".") || "root";
+      if (!acc[field]) acc[field] = issue.message;
+      return acc;
+    }, {});
+    return { fields };
+  };
 }
 ```
 
-`Value.Default` fills fields not yet touched by the user with their TypeBox `default`
-annotation values before validation runs. This prevents spurious errors on untouched fields.
+`safeParse` returns `{ success, data }` or `{ success: false, error }` — never throws.
+Zod applies `.default()` values automatically during parsing, so untouched fields don't
+produce spurious validation errors.
 
 ---
 
@@ -66,32 +60,32 @@ annotation values before validation runs. This prevents spurious errors on untou
 All forms in the app use this single hook — no per-form setup needed.
 
 ```tsx filename="apps/web/src/lib/form.tsx"
-import { createFormHook, createFormHookContexts } from '@tanstack/react-form'
-import { FormGroup, InputGroup, HTMLSelect, Checkbox, type Intent } from '@blueprintjs/core'
+import { createFormHook, createFormHookContexts } from "@tanstack/react-form";
+import { FormGroup, InputGroup, HTMLSelect, Checkbox, type Intent } from "@blueprintjs/core";
 
-export const { fieldContext, formContext, useFieldContext } = createFormHookContexts()
+export const { fieldContext, formContext, useFieldContext } = createFormHookContexts();
 
-function TextField({ label, type = 'text', placeholder, helperText }) {
-  const field = useFieldContext<string>()
-  const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0
-  const intent: Intent = hasError ? 'danger' : 'none'
+function TextField({ label, type = "text", placeholder, helperText }) {
+  const field = useFieldContext<string>();
+  const hasError = field.state.meta.isTouched && field.state.meta.errors.length > 0;
+  const intent: Intent = hasError ? "danger" : "none";
 
   return (
     <FormGroup
       label={label}
       intent={intent}
-      helperText={hasError ? field.state.meta.errors.join('; ') : helperText}
+      helperText={hasError ? field.state.meta.errors.join("; ") : helperText}
     >
       <InputGroup
         type={type}
         value={field.state.value}
-        onChange={e => field.handleChange(e.target.value)}
+        onChange={(e) => field.handleChange(e.target.value)}
         onBlur={field.handleBlur}
         intent={intent}
         placeholder={placeholder}
       />
     </FormGroup>
-  )
+  );
 }
 
 export const { useAppForm } = createFormHook({
@@ -99,7 +93,7 @@ export const { useAppForm } = createFormHook({
   formContext,
   fieldComponents: { TextField, SelectField, CheckboxField },
   formComponents: {},
-})
+});
 ```
 
 ---
@@ -107,44 +101,49 @@ export const { useAppForm } = createFormHook({
 ## Usage — Contact Form Example
 
 ```tsx
-import { Type } from '@sinclair/typebox'
-import { Button } from '@blueprintjs/core'
-import { useAppForm } from '~/lib/form'
-import { typeboxFormValidator } from '~/lib/validation'
+import { z } from "zod";
+import { Button } from "@blueprintjs/core";
+import { useAppForm } from "~/lib/form";
+import { zodFormValidator } from "~/lib/validation";
 
-const ContactSchema = Type.Object({
-  name: Type.String({ minLength: 1, error: 'Name is required' }),
-  email: Type.String({ format: 'email', error: 'Valid email address required' }),
-})
+const ContactSchema = z.object({
+  name: z.string().min(1, { error: "Name is required" }),
+  email: z.email({ error: "Valid email address required" }),
+});
 
 function ContactForm() {
   const form = useAppForm({
-    defaultValues: { name: '', email: '' },
-    validators: { onChange: typeboxFormValidator(ContactSchema) },
+    defaultValues: { name: "", email: "" },
+    validators: { onChange: zodFormValidator(ContactSchema) },
     onSubmit: async ({ value }) => {
-      await submitContact(value)
+      await submitContact(value);
     },
-  })
+  });
 
   return (
-    <form onSubmit={e => { e.preventDefault(); void form.handleSubmit() }}>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void form.handleSubmit();
+      }}
+    >
       <form.AppField name="name">
-        {field => <field.TextField label="Name" placeholder="Your name" />}
+        {(field) => <field.TextField label="Name" placeholder="Your name" />}
       </form.AppField>
 
       <form.AppField name="email">
-        {field => <field.TextField label="Email" type="email" placeholder="you@example.com" />}
+        {(field) => <field.TextField label="Email" type="email" placeholder="you@example.com" />}
       </form.AppField>
 
-      <form.Subscribe selector={state => state.isSubmitting}>
-        {isSubmitting => (
+      <form.Subscribe selector={(state) => state.isSubmitting}>
+        {(isSubmitting) => (
           <Button type="submit" intent="primary" loading={isSubmitting} fill>
             Submit
           </Button>
         )}
       </form.Subscribe>
     </form>
-  )
+  );
 }
 ```
 
@@ -157,13 +156,13 @@ with the registered Blueprint components attached as methods:
 
 ```tsx
 <form.AppField name="theme">
-  {field => (
+  {(field) => (
     <field.SelectField
       label="Theme"
       options={[
-        { value: 'system', label: 'System' },
-        { value: 'light', label: 'Light' },
-        { value: 'dark', label: 'Dark' },
+        { value: "system", label: "System" },
+        { value: "light", label: "Light" },
+        { value: "dark", label: "Dark" },
       ]}
     />
   )}
@@ -174,10 +173,10 @@ The render prop child is a callback, not a React component. React Compiler handl
 correctly — TanStack Form's `createFormHook` is designed to be Compiler-safe.
 
 <Admonition type="note" title="Why not React Hook Form?">
-  TanStack Form uses signals-based subscriptions — each field only re-renders when its own
-  slice of form state changes. React Hook Form uses React Context which re-renders all
-  consumers on any field change. For forms with many fields (like a preferences page),
-  TanStack Form performs significantly better.
+  TanStack Form uses signals-based subscriptions — each field only re-renders when its own slice of
+  form state changes. React Hook Form uses React Context which re-renders all consumers on any field
+  change. For forms with many fields (like a preferences page), TanStack Form performs significantly
+  better.
 </Admonition>
 
 ---
@@ -191,12 +190,14 @@ with `intent="danger"` renders a red border on the input and shows the error mes
 For form-level or cross-field errors, use `form.Subscribe`:
 
 ```tsx
-<form.Subscribe selector={state => state.errors}>
-  {errors => errors.length > 0 && (
-    <Callout intent="danger" style={{ marginBottom: 16 }}>
-      {errors.join(', ')}
-    </Callout>
-  )}
+<form.Subscribe selector={(state) => state.errors}>
+  {(errors) =>
+    errors.length > 0 && (
+      <Callout intent="danger" style={{ marginBottom: 16 }}>
+        {errors.join(", ")}
+      </Callout>
+    )
+  }
 </form.Subscribe>
 ```
 
@@ -205,5 +206,5 @@ For form-level or cross-field errors, use `form.Subscribe`:
 ## Live Example
 
 The preferences form at [/settings](/settings) uses `useAppForm` +
-`typeboxFormValidator(PatchUserPreferencesSchema)` with `SelectField` components.
+`zodFormValidator(PatchUserPreferencesSchema)` with `SelectField` components.
 Sign in to see the full form with server submission and optimistic atom updates.

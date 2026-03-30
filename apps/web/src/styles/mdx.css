@@ -193,7 +193,7 @@
 
 /* Vertical connecting line */
 .mdx-step:not(:last-child)::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0.875rem;
   top: 1.75rem;

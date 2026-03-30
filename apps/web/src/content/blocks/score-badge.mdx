@@ -16,61 +16,61 @@ Pass a score (0–100) and it renders a colored pill with the value and an optio
 ## Usage
 
 ```tsx filename="IndicatorGrid.tsx"
-import { ScoreBadge } from '@/components/display/ScoreBadge'
+import { ScoreBadge } from "@/components/display/ScoreBadge";
 
 export function IndicatorGrid({ indicators }: { indicators: Indicator[] }) {
   return (
     <div className="grid">
-      {indicators.map(ind => (
+      {indicators.map((ind) => (
         <div key={ind.name}>
           <span>{ind.name}</span>
           <ScoreBadge score={ind.score} />
         </div>
       ))}
     </div>
-  )
+  );
 }
 ```
 
 ## Props
 
-| Prop | Type | Required | Default | Description |
-|-|-|-|-|-|
-| `score` | `number` | Yes | — | Sub-score (0–100) |
-| `label` | `string` | No | — | Optional text suffix (e.g. `"NUPL"`) |
-| `size` | `'sm' \| 'md'` | No | `'md'` | Controls padding and font size |
+| Prop    | Type           | Required | Default | Description                          |
+| ------- | -------------- | -------- | ------- | ------------------------------------ |
+| `score` | `number`       | Yes      | —       | Sub-score (0–100)                    |
+| `label` | `string`       | No       | —       | Optional text suffix (e.g. `"NUPL"`) |
+| `size`  | `'sm' \| 'md'` | No       | `'md'`  | Controls padding and font size       |
 
 ## Intent mapping
 
 ```typescript
-function scoreToIntent(score: number): 'success' | 'primary' | 'warning' | 'danger' {
-  if (score >= 80) return 'danger'
-  if (score >= 60) return 'warning'
-  if (score >= 35) return 'primary'
-  return 'success'
+function scoreToIntent(score: number): "success" | "primary" | "warning" | "danger" {
+  if (score >= 80) return "danger";
+  if (score >= 60) return "warning";
+  if (score >= 35) return "primary";
+  return "success";
 }
 ```
 
 ## Implementation
 
 ```tsx filename="ScoreBadge.tsx"
-import { Badge } from 'basalt-ui'
+import { Badge } from "basalt-ui";
 
 interface Props {
-  score: number
-  label?: string
-  size?: 'sm' | 'md'
+  score: number;
+  label?: string;
+  size?: "sm" | "md";
 }
 
-export function ScoreBadge({ score, label, size = 'md' }: Props) {
-  const intent = scoreToIntent(score)
-  const text = label ? `${score} ${label}` : String(score)
+export function ScoreBadge({ score, label, size = "md" }: Props) {
+  const intent = scoreToIntent(score);
+  const text = label ? `${score} ${label}` : String(score);
 
   return (
     <Badge variant={intent} size={size}>
       {text}
     </Badge>
-  )
+  );
 }
 ```
 
@@ -78,12 +78,12 @@ export function ScoreBadge({ score, label, size = 'md' }: Props) {
 
 The four intent colors map to the CBBI risk zones:
 
-| Score | Intent | Zone |
-|-|-|-|
-| 0–34 | `success` (green) | Accumulation |
-| 35–59 | `primary` (blue) | Growth |
-| 60–79 | `warning` (orange) | Elevated |
-| 80–100 | `danger` (red) | Euphoria |
+| Score  | Intent             | Zone         |
+| ------ | ------------------ | ------------ |
+| 0–34   | `success` (green)  | Accumulation |
+| 35–59  | `primary` (blue)   | Growth       |
+| 60–79  | `warning` (orange) | Elevated     |
+| 80–100 | `danger` (red)     | Euphoria     |
 
 <Admonition type="note" title="Using with basalt-ui Badge">
   This component is a thin wrapper. If you need full badge customization (minimal variant, custom

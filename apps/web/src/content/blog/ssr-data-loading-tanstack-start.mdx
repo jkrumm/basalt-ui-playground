@@ -14,12 +14,12 @@ seriesOrder: 2
 
 TanStack Start offers two mechanisms for server-side data fetching:
 
-| | Route loader | Server function (`createServerFn`) |
-|-|-|-|
-| Triggered by | Navigation to the route | Explicit call from client or loader |
-| Runs on | Server (SSR) + client (hydration) | Server only |
-| Return type | Any serializable value | Any serializable value |
-| Good for | Initial page data | Mutations, on-demand fetches |
+|              | Route loader                      | Server function (`createServerFn`)  |
+| ------------ | --------------------------------- | ----------------------------------- |
+| Triggered by | Navigation to the route           | Explicit call from client or loader |
+| Runs on      | Server (SSR) + client (hydration) | Server only                         |
+| Return type  | Any serializable value            | Any serializable value              |
+| Good for     | Initial page data                 | Mutations, on-demand fetches        |
 
 For the CBBI dashboard, the live score is fetched in the root loader — it runs on every SSR request and is available to all child routes without prop-drilling.
 
@@ -47,7 +47,9 @@ function Dashboard() {
 ```
 
 <Admonition type="tip" title="Why createServerFn?">
-  Wrapping the fetch in `createServerFn` gives you a typed RPC boundary. The function is stripped from the client bundle — only the network call remains. This is how TanStack Start avoids leaking API keys or server-only dependencies to the browser.
+  Wrapping the fetch in `createServerFn` gives you a typed RPC boundary. The function is stripped
+  from the client bundle — only the network call remains. This is how TanStack Start avoids leaking
+  API keys or server-only dependencies to the browser.
 </Admonition>
 
 ## Error handling in loaders
@@ -92,18 +94,17 @@ Loaders return a single value, but you can parallelize fetches inside:
 
 ```typescript
 loader: async ({ params }) => {
-  const [score, history] = await Promise.all([
-    fetchCbbiScore(),
-    fetchScoreHistory({ days: 365 }),
-  ])
-  return { score, history }
-}
+  const [score, history] = await Promise.all([fetchCbbiScore(), fetchScoreHistory({ days: 365 })]);
+  return { score, history };
+};
 ```
 
 TanStack Router runs sibling route loaders in parallel automatically — a parent and a layout can fetch independently without coordination.
 
 <Admonition type="warning" title="Avoid waterfalls">
-  Never `await` inside a loader sequentially when the requests are independent. A `Promise.all` at the loader level is the correct pattern. Sequential awaits create request waterfalls that double or triple your TTFB.
+  Never `await` inside a loader sequentially when the requests are independent. A `Promise.all` at
+  the loader level is the correct pattern. Sequential awaits create request waterfalls that double
+  or triple your TTFB.
 </Admonition>
 
 ## Conclusion

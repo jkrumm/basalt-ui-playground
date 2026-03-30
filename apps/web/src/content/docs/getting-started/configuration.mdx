@@ -7,7 +7,7 @@ section: "Getting Started"
 
 ## Environment variables
 
-Create a `.env.local` file in the project root. All VITE_ prefixed variables are exposed to the
+Create a `.env.local` file in the project root. All VITE\_ prefixed variables are exposed to the
 client bundle; non-prefixed variables are server-only.
 
 ```bash filename=".env.local"
@@ -20,8 +20,8 @@ VITE_BASE_URL=https://cbbi.jkrumm.com
 ```
 
 <Admonition type="note" title="Secrets in Doppler">
-  Actual values live in Doppler, not in `.env.local`. The `.env.local` file is gitignored.
-  Run `doppler run -- bun dev` to inject secrets automatically in development.
+  Actual values live in Doppler, not in `.env.local`. The `.env.local` file is gitignored. Run
+  `doppler run -- bun dev` to inject secrets automatically in development.
 </Admonition>
 
 ---
@@ -31,14 +31,16 @@ VITE_BASE_URL=https://cbbi.jkrumm.com
 Umami is injected conditionally in `__root.tsx`:
 
 ```tsx
-{import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
-  <script
-    defer
-    src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
-    data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
-    data-auto-track="false"
-  />
-)}
+{
+  import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
+    <script
+      defer
+      src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
+      data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
+      data-auto-track="false"
+    />
+  );
+}
 ```
 
 `data-auto-track="false"` disables Umami's default pageview tracking. Pageviews are tracked
@@ -48,9 +50,9 @@ control over what counts as a pageview and allows filtering internal navigation.
 Custom events are tracked programmatically via the `track()` utility:
 
 ```typescript
-import { track, EVENTS } from '../lib/analytics'
+import { track, EVENTS } from "../lib/analytics";
 
-track(EVENTS.VIEW_TOGGLED, { component: 'indicator-grid', view: 'table' })
+track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "table" });
 ```
 
 See `src/lib/analytics.ts` for the full event registry and `CLAUDE.md` for the event naming
@@ -65,9 +67,9 @@ The selected theme (`light`, `dark`, or `system`) is persisted in a cookie read 
 ```typescript
 // src/lib/theme.ts
 export const getThemeFn = createServerFn().handler(async () => {
-  const cookie = getCookie('theme')
-  return (VALID_THEMES.includes(cookie) ? cookie : 'system') as Theme
-})
+  const cookie = getCookie("theme");
+  return (VALID_THEMES.includes(cookie) ? cookie : "system") as Theme;
+});
 ```
 
 The cookie approach eliminates the flash-of-wrong-theme that occurs with `localStorage`-based
@@ -85,11 +87,11 @@ The production server is `server.ts` — a plain Bun HTTP server that:
 
 Key environment variables for the server:
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `3000` | HTTP port |
-| `ASSET_PRELOAD_MAX_SIZE` | `5242880` (5 MB) | Max bytes to preload into memory |
-| `ASSET_PRELOAD_VERBOSE_LOGGING` | `false` | Log loaded/skipped files on startup |
+| Variable                        | Default          | Description                         |
+| ------------------------------- | ---------------- | ----------------------------------- |
+| `PORT`                          | `3000`           | HTTP port                           |
+| `ASSET_PRELOAD_MAX_SIZE`        | `5242880` (5 MB) | Max bytes to preload into memory    |
+| `ASSET_PRELOAD_VERBOSE_LOGGING` | `false`          | Log loaded/skipped files on startup |
 
 Start the production server after building:
 

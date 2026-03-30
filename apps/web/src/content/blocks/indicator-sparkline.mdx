@@ -17,12 +17,12 @@ history for a single sub-score, with the current value highlighted as an endpoin
 ## Usage
 
 ```tsx filename="IndicatorRow.tsx"
-import { IndicatorSparkline } from '@/components/charts/IndicatorSparkline'
+import { IndicatorSparkline } from "@/components/charts/IndicatorSparkline";
 
 interface IndicatorRowProps {
-  name: string
-  currentScore: number
-  history: number[]  // last 90 days, newest last
+  name: string;
+  currentScore: number;
+  history: number[]; // last 90 days, newest last
 }
 
 export function IndicatorRow({ name, currentScore, history }: IndicatorRowProps) {
@@ -34,20 +34,20 @@ export function IndicatorRow({ name, currentScore, history }: IndicatorRowProps)
       </td>
       <td>{currentScore}</td>
     </tr>
-  )
+  );
 }
 ```
 
 ## Props
 
-| Prop | Type | Required | Default | Description |
-|-|-|-|-|-|
-| `data` | `number[]` | Yes | — | Historical sub-scores (0–100), oldest first |
-| `current` | `number` | Yes | — | Current score value — renders as endpoint dot |
-| `width` | `number` | No | `120` | Pixel width |
-| `height` | `number` | No | `32` | Pixel height |
-| `color` | `string` | No | auto | Line color — defaults to intent color based on `current` |
-| `showDot` | `boolean` | No | `true` | Render the endpoint dot |
+| Prop      | Type       | Required | Default | Description                                              |
+| --------- | ---------- | -------- | ------- | -------------------------------------------------------- |
+| `data`    | `number[]` | Yes      | —       | Historical sub-scores (0–100), oldest first              |
+| `current` | `number`   | Yes      | —       | Current score value — renders as endpoint dot            |
+| `width`   | `number`   | No       | `120`   | Pixel width                                              |
+| `height`  | `number`   | No       | `32`    | Pixel height                                             |
+| `color`   | `string`   | No       | auto    | Line color — defaults to intent color based on `current` |
+| `showDot` | `boolean`  | No       | `true`  | Render the endpoint dot                                  |
 
 ## Color mapping
 
@@ -55,10 +55,10 @@ When `color` is not provided, the line color maps to Blueprint intent based on t
 
 ```typescript
 function scoreToColor(score: number): string {
-  if (score >= 80) return 'var(--bp-intent-danger)'
-  if (score >= 60) return 'var(--bp-intent-warning)'
-  if (score >= 40) return 'var(--bp-intent-primary)'
-  return 'var(--bp-intent-success)'
+  if (score >= 80) return "var(--bp-intent-danger)";
+  if (score >= 60) return "var(--bp-intent-warning)";
+  if (score >= 40) return "var(--bp-intent-primary)";
+  return "var(--bp-intent-success)";
 }
 ```
 
@@ -67,20 +67,27 @@ This matches the color scale used in the CBBI gauge chart and the indicator heat
 ## Implementation
 
 ```tsx filename="IndicatorSparkline.tsx"
-import { LineChart, Line, ResponsiveContainer, ReferenceDot } from 'recharts'
+import { LineChart, Line, ResponsiveContainer, ReferenceDot } from "recharts";
 
 interface Props {
-  data: number[]
-  current: number
-  width?: number
-  height?: number
-  color?: string
-  showDot?: boolean
+  data: number[];
+  current: number;
+  width?: number;
+  height?: number;
+  color?: string;
+  showDot?: boolean;
 }
 
-export function IndicatorSparkline({ data, current, width = 120, height = 32, color, showDot = true }: Props) {
-  const resolvedColor = color ?? scoreToColor(current)
-  const chartData = data.map((value, i) => ({ value, i }))
+export function IndicatorSparkline({
+  data,
+  current,
+  width = 120,
+  height = 32,
+  color,
+  showDot = true,
+}: Props) {
+  const resolvedColor = color ?? scoreToColor(current);
+  const chartData = data.map((value, i) => ({ value, i }));
 
   return (
     <LineChart width={width} height={height} data={chartData}>
@@ -102,7 +109,7 @@ export function IndicatorSparkline({ data, current, width = 120, height = 32, co
         />
       )}
     </LineChart>
-  )
+  );
 }
 ```
 

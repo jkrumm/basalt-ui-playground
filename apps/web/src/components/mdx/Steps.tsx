@@ -1,14 +1,14 @@
 interface StepsProps {
-  children: React.ReactNode
+  children: React.ReactNode;
 }
 
 interface StepProps {
-  title: string
-  children: React.ReactNode
+  title: string;
+  children: React.ReactNode;
 }
 
 export function Steps({ children }: StepsProps) {
-  return <ol className="mdx-steps">{children}</ol>
+  return <ol className="mdx-steps">{children}</ol>;
 }
 
 export function Step({ title, children }: StepProps) {
@@ -17,5 +17,5 @@ export function Step({ title, children }: StepProps) {
       <strong className="mdx-step-title">{title}</strong>
       <div className="mdx-step-content">{children}</div>
     </li>
-  )
+  );
 }

@@ -1,16 +1,16 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
-import { getSessionFn } from '../lib/auth.functions'
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { getSessionFn } from "../lib/auth.functions";
 
-export const Route = createFileRoute('/_protected')({
+export const Route = createFileRoute("/_protected")({
   beforeLoad: async ({ location }) => {
-    const session = await getSessionFn()
+    const session = await getSessionFn();
     if (!session) {
       throw redirect({
-        to: '/sign-in',
+        to: "/sign-in",
         search: { redirect: location.pathname },
-      })
+      });
     }
-    return { user: session.user }
+    return { user: session.user };
   },
   component: () => <Outlet />,
-})
+});

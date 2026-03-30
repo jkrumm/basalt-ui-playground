@@ -26,10 +26,10 @@ The modal is mounted once in `__root.tsx` — always in the tree, never duplicat
 ## The Atom
 
 ```typescript filename="apps/web/src/atoms/ui.atoms.ts"
-import { atom } from 'jotai'
+import { atom } from "jotai";
 
 // Session-only — false on every page load, no persistence needed
-export const searchOpenAtom = atom<boolean>(false)
+export const searchOpenAtom = atom<boolean>(false);
 ```
 
 ---
@@ -40,36 +40,40 @@ Both the hotkey listener and the modal live in the root component so they are al
 active regardless of which route is rendered:
 
 ```tsx filename="apps/web/src/routes/__root.tsx"
-import { useHotkey } from '@tanstack/react-hotkeys'
-import { useAtom } from 'jotai'
-import { searchOpenAtom } from '~/atoms'
-import { EVENTS, track } from '~/lib/analytics'
+import { useHotkey } from "@tanstack/react-hotkeys";
+import { useAtom } from "jotai";
+import { searchOpenAtom } from "~/atoms";
+import { EVENTS, track } from "~/lib/analytics";
 
 function RootComponent() {
-  const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom)
+  const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom);
 
   // 'Mod' = Cmd on macOS, Ctrl on Windows/Linux — one binding covers all platforms
-  useHotkey('Mod+K', () => {
-    setSearchOpen(true)
-    track(EVENTS.SEARCH_OPENED, {})
-  }, { preventDefault: true })
+  useHotkey(
+    "Mod+K",
+    () => {
+      setSearchOpen(true);
+      track(EVENTS.SEARCH_OPENED, {});
+    },
+    { preventDefault: true },
+  );
 
   // DOM event escape hatch — opens search from non-React contexts or web components
   useEffect(() => {
     const handler = () => {
-      setSearchOpen(true)
-      track(EVENTS.SEARCH_OPENED, {})
-    }
-    window.addEventListener('open-search', handler)
-    return () => window.removeEventListener('open-search', handler)
-  }, [setSearchOpen])
+      setSearchOpen(true);
+      track(EVENTS.SEARCH_OPENED, {});
+    };
+    window.addEventListener("open-search", handler);
+    return () => window.removeEventListener("open-search", handler);
+  }, [setSearchOpen]);
 
   return (
     <>
       <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       {/* rest of layout */}
     </>
-  )
+  );
 }
 ```
 
@@ -83,22 +87,19 @@ behaviour (focus the address bar in some browsers).
 Any component can open the search palette by writing to `searchOpenAtom` directly:
 
 ```tsx
-import { useSetAtom } from 'jotai'
-import { searchOpenAtom } from '~/atoms'
+import { useSetAtom } from "jotai";
+import { searchOpenAtom } from "~/atoms";
 
 function NavSearchButton() {
   // useSetAtom — write-only, no re-render when searchOpen changes
-  const setSearchOpen = useSetAtom(searchOpenAtom)
+  const setSearchOpen = useSetAtom(searchOpenAtom);
 
   return (
-    <Button
-      onClick={() => setSearchOpen(true)}
-      data-umami-event="nav-search-open"
-    >
+    <Button onClick={() => setSearchOpen(true)} data-umami-event="nav-search-open">
       Search
       <kbd>⌘K</kbd>
     </Button>
-  )
+  );
 }
 ```
 
@@ -112,7 +113,7 @@ not re-render when the modal closes.
 For components outside the Jotai Provider, or for non-React code:
 
 ```ts
-window.dispatchEvent(new Event('open-search'))
+window.dispatchEvent(new Event("open-search"));
 ```
 
 This is a secondary escape hatch — prefer `useSetAtom` in React components.
@@ -121,12 +122,12 @@ This is a secondary escape hatch — prefer `useSetAtom` in React components.
 
 ## Keyboard Reference
 
-| Key | Action | Implemented in |
-|-|-|-|
-| `Cmd+K` / `Ctrl+K` | Open search | `useHotkey` in `__root.tsx` |
-| `Escape` | Close search | Inside `SearchModal` |
-| `↑` / `↓` | Navigate results | Inside `SearchModal` |
-| `Enter` | Open selected result | Inside `SearchModal` |
+| Key                | Action               | Implemented in              |
+| ------------------ | -------------------- | --------------------------- |
+| `Cmd+K` / `Ctrl+K` | Open search          | `useHotkey` in `__root.tsx` |
+| `Escape`           | Close search         | Inside `SearchModal`        |
+| `↑` / `↓`          | Navigate results     | Inside `SearchModal`        |
+| `Enter`            | Open selected result | Inside `SearchModal`        |
 
 ---
 
@@ -137,9 +138,9 @@ no additional payload. Both the hotkey trigger and the custom event trigger fire
 analytics call:
 
 ```ts
-import { EVENTS, track } from '~/lib/analytics'
+import { EVENTS, track } from "~/lib/analytics";
 
-track(EVENTS.SEARCH_OPENED, {})
+track(EVENTS.SEARCH_OPENED, {});
 ```
 
 No `component` property is needed here — `SEARCH_OPENED` unambiguously identifies the

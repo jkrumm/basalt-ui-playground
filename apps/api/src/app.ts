@@ -1,35 +1,67 @@
-import { PatchUserPreferencesSchema, UserPreferencesSchema } from '@cbbi/schemas'
-import { Elysia } from 'elysia'
-import { auth } from './auth'
-import { getPreferences, patchPreferences } from './routes/preferences'
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { Scalar } from "@scalar/hono-api-reference";
+import { PatchUserPreferencesSchema, UserPreferencesSchema } from "@cbbi/schemas";
+import { cors } from "hono/cors";
+import { createMiddleware } from "hono/factory";
+import * as HttpStatusCodes from "stoker/http-status-codes";
+import jsonContent from "stoker/openapi/helpers/json-content";
+import jsonContentRequired from "stoker/openapi/helpers/json-content-required";
+import createErrorSchema from "stoker/openapi/schemas/create-error-schema";
+import { auth } from "./auth";
+import { env } from "./env";
+import { getPreferences, patchPreferences } from "./routes/preferences";
 
-// BetterAuth plugin: mounts auth handler + injects user/session via macro
-const betterAuth = new Elysia({ name: 'better-auth' })
-  .mount(auth.handler)
-  .macro({
-    auth: {
-      async resolve({ status, request: { headers } }: { status: (code: number) => void, request: { headers: Headers } }) {
-        const session = await auth.api.getSession({ headers })
-        if (!session)
-          return status(401)
-        return { user: session.user, session: session.session }
-      },
-    },
+type Variables = { userId: string };
+
+const authMiddleware = createMiddleware<{ Variables: Variables }>(async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) return c.json({ error: "Unauthorized" }, HttpStatusCodes.UNAUTHORIZED);
+  c.set("userId", session.user.id);
+  await next();
+});
+
+// Route definitions
+const getPreferencesRoute = createRoute({
+  method: "get",
+  path: "/api/user/preferences",
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(UserPreferencesSchema, "User preferences"),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(z.object({ error: z.string() }), "Unauthorized"),
+  },
+});
+
+const patchPreferencesRoute = createRoute({
+  method: "patch",
+  path: "/api/user/preferences",
+  request: { body: jsonContentRequired(PatchUserPreferencesSchema, "Preference updates") },
+  responses: {
+    [HttpStatusCodes.OK]: jsonContent(UserPreferencesSchema, "Updated preferences"),
+    [HttpStatusCodes.UNAUTHORIZED]: jsonContent(z.object({ error: z.string() }), "Unauthorized"),
+    [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
+      createErrorSchema(PatchUserPreferencesSchema),
+      "Validation error",
+    ),
+  },
+});
+
+// Chained sub-app so AppType captures all typed routes for hono/client inference
+const userRoutes = new OpenAPIHono<{ Variables: Variables }>()
+  .openapi(getPreferencesRoute, async (c) => {
+    return c.json(await getPreferences(c.get("userId")), HttpStatusCodes.OK);
   })
+  .openapi(patchPreferencesRoute, async (c) => {
+    const body = c.req.valid("json");
+    return c.json(await patchPreferences(c.get("userId"), body), HttpStatusCodes.OK);
+  });
 
-export const app = new Elysia()
-  .use(betterAuth)
-  .group('/api', api =>
-    api
-      .get(
-        '/user/preferences',
-        async ({ user }) => getPreferences(user.id),
-        { auth: true, response: UserPreferencesSchema },
-      )
-      .patch(
-        '/user/preferences',
-        async ({ user, body }) => patchPreferences(user.id, body),
-        { auth: true, body: PatchUserPreferencesSchema, response: UserPreferencesSchema },
-      ))
+const _app = new OpenAPIHono<{ Variables: Variables }>();
+_app.use("/api/*", cors({ origin: env.ALLOWED_ORIGIN, credentials: true }));
+_app.on(["POST", "GET"], "/api/auth/**", (c) => auth.handler(c.req.raw));
+_app.use("/api/user/*", authMiddleware);
+_app.route("/", userRoutes);
+_app.doc("/doc", { openapi: "3.1.0", info: { version: "1.0.0", title: "CBBI API" } });
+_app.get("/scalar", Scalar({ url: "/doc" }));
 
-export type App = typeof app
+export const app = _app;
+// AppType from userRoutes — fully typed sub-app for hono/client inference
+export type AppType = typeof userRoutes;

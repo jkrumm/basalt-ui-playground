@@ -1,5 +1,5 @@
-import type { IndicatorRow } from '../routes/table'
-import { Intent, ProgressBar, Tag } from '@blueprintjs/core'
+import type { IndicatorRow } from "../routes/table";
+import { Intent, ProgressBar, Tag } from "@blueprintjs/core";
 /**
  * Blueprint Table section — imported via React.lazy, never executed on server.
  *
@@ -7,46 +7,43 @@ import { Intent, ProgressBar, Tag } from '@blueprintjs/core'
  * which crashes in a Node SSR environment. The isMounted + React.lazy guard
  * in the parent route ensures this module is never evaluated server-side.
  */
-import { Cell, Column, Table2 } from '@blueprintjs/table'
+import { Cell, Column, Table2 } from "@blueprintjs/table";
 
 function intentOf(v: number | null): Intent {
-  if (v === null)
-    return Intent.NONE
-  if (v < 0.33)
-    return Intent.SUCCESS
-  if (v < 0.66)
-    return Intent.WARNING
-  return Intent.DANGER
+  if (v === null) return Intent.NONE;
+  if (v < 0.33) return Intent.SUCCESS;
+  if (v < 0.66) return Intent.WARNING;
+  return Intent.DANGER;
 }
 
 export function BlueprintTableSection({ data }: { data: IndicatorRow[] }) {
   const nameRenderer = (rowIndex: number) => (
-    <Cell><strong>{data[rowIndex]?.name}</strong></Cell>
-  )
+    <Cell>
+      <strong>{data[rowIndex]?.name}</strong>
+    </Cell>
+  );
 
   const descRenderer = (rowIndex: number) => (
-    <Cell style={{ fontSize: 12, color: '#8f99a8' }}>
-      {data[rowIndex]?.desc}
-    </Cell>
-  )
+    <Cell style={{ fontSize: 12, color: "#8f99a8" }}>{data[rowIndex]?.desc}</Cell>
+  );
 
   const valueRenderer = (rowIndex: number) => {
-    const v = data[rowIndex]?.value ?? null
+    const v = data[rowIndex]?.value ?? null;
     return (
       <Cell>
         <Tag minimal intent={intentOf(v)}>
-          {v !== null ? `${(v * 100).toFixed(1)}%` : '—'}
+          {v !== null ? `${(v * 100).toFixed(1)}%` : "—"}
         </Tag>
       </Cell>
-    )
-  }
+    );
+  };
 
   const zoneRenderer = (rowIndex: number) => (
     <Cell style={{ fontSize: 13 }}>{data[rowIndex]?.zone}</Cell>
-  )
+  );
 
   const scoreRenderer = (rowIndex: number) => {
-    const v = data[rowIndex]?.value ?? null
+    const v = data[rowIndex]?.value ?? null;
     return (
       <Cell>
         <ProgressBar
@@ -57,8 +54,8 @@ export function BlueprintTableSection({ data }: { data: IndicatorRow[] }) {
           style={{ marginTop: 6 }}
         />
       </Cell>
-    )
-  }
+    );
+  };
 
   return (
     <Table2
@@ -75,5 +72,5 @@ export function BlueprintTableSection({ data }: { data: IndicatorRow[] }) {
       <Column name="Zone" cellRenderer={zoneRenderer} />
       <Column name="Score" cellRenderer={scoreRenderer} />
     </Table2>
-  )
+  );
 }

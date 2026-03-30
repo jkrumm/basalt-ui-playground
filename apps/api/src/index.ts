@@ -1,6 +1,11 @@
-import { app } from './app'
+import { serve } from "@hono/node-server";
+import { app } from "./app";
+import { env } from "./env";
 
-app.listen(3001, () => {
-  // eslint-disable-next-line no-console
-  console.log('API server running at http://localhost:3001')
-})
+const server = serve({ fetch: app.fetch, port: env.PORT }, () => {
+  console.log(`API running on http://localhost:${env.PORT}`);
+});
+
+const shutdown = () => server.close(() => process.exit(0));
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

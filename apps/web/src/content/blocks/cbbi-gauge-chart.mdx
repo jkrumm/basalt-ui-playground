@@ -10,12 +10,12 @@ component: CBBIChart
 
 The CBBI Gauge Chart renders the Bitcoin Cycle Bull-Bear Index composite score as a radial arc gauge. The arc sweeps from the left (score 0 — deep accumulation) to the right (score 100 — peak euphoria), divided into four color-coded risk zones:
 
-| Zone | Range | Color |
-|-|-|-|
-| Accumulation | 0–25 | Green |
-| Growth | 26–50 | Yellow-green |
-| Warning | 51–75 | Orange |
-| Euphoria | 76–100 | Red |
+| Zone         | Range  | Color        |
+| ------------ | ------ | ------------ |
+| Accumulation | 0–25   | Green        |
+| Growth       | 26–50  | Yellow-green |
+| Warning      | 51–75  | Orange       |
+| Euphoria     | 76–100 | Red          |
 
 A needle pointer and a large centered label render the live score. The gauge is built with [Recharts](https://recharts.org) `RadialBarChart` and is fully responsive via a `ResponsiveContainer`.
 
@@ -24,16 +24,16 @@ A needle pointer and a large centered label render the live score. The gauge is 
 Import the component and pass the current score. The score is typically fetched from the CBBI API and stored in a parent component or route loader.
 
 ```tsx filename="CBBIGauge.tsx"
-import { CBBIChart } from '@/components/charts/CBBIChart'
+import { CBBIChart } from "@/components/charts/CBBIChart";
 
 export function DashboardWidget() {
-  const score = 72 // from API or loader data
+  const score = 72; // from API or loader data
 
   return (
-    <div style={{ width: '100%', maxWidth: 480 }}>
+    <div style={{ width: "100%", maxWidth: 480 }}>
       <CBBIChart score={score} />
     </div>
-  )
+  );
 }
 ```
 
@@ -41,12 +41,12 @@ The component is self-sizing — wrap it in any container and it will fill the a
 
 ## Props
 
-| Prop | Type | Required | Default | Description |
-|-|-|-|-|-|
-| `score` | `number` | Yes | — | CBBI composite score (0–100) |
-| `height` | `number` | No | `280` | Canvas height in pixels |
-| `showLabel` | `boolean` | No | `true` | Show the numeric score label in the center |
-| `animated` | `boolean` | No | `true` | Animate the needle on initial render |
+| Prop        | Type      | Required | Default | Description                                |
+| ----------- | --------- | -------- | ------- | ------------------------------------------ |
+| `score`     | `number`  | Yes      | —       | CBBI composite score (0–100)               |
+| `height`    | `number`  | No       | `280`   | Canvas height in pixels                    |
+| `showLabel` | `boolean` | No       | `true`  | Show the numeric score label in the center |
+| `animated`  | `boolean` | No       | `true`  | Animate the needle on initial render       |
 
 The `score` prop is clamped internally to the [0, 100] range — passing values outside this range will not cause errors.
 
@@ -58,11 +58,11 @@ The zone boundaries are defined in `src/lib/gauge-zones.ts`. Edit the exported `
 
 ```tsx filename="gauge-zones.ts"
 export const GAUGE_ZONES = [
-  { from: 0,  to: 20, color: '#238551' }, // accumulation
-  { from: 20, to: 50, color: '#8EB125' }, // growth
-  { from: 50, to: 80, color: '#C87619' }, // warning
-  { from: 80, to: 100, color: '#CD4246' }, // euphoria
-]
+  { from: 0, to: 20, color: "#238551" }, // accumulation
+  { from: 20, to: 50, color: "#8EB125" }, // growth
+  { from: 50, to: 80, color: "#C87619" }, // warning
+  { from: 80, to: 100, color: "#CD4246" }, // euphoria
+];
 ```
 
 ### Disabling animation

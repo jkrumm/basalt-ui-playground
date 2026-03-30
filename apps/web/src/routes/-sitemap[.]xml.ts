@@ -11,4 +11,3 @@
 //
 // This file is intentionally empty — no TanStack route export needed.
 // TanStack Start v1.166.11 does not have createServerFileRoute.
-export {}

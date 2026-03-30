@@ -1,2 +1,2 @@
-export * from './preferences.atoms'
-export * from './ui.atoms'
+export * from "./preferences.atoms";
+export * from "./ui.atoms";

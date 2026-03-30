@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query'
+import { QueryClient } from "@tanstack/react-query";
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -12,7 +12,7 @@ export const queryClient = new QueryClient({
       retry: 0,
     },
   },
-})
+});
 
 // Usage in route loaders:
 // loader: () => queryClient.ensureQueryData(userPreferencesQuery())

@@ -20,29 +20,26 @@ if you call `atom()` or `atomWithStorage()` outside that directory.
 ## Atom Definitions
 
 ```typescript filename="apps/web/src/atoms/ui.atoms.ts"
-import type { UserPreferences } from '@cbbi/schemas'
-import { atom } from 'jotai'
-import { atomWithStorage } from 'jotai/utils'
+import type { UserPreferences } from "@cbbi/schemas";
+import { atom } from "jotai";
+import { atomWithStorage } from "jotai/utils";
 
 // Session-only — cleared when the browser tab closes
-export const searchOpenAtom = atom<boolean>(false)
+export const searchOpenAtom = atom<boolean>(false);
 
 // Persistent — survives page refresh via localStorage
-export const viewModeAtom = atomWithStorage<UserPreferences['viewMode']>(
-  'cbbi-view-mode',  // localStorage key — must be unique across all atoms
-  'grid',            // default value on first visit
-)
+export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>(
+  "cbbi-view-mode", // localStorage key — must be unique across all atoms
+  "grid", // default value on first visit
+);
 
-export const sortByAtom = atomWithStorage<UserPreferences['sortBy']>(
-  'cbbi-sort-by',
-  'default',
-)
+export const sortByAtom = atomWithStorage<UserPreferences["sortBy"]>("cbbi-sort-by", "default");
 ```
 
 ```typescript filename="apps/web/src/atoms/index.ts"
 // Barrel re-export — always import from '~/atoms', not from individual files
-export * from './preferences.atoms'
-export * from './ui.atoms'
+export * from "./preferences.atoms";
+export * from "./ui.atoms";
 ```
 
 ---
@@ -52,29 +49,29 @@ export * from './ui.atoms'
 Three hooks cover all access patterns:
 
 ```tsx
-import { useAtom, useAtomValue, useSetAtom } from 'jotai'
-import { searchOpenAtom, viewModeAtom } from '~/atoms'
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { searchOpenAtom, viewModeAtom } from "~/atoms";
 
 // useSetAtom — write-only, no re-render when the atom value changes
 function NavSearchButton() {
-  const setSearchOpen = useSetAtom(searchOpenAtom)
-  return <Button onClick={() => setSearchOpen(true)}>Search</Button>
+  const setSearchOpen = useSetAtom(searchOpenAtom);
+  return <Button onClick={() => setSearchOpen(true)}>Search</Button>;
 }
 
 // useAtom — read + write, re-renders on every change
 function ViewToggle() {
-  const [viewMode, setViewMode] = useAtom(viewModeAtom)
+  const [viewMode, setViewMode] = useAtom(viewModeAtom);
   return (
-    <Button onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}>
-      {viewMode === 'grid' ? 'Table view' : 'Grid view'}
+    <Button onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}>
+      {viewMode === "grid" ? "Table view" : "Grid view"}
     </Button>
-  )
+  );
 }
 
 // useAtomValue — read-only, re-renders on every change
 function ViewLabel() {
-  const viewMode = useAtomValue(viewModeAtom)
-  return <span>Showing as {viewMode}</span>
+  const viewMode = useAtomValue(viewModeAtom);
+  return <span>Showing as {viewMode}</span>;
 }
 ```
 
@@ -91,16 +88,16 @@ a successful save), not on every render.
 
 ```tsx filename="apps/web/src/routes/_protected/settings.tsx"
 function SettingsForm() {
-  const { data: serverPrefs } = useSuspenseQuery(userPreferencesQuery())
-  const setViewMode = useSetAtom(viewModeAtom)
-  const setSortBy = useSetAtom(sortByAtom)
+  const { data: serverPrefs } = useSuspenseQuery(userPreferencesQuery());
+  const setViewMode = useSetAtom(viewModeAtom);
+  const setSortBy = useSetAtom(sortByAtom);
 
   // Server-authoritative override — local state converges with server on settings visit.
   // useSetAtom references are stable so this won't re-run unless serverPrefs actually changes.
   useEffect(() => {
-    setViewMode(serverPrefs.viewMode)
-    setSortBy(serverPrefs.sortBy)
-  }, [serverPrefs, setViewMode, setSortBy])
+    setViewMode(serverPrefs.viewMode);
+    setSortBy(serverPrefs.sortBy);
+  }, [serverPrefs, setViewMode, setSortBy]);
 }
 ```
 
@@ -131,9 +128,9 @@ Three rules enforce the atom conventions across the whole codebase:
 ```
 
 <Admonition type="warning" title="atomFamily is banned">
-  `atomFamily` from `jotai/utils` causes an infinite re-render loop when React Compiler
-  is active. Use static atoms with typed parameters instead. If you need per-key atom
-  instances, use a `Map` and manage lifecycle manually.
+  `atomFamily` from `jotai/utils` causes an infinite re-render loop when React Compiler is active.
+  Use static atoms with typed parameters instead. If you need per-key atom instances, use a `Map`
+  and manage lifecycle manually.
 </Admonition>
 
 ---
@@ -144,11 +141,13 @@ In development, the Jotai DevTools panel shows all active atoms and their curren
 in real time. It is mounted unconditionally in `__root.tsx` but guarded to DEV only:
 
 ```tsx filename="apps/web/src/routes/__root.tsx"
-import { DevTools } from 'jotai-devtools'
-import 'jotai-devtools/styles.css'
+import { DevTools } from "jotai-devtools";
+import "jotai-devtools/styles.css";
 
 // Inside the Jotai Provider, DEV only:
-{import.meta.env.DEV && <DevTools />}
+{
+  import.meta.env.DEV && <DevTools />;
+}
 ```
 
 The DevTools panel appears as a floating button in the bottom-left corner of the screen

@@ -1,5 +1,5 @@
 interface BPMNStubProps {
-  src: string
+  src: string;
 }
 
 export function BPMNStub({ src }: BPMNStubProps) {
@@ -10,5 +10,5 @@ export function BPMNStub({ src }: BPMNStubProps) {
         {src}
       </span>
     </div>
-  )
+  );
 }

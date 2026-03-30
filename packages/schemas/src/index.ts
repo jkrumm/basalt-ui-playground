@@ -1,2 +1,2 @@
-export * from './auth'
-export * from './user-preferences'
+export * from "./auth";
+export * from "./user-preferences";

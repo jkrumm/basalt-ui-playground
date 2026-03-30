@@ -1,14 +1,14 @@
-import type { MDXComponents } from 'mdx/types'
-import { Code, H1, H2, H3, H4, H5, H6 } from '@blueprintjs/core'
-import { Admonition } from './Admonition'
-import { CodeBlock } from './CodeBlock'
-import { MDXTab, MDXTabs } from './MDXTabsWrapper'
-import { MermaidDiagram } from './MermaidDiagram'
-import { PackageManagerTabs } from './PackageManagerTabs'
-import { Step, Steps } from './Steps'
-import { BPMNStub } from './stubs/BPMNStub'
-import { ExcalidrawStub } from './stubs/ExcalidrawStub'
-import { PlantUMLStub } from './stubs/PlantUMLStub'
+import type { MDXComponents } from "mdx/types";
+import { Code, H1, H2, H3, H4, H5, H6 } from "@blueprintjs/core";
+import { Admonition } from "./Admonition";
+import { CodeBlock } from "./CodeBlock";
+import { MDXTab, MDXTabs } from "./MDXTabsWrapper";
+import { MermaidDiagram } from "./MermaidDiagram";
+import { PackageManagerTabs } from "./PackageManagerTabs";
+import { Step, Steps } from "./Steps";
+import { BPMNStub } from "./stubs/BPMNStub";
+import { ExcalidrawStub } from "./stubs/ExcalidrawStub";
+import { PlantUMLStub } from "./stubs/PlantUMLStub";
 
 export const mdxComponents: MDXComponents = {
   // ── HTML element overrides ──────────────────────────────────────────────
@@ -26,9 +26,7 @@ export const mdxComponents: MDXComponents = {
   // Shiki has already transformed the content; we just wrap with our shell.
   // The 'code' override above fires for inline code; 'pre' fires for blocks.
   pre: ({ children, ...props }) => (
-    <CodeBlock {...(props as React.HTMLAttributes<HTMLPreElement>)}>
-      {children}
-    </CodeBlock>
+    <CodeBlock {...(props as React.HTMLAttributes<HTMLPreElement>)}>{children}</CodeBlock>
   ),
 
   // ── Named MDX components ────────────────────────────────────────────────
@@ -43,4 +41,4 @@ export const mdxComponents: MDXComponents = {
   Excalidraw: ExcalidrawStub,
   PlantUML: PlantUMLStub,
   BPMN: BPMNStub,
-}
+};
