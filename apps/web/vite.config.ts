@@ -1,23 +1,10 @@
-import mdx from "@mdx-js/rollup";
 import babel from "@rolldown/plugin-babel";
 import { reactCompilerPreset } from "@vitejs/plugin-react";
 import viteReact from "@vitejs/plugin-react";
-import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeSlug from "rehype-slug";
-import remarkGfm from "remark-gfm";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 import contentCollections from "@content-collections/vite";
 import { defineConfig } from "vite";
-import { blueprintDarkTheme } from "./src/lib/mdx-theme.ts";
-import rehypeShiki from "@shikijs/rehype";
-import {
-  transformerNotationHighlight,
-  transformerNotationDiff,
-  transformerNotationFocus,
-  transformerNotationErrorLevel,
-  transformerMetaHighlight,
-} from "@shikijs/transformers";
 
 export default defineConfig({
   server: {
@@ -33,45 +20,10 @@ export default defineConfig({
     noExternal: ["@tanstack/router-core", "@tanstack/react-router"],
   },
   plugins: [
-    // 1. content-collections — generates allPosts / allDocs / allGuides / allBlocks
-    //    (frontmatter validation, slug, readingTime, headings) before Vite processes MDX.
+    // 1. content-collections — generates allPosts / allDocs / allGuides / allBlocks.
+    //    Handles the full MDX pipeline: frontmatter validation, compileMDX (mdx-bundler),
+    //    Shiki code highlighting, heading extraction, reading time.
     contentCollections(),
-    // 2. MDX — compiles MDX files to React components (ES modules).
-    //    Frontmatter and headings are now owned by content-collections, so only
-    //    remark-gfm and the rehype rendering plugins remain here.
-    {
-      enforce: "pre",
-      ...mdx({
-        remarkPlugins: [remarkGfm],
-        rehypePlugins: [
-          rehypeSlug,
-          [
-            rehypeAutolinkHeadings,
-            {
-              behavior: "append",
-              properties: { className: ["heading-anchor"], ariaLabel: "Link to section" },
-            },
-          ],
-          [
-            rehypeShiki,
-            {
-              theme: blueprintDarkTheme,
-              transformers: [
-                transformerNotationHighlight(),
-                transformerNotationDiff(),
-                transformerNotationFocus(),
-                transformerNotationErrorLevel(),
-                transformerMetaHighlight(),
-              ],
-              parseMetaString(meta: string) {
-                const match = /filename="([^"]+)"/.exec(meta);
-                if (match?.[1]) return { "data-filename": match[1] };
-              },
-            },
-          ],
-        ],
-      }),
-    },
     tsConfigPaths(),
     tanstackStart({
       // Content pages suitable for SSG prerendering.
@@ -88,11 +40,11 @@ export default defineConfig({
           path === "/search",
       },
     }),
-    // 3. React plugin must declare MDX as JSX-containing for HMR
-    viteReact({ include: /\.(jsx|js|mdx|md|tsx|ts)$/ }),
-    // 4. React Compiler processes MDX-compiled output the same as .tsx
+    // 2. React plugin for .tsx/.ts/.jsx/.js files
+    viteReact(),
+    // 3. React Compiler via Babel — processes .tsx components for auto-memoization
     babel({ presets: [reactCompilerPreset()] }),
-    // 5. llms.txt dev middleware — serves /llms.txt in development
+    // 4. llms.txt dev middleware — serves /llms.txt in development
     {
       name: "llms-txt-dev",
       configureServer(server) {
@@ -108,7 +60,7 @@ export default defineConfig({
         });
       },
     },
-    // 6. Sitemap dev middleware — serves /sitemap.xml in development
+    // 5. Sitemap dev middleware — serves /sitemap.xml in development
     {
       name: "sitemap-dev",
       configureServer(server) {

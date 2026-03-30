@@ -1,16 +1,16 @@
 /**
  * Content helpers — typed API over the content-collections generated data.
  *
- * All frontmatter validation, slug computation, readingTime, and heading
- * extraction happen at build time in content-collections.ts. This module
+ * All frontmatter validation, slug computation, readingTime, heading extraction,
+ * and MDX compilation happen at build time in content-collections.ts. This module
  * provides:
  *   - Re-exported collection types (Post, Doc, Guide, Block, HeadingItem)
- *   - Import.meta.glob map for MDX React components (rendering only)
  *   - Helper functions for sidebar navigation, related posts, search index, sitemap
+ *
+ * Rendering: use <MDXContent code={doc.body} components={mdxComponents} />
+ * from @content-collections/mdx/react — no import.meta.glob maps needed.
  */
 
-import type { MDXComponents } from "mdx/types";
-import type * as React from "react";
 import { allBlocks, allDocs, allGuides, allPosts } from "content-collections";
 
 // ── Re-exported collection types ─────────────────────────────────────────────
@@ -29,42 +29,6 @@ export type DocsFrontmatter = Doc;
 export type GuideFrontmatter = Guide;
 export type BlockFrontmatter = Block;
 export type BlockItem = Block;
-
-// ── MDX component imports ────────────────────────────────────────────────────
-// Content-collections handles data; @mdx-js/rollup handles MDX → React components.
-// These maps are keyed by the same relative path pattern the Vite plugin produces.
-
-type MdxModule = { default: React.ComponentType<{ components?: MDXComponents }> };
-
-const _blogComponents = import.meta.glob<MdxModule>("../content/blog/*.mdx", { eager: true });
-const _docsComponents = import.meta.glob<MdxModule>("../content/docs/**/*.mdx", { eager: true });
-const _guidesComponents = import.meta.glob<MdxModule>("../content/guides/*.mdx", { eager: true });
-const _blocksComponents = import.meta.glob<MdxModule>("../content/blocks/*.mdx", { eager: true });
-
-function findComponent(
-  map: Record<string, MdxModule>,
-  prefix: string,
-  slug: string,
-): React.ComponentType<{ components?: MDXComponents }> | undefined {
-  const key = `${prefix}${slug}.mdx`;
-  return map[key]?.default;
-}
-
-export function getBlogComponent(slug: string) {
-  return findComponent(_blogComponents, "../content/blog/", slug);
-}
-
-export function getDocsComponent(slug: string) {
-  return findComponent(_docsComponents, "../content/docs/", slug);
-}
-
-export function getGuidesComponent(slug: string) {
-  return findComponent(_guidesComponents, "../content/guides/", slug);
-}
-
-export function getBlocksComponent(slug: string) {
-  return findComponent(_blocksComponents, "../content/blocks/", slug);
-}
 
 // ── INDEX_SUFFIX_RE ──────────────────────────────────────────────────────────
 

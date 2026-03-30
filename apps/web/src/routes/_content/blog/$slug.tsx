@@ -1,17 +1,10 @@
 import type { Post, PrevNext } from "../../../lib/content";
-import { NonIdealState } from "@blueprintjs/core";
-import { IconAlertCircle } from "@tabler/icons-react";
+import { MDXContent } from "@content-collections/mdx/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { BlogLayout } from "../../../components/content/BlogLayout";
 import { RelatedPosts } from "../../../components/content/RelatedPosts";
 import { mdxComponents } from "../../../components/mdx/MDXComponents";
-import {
-  getBlogComponent,
-  getPrevNextPosts,
-  getRelatedPosts,
-  getSeriesPosts,
-} from "../../../lib/content";
+import { getPrevNextPosts, getRelatedPosts, getSeriesPosts } from "../../../lib/content";
 import { allPosts } from "content-collections";
 
 const BASE_URL = "https://cbbi.jkrumm.com";
@@ -89,7 +82,6 @@ export const Route = createFileRoute("/_content/blog/$slug")({
 
 function BlogPostPage() {
   const { post, related, seriesPosts, prevNext } = Route.useLoaderData();
-  const MdxContent = useMemo(() => getBlogComponent(post.slug), [post.slug]);
 
   return (
     <BlogLayout
@@ -100,11 +92,7 @@ function BlogPostPage() {
       currentSlug={post.slug}
       prevNext={prevNext}
     >
-      {MdxContent ? (
-        <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
-      ) : (
-        <NonIdealState icon={<IconAlertCircle size={40} />} title="Failed to load post" />
-      )}
+      <MDXContent code={post.body} components={mdxComponents} />
       {related.length > 0 && <RelatedPosts posts={related} />}
     </BlogLayout>
   );

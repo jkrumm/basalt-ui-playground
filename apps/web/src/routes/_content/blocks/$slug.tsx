@@ -1,11 +1,8 @@
 import type { Block } from "../../../lib/content";
-import { NonIdealState } from "@blueprintjs/core";
-import { IconAlertCircle } from "@tabler/icons-react";
+import { MDXContent } from "@content-collections/mdx/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { BlockLayout } from "../../../components/content/BlockLayout";
 import { mdxComponents } from "../../../components/mdx/MDXComponents";
-import { getBlocksComponent } from "../../../lib/content";
 import { allBlocks } from "content-collections";
 
 const BASE_URL = "https://cbbi.jkrumm.com";
@@ -43,15 +40,10 @@ export const Route = createFileRoute("/_content/blocks/$slug")({
 
 function BlockPage() {
   const { block } = Route.useLoaderData();
-  const MdxContent = useMemo(() => getBlocksComponent(block.slug), [block.slug]);
 
   return (
     <BlockLayout frontmatter={block} headings={block.headings}>
-      {MdxContent ? (
-        <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
-      ) : (
-        <NonIdealState icon={<IconAlertCircle size={40} />} title="Failed to load block" />
-      )}
+      <MDXContent code={block.body} components={mdxComponents} />
     </BlockLayout>
   );
 }

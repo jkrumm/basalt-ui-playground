@@ -1,11 +1,9 @@
 import type { Guide } from "../../../lib/content";
-import { NonIdealState } from "@blueprintjs/core";
-import { IconAlertCircle } from "@tabler/icons-react";
+import { MDXContent } from "@content-collections/mdx/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { GuideLayout } from "../../../components/content/GuideLayout";
 import { mdxComponents } from "../../../components/mdx/MDXComponents";
-import { getGuidesComponent, getPrevNextGuides } from "../../../lib/content";
+import { getPrevNextGuides } from "../../../lib/content";
 import { allGuides } from "content-collections";
 
 const BASE_URL = "https://cbbi.jkrumm.com";
@@ -70,7 +68,6 @@ export const Route = createFileRoute("/_content/guides/$slug")({
 
 function GuidePage() {
   const { guide, prevNext } = Route.useLoaderData();
-  const MdxContent = useMemo(() => getGuidesComponent(guide.slug), [guide.slug]);
 
   return (
     <GuideLayout
@@ -79,11 +76,7 @@ function GuidePage() {
       headings={guide.headings}
       prevNext={prevNext}
     >
-      {MdxContent ? (
-        <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
-      ) : (
-        <NonIdealState icon={<IconAlertCircle size={40} />} title="Failed to load guide" />
-      )}
+      <MDXContent code={guide.body} components={mdxComponents} />
     </GuideLayout>
   );
 }

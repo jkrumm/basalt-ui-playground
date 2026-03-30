@@ -1,28 +1,35 @@
 /**
  * Content Collections — single source of truth for all MDX content.
  *
- * Replaces the manual import.meta.glob + defineCollection + remark-frontmatter pipeline.
- * All four content types are defined here with Zod schemas and typed transforms.
+ * Handles the full MDX pipeline in one place:
+ *   - Frontmatter parsing and Zod validation at build time
+ *   - MDX compilation to serialized code string via compileMDX (mdx-bundler)
+ *   - Code syntax highlighting via Shiki (pre-initialized, reused across files)
+ *   - Heading extraction with github-slugger (same as rehype-slug → IDs match)
+ *   - Reading time and slug computation
  *
- * What this layer does:
- *   - Parses and validates frontmatter with Zod at build time
- *   - Computes slug, readingTime, and headings per document
- *   - Filters draft documents (excluded from allPosts etc.)
- *
- * What it does NOT do:
- *   - Compile MDX to React components — @mdx-js/rollup handles that via Vite,
- *     keeping efficient ES-module bundling and React Compiler compatibility.
- *
- * Usage in routes / content.ts:
- *   import { allPosts, allDocs, allGuides, allBlocks } from "content-collections";
+ * Rendering uses <MDXContent code={doc.body} components={...} /> from
+ * @content-collections/mdx/react — no import.meta.glob maps needed.
  */
 
 import { defineCollection, defineConfig } from "@content-collections/core";
+import { type Options as MdxOptions, compileMDX } from "@content-collections/mdx";
+import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import rehypeShiki from "@shikijs/rehype";
+import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
+import {
+  transformerNotationDiff,
+  transformerNotationErrorLevel,
+  transformerNotationFocus,
+  transformerNotationHighlight,
+  transformerMetaHighlight,
+} from "@shikijs/transformers";
 import Slugger from "github-slugger";
 import { z } from "zod";
+import { blueprintDarkTheme } from "./src/lib/mdx-theme.ts";
 
 // ── Heading extraction ───────────────────────────────────────────────────────
-// Mirrors what rehype-slug does: parse markdown headings, slug the plain text.
 // Uses github-slugger (same lib as rehype-slug) so TOC IDs match rendered HTML IDs.
 
 type HeadingItem = {
@@ -73,6 +80,39 @@ function computeReadingTime(content: string): string {
   return `${Math.max(1, Math.round(words / 200))} min read`;
 }
 
+// ── Shared rehype/remark plugin config ────────────────────────────────────────
+// Defined once, reused across all four compileMDX calls.
+
+const shikiOptions = {
+  theme: blueprintDarkTheme,
+  transformers: [
+    transformerNotationHighlight(),
+    transformerNotationDiff(),
+    transformerNotationFocus(),
+    transformerNotationErrorLevel(),
+    transformerMetaHighlight(),
+  ],
+  parseMetaString(meta: string) {
+    const match = /filename="([^"]+)"/.exec(meta);
+    if (match?.[1]) return { "data-filename": match[1] };
+  },
+};
+
+const mdxOptions: MdxOptions = {
+  remarkPlugins: [remarkGfm],
+  rehypePlugins: [
+    rehypeSlug,
+    [
+      rehypeAutolinkHeadings,
+      {
+        behavior: "append",
+        properties: { className: ["heading-anchor"], ariaLabel: "Link to section" },
+      },
+    ],
+    [rehypeShiki, shikiOptions],
+  ],
+};
+
 // ── Shared base schema ───────────────────────────────────────────────────────
 
 const base = {
@@ -103,11 +143,13 @@ const posts = defineCollection({
     series: z.string().optional(),
     seriesOrder: z.number().optional(),
   }),
-  transform: (doc) => {
+  transform: async (doc, context) => {
     const { content, _meta, ...frontmatter } = doc;
+    const body = await compileMDX(context, doc, mdxOptions);
     return {
       ...frontmatter,
       slug: _meta.path,
+      body,
       readingTime: computeReadingTime(content),
       headings: extractHeadings(content),
     };
@@ -127,11 +169,13 @@ const docs = defineCollection({
     section: z.string().optional(),
     order: z.number().optional(),
   }),
-  transform: (doc) => {
+  transform: async (doc, context) => {
     const { content, _meta, ...frontmatter } = doc;
+    const body = await compileMDX(context, doc, mdxOptions);
     return {
       ...frontmatter,
       slug: _meta.path,
+      body,
       headings: extractHeadings(content),
     };
   },
@@ -157,11 +201,13 @@ const guides = defineCollection({
     author: z.string().optional(),
     ogImage: z.string().optional(),
   }),
-  transform: (doc) => {
+  transform: async (doc, context) => {
     const { content, _meta, ...frontmatter } = doc;
+    const body = await compileMDX(context, doc, mdxOptions);
     return {
       ...frontmatter,
       slug: _meta.path,
+      body,
       readingTime: computeReadingTime(content),
       headings: extractHeadings(content),
     };
@@ -184,11 +230,13 @@ const blocks = defineCollection({
     previewUrl: z.string().optional(),
     dependencies: z.array(z.string()).optional(),
   }),
-  transform: (doc) => {
+  transform: async (doc, context) => {
     const { content, _meta, ...frontmatter } = doc;
+    const body = await compileMDX(context, doc, mdxOptions);
     return {
       ...frontmatter,
       slug: _meta.path,
+      body,
       headings: extractHeadings(content),
     };
   },

@@ -1,10 +1,8 @@
-import { NonIdealState } from "@blueprintjs/core";
-import { IconAlertCircle } from "@tabler/icons-react";
+import { MDXContent } from "@content-collections/mdx/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { DocsLayout } from "../../../components/content/DocsLayout";
 import { mdxComponents } from "../../../components/mdx/MDXComponents";
-import { getDocsComponent, getDocsSidebar } from "../../../lib/content";
+import { getDocsSidebar } from "../../../lib/content";
 import { allDocs } from "content-collections";
 
 export const Route = createFileRoute("/_content/docs/")({
@@ -27,16 +25,11 @@ export const Route = createFileRoute("/_content/docs/")({
 });
 
 function DocsIndexPage() {
-  const { sections } = Route.useLoaderData();
-  const MdxContent = useMemo(() => getDocsComponent("index"), []);
+  const { doc, sections } = Route.useLoaderData();
 
   return (
-    <DocsLayout sections={sections}>
-      {MdxContent ? (
-        <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
-      ) : (
-        <NonIdealState icon={<IconAlertCircle size={40} />} title="Page not found" />
-      )}
+    <DocsLayout sections={sections} headings={doc.headings}>
+      <MDXContent code={doc.body} components={mdxComponents} />
     </DocsLayout>
   );
 }
