@@ -1,418 +1,269 @@
-import type { Static } from '@sinclair/typebox'
-import type { ContentModule, ContentType, HeadingItem, SearchDocument, SitemapEntry } from './collection'
-import { Type } from '@sinclair/typebox'
-import { defineCollection } from './collection'
+/**
+ * Content helpers — typed API over the content-collections generated data.
+ *
+ * All frontmatter validation, slug computation, readingTime, and heading
+ * extraction happen at build time in content-collections.ts. This module
+ * provides:
+ *   - Re-exported collection types (Post, Doc, Guide, Block, HeadingItem)
+ *   - Import.meta.glob map for MDX React components (rendering only)
+ *   - Helper functions for sidebar navigation, related posts, search index, sitemap
+ */
 
-export type { ContentType, HeadingItem, SearchDocument, SitemapEntry }
-export { defineCollection }
+import type { MDXComponents } from "mdx/types";
+import type * as React from "react";
+import { allBlocks, allDocs, allGuides, allPosts } from "content-collections";
 
-export const INDEX_SUFFIX_RE = /\/index$/
+// ── Re-exported collection types ─────────────────────────────────────────────
 
-// ---------------------------------------------------------------------------
-// TypeBox schemas — runtime + compile-time validation
-// ---------------------------------------------------------------------------
+export type Post = (typeof allPosts)[number];
+export type Doc = (typeof allDocs)[number];
+export type Guide = (typeof allGuides)[number];
+export type Block = (typeof allBlocks)[number];
 
-// Shared base — present on every content type.
-// noindex: suppress search indexing without hiding the page (useful for drafts-in-progress,
-// preview links, or stub pages that are live but not ready for discovery).
-export const BaseContentSchema = Type.Object({
-  title: Type.String(),
-  draft: Type.Optional(Type.Boolean()),
-  noindex: Type.Optional(Type.Boolean()),
-})
+/** Heading item shape — extracted at build time by content-collections. */
+export type HeadingItem = Post["headings"][number];
 
-export const BlogFrontmatterSchema = Type.Composite([
-  BaseContentSchema,
-  Type.Object({
-    description: Type.String(),
-    publishedAt: Type.String(),
-    updatedAt: Type.Optional(Type.String()),
-    tags: Type.Array(Type.String()),
-    author: Type.String(),
-    // image: general in-content image (hero, social share fallback)
-    // ogImage: explicit OG/twitter override — 1200×630px, takes precedence over image
-    image: Type.Optional(Type.String()),
-    ogImage: Type.Optional(Type.String()),
-    // canonicalUrl: override generated canonical — use when cross-posting to dev.to / Medium
-    canonicalUrl: Type.Optional(Type.String()),
-    // excerpt: short listing blurb, separate from description (meta tag). Falls back to description.
-    excerpt: Type.Optional(Type.String()),
-    // authorUrl: profile URL for article:author OG meta and JSON-LD author.url
-    authorUrl: Type.Optional(Type.String()),
-    series: Type.Optional(Type.String()),
-    seriesOrder: Type.Optional(Type.Number()),
-    // Injected at build time by the remarkReadingTime remark plugin.
-    readingTime: Type.Optional(Type.String()),
-  }),
-])
+// Backward-compat aliases (layouts / routes import these by their old names)
+export type BlogFrontmatter = Post;
+export type DocsFrontmatter = Doc;
+export type GuideFrontmatter = Guide;
+export type BlockFrontmatter = Block;
+export type BlockItem = Block;
 
-// Docs: description is intentionally optional — many reference/stub pages have no natural summary.
-export const DocsFrontmatterSchema = Type.Composite([
-  BaseContentSchema,
-  Type.Object({
-    description: Type.Optional(Type.String()),
-    order: Type.Optional(Type.Number()),
-    section: Type.Optional(Type.String()),
-  }),
-])
+// ── MDX component imports ────────────────────────────────────────────────────
+// Content-collections handles data; @mdx-js/rollup handles MDX → React components.
+// These maps are keyed by the same relative path pattern the Vite plugin produces.
 
-export const GuideFrontmatterSchema = Type.Composite([
-  BaseContentSchema,
-  Type.Object({
-    description: Type.String(),
-    publishedAt: Type.String(),
-    updatedAt: Type.Optional(Type.String()),
-    category: Type.String(),
-    difficulty: Type.Union([
-      Type.Literal('beginner'),
-      Type.Literal('intermediate'),
-      Type.Literal('advanced'),
-    ]),
-    estimatedTime: Type.Optional(Type.String()),
-    tags: Type.Array(Type.String()),
-    prerequisites: Type.Optional(Type.Array(Type.String())),
-    // author: optional — guides may be org-authored or have a named contributor
-    author: Type.Optional(Type.String()),
-    ogImage: Type.Optional(Type.String()),
-    // Injected at build time by the remarkReadingTime remark plugin.
-    readingTime: Type.Optional(Type.String()),
-  }),
-])
+type MdxModule = { default: React.ComponentType<{ components?: MDXComponents }> };
 
-export const BlockFrontmatterSchema = Type.Composite([
-  BaseContentSchema,
-  Type.Object({
-    description: Type.String(),
-    category: Type.String(),
-    tags: Type.Array(Type.String()),
-    // component: the React component name this block demonstrates
-    component: Type.Optional(Type.String()),
-    // previewUrl: live demo iframe URL (separate from the block's /blocks/slug page)
-    previewUrl: Type.Optional(Type.String()),
-    // dependencies: other blocks or npm packages this block requires
-    dependencies: Type.Optional(Type.Array(Type.String())),
-  }),
-])
+const _blogComponents = import.meta.glob<MdxModule>("../content/blog/*.mdx", { eager: true });
+const _docsComponents = import.meta.glob<MdxModule>("../content/docs/**/*.mdx", { eager: true });
+const _guidesComponents = import.meta.glob<MdxModule>("../content/guides/*.mdx", { eager: true });
+const _blocksComponents = import.meta.glob<MdxModule>("../content/blocks/*.mdx", { eager: true });
 
-export type BaseContent = Static<typeof BaseContentSchema>
-export type BlogFrontmatter = Static<typeof BlogFrontmatterSchema>
-export type DocsFrontmatter = Static<typeof DocsFrontmatterSchema>
-export type GuideFrontmatter = Static<typeof GuideFrontmatterSchema>
-export type BlockFrontmatter = Static<typeof BlockFrontmatterSchema>
-
-// ---------------------------------------------------------------------------
-// Glob imports — eager so modules are synchronously available during SSR.
-// NOTE: import.meta.glob() requires string literals here — cannot be moved
-// into a factory function.
-// ---------------------------------------------------------------------------
-
-const _blogMeta = import.meta.glob<unknown>(
-  '../content/blog/*.mdx',
-  { eager: true, import: 'frontmatter' },
-)
-const _blogModules = import.meta.glob<ContentModule<BlogFrontmatter>>(
-  '../content/blog/*.mdx',
-  { eager: true },
-)
-
-const _docsMeta = import.meta.glob<unknown>(
-  '../content/docs/**/*.mdx',
-  { eager: true, import: 'frontmatter' },
-)
-const _docsModules = import.meta.glob<ContentModule<DocsFrontmatter>>(
-  '../content/docs/**/*.mdx',
-  { eager: true },
-)
-
-const _guidesMeta = import.meta.glob<unknown>(
-  '../content/guides/*.mdx',
-  { eager: true, import: 'frontmatter' },
-)
-const _guidesModules = import.meta.glob<ContentModule<GuideFrontmatter>>(
-  '../content/guides/*.mdx',
-  { eager: true },
-)
-
-const _blocksMeta = import.meta.glob<unknown>(
-  '../content/blocks/*.mdx',
-  { eager: true, import: 'frontmatter' },
-)
-const _blocksModules = import.meta.glob<ContentModule<BlockFrontmatter>>(
-  '../content/blocks/*.mdx',
-  { eager: true },
-)
-
-// ---------------------------------------------------------------------------
-// Collections
-// ---------------------------------------------------------------------------
-
-export const blogCollection = defineCollection({
-  schema: BlogFrontmatterSchema,
-  meta: _blogMeta,
-  modules: _blogModules,
-  slugify: path => path.replace('../content/blog/', '').replace('.mdx', ''),
-  sort: (a, b) => b.frontmatter.publishedAt.localeCompare(a.frontmatter.publishedAt),
-})
-
-export const docsCollection = defineCollection({
-  schema: DocsFrontmatterSchema,
-  meta: _docsMeta,
-  modules: _docsModules,
-  slugify: path => path.replace('../content/docs/', '').replace('.mdx', ''),
-})
-
-export const guidesCollection = defineCollection({
-  schema: GuideFrontmatterSchema,
-  meta: _guidesMeta,
-  modules: _guidesModules,
-  slugify: path => path.replace('../content/guides/', '').replace('.mdx', ''),
-  sort: (a, b) => b.frontmatter.publishedAt.localeCompare(a.frontmatter.publishedAt),
-})
-
-export const blocksCollection = defineCollection({
-  schema: BlockFrontmatterSchema,
-  meta: _blocksMeta,
-  modules: _blocksModules,
-  slugify: path => path.replace('../content/blocks/', '').replace('.mdx', ''),
-})
-
-// ---------------------------------------------------------------------------
-// Legacy raw-map aliases (some routes still use them for key-existence checks)
-// ---------------------------------------------------------------------------
-
-export const docsMeta = _docsMeta as Record<string, DocsFrontmatter>
-export const docsModules = _docsModules
-
-// ---------------------------------------------------------------------------
-// Blog helpers
-// ---------------------------------------------------------------------------
-
-export interface BlogPost {
-  slug: string
-  frontmatter: BlogFrontmatter
-  readingTime: string
+function findComponent(
+  map: Record<string, MdxModule>,
+  prefix: string,
+  slug: string,
+): React.ComponentType<{ components?: MDXComponents }> | undefined {
+  const key = `${prefix}${slug}.mdx`;
+  return map[key]?.default;
 }
 
-export function getBlogList(): BlogPost[] {
-  return blogCollection.getAll().map(({ slug, frontmatter }) => ({
-    slug,
-    frontmatter,
-    readingTime: frontmatter.readingTime ?? '1 min read',
-  }))
+export function getBlogComponent(slug: string) {
+  return findComponent(_blogComponents, "../content/blog/", slug);
 }
 
-export function getBlogFrontmatter(slug: string): BlogFrontmatter {
-  return blogCollection.getBySlug(slug)
+export function getDocsComponent(slug: string) {
+  return findComponent(_docsComponents, "../content/docs/", slug);
 }
 
-export function getRelatedPosts(slug: string, limit = 3): BlogPost[] {
-  const current = blogCollection.getBySlug(slug)
+export function getGuidesComponent(slug: string) {
+  return findComponent(_guidesComponents, "../content/guides/", slug);
+}
 
+export function getBlocksComponent(slug: string) {
+  return findComponent(_blocksComponents, "../content/blocks/", slug);
+}
+
+// ── INDEX_SUFFIX_RE ──────────────────────────────────────────────────────────
+
+/** Strips trailing /index from doc slugs for clean URLs. */
+export const INDEX_SUFFIX_RE = /\/index$/;
+
+// ── Blog helpers ─────────────────────────────────────────────────────────────
+
+// Compat alias — used by search.tsx and other callers
+export type BlogPost = Post;
+export interface PrevNext {
+  prev: Post | null;
+  next: Post | null;
+}
+
+export function getBlogList(): Post[] {
+  return allPosts
+    .filter((p) => !p.draft)
+    .toSorted((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+}
+
+export function getRelatedPosts(slug: string, limit = 3): Post[] {
+  const current = allPosts.find((p) => p.slug === slug);
+  if (!current) return [];
   return getBlogList()
-    .filter(p => p.slug !== slug)
-    .map(p => ({
+    .filter((p) => p.slug !== slug)
+    .map((p) => ({
       post: p,
-      score: p.frontmatter.tags.filter(t => current.tags.includes(t)).length,
+      score: p.tags.filter((t) => current.tags.includes(t)).length,
     }))
     .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
+    .toSorted((a, b) => b.score - a.score)
     .slice(0, limit)
-    .map(({ post }) => post)
+    .map(({ post }) => post);
 }
 
-export function getSeriesPosts(series: string): BlogPost[] {
+export function getSeriesPosts(series: string): Post[] {
   return getBlogList()
-    .filter(p => p.frontmatter.series === series)
-    .sort((a, b) => (a.frontmatter.seriesOrder ?? 0) - (b.frontmatter.seriesOrder ?? 0))
-}
-
-export interface PrevNext {
-  prev: BlogPost | null
-  next: BlogPost | null
+    .filter((p) => p.series === series)
+    .toSorted((a, b) => (a.seriesOrder ?? 0) - (b.seriesOrder ?? 0));
 }
 
 export function getPrevNextPosts(slug: string): PrevNext {
-  const posts = getBlogList()
-  const idx = posts.findIndex(p => p.slug === slug)
-  if (idx === -1)
-    return { prev: null, next: null }
-  return {
-    prev: posts[idx + 1] ?? null,
-    next: posts[idx - 1] ?? null,
-  }
+  const posts = getBlogList();
+  const idx = posts.findIndex((p) => p.slug === slug);
+  if (idx === -1) return { prev: null, next: null };
+  return { prev: posts[idx + 1] ?? null, next: posts[idx - 1] ?? null };
 }
 
-// ---------------------------------------------------------------------------
-// Docs helpers
-// ---------------------------------------------------------------------------
+// ── Docs helpers ─────────────────────────────────────────────────────────────
 
 export interface DocNavItem {
-  slug: string
-  label: string
-  frontmatter: DocsFrontmatter
+  slug: string;
+  label: string;
+  section: string;
+  order: number;
 }
 
 export interface DocNavSection {
-  section: string
-  items: DocNavItem[]
+  section: string;
+  items: DocNavItem[];
 }
 
 export function getDocsSidebar(): DocNavSection[] {
-  const sections: Map<string, DocNavItem[]> = new Map()
-
-  for (const [path, fm] of Object.entries(_docsMeta)) {
-    const typed = fm as DocsFrontmatter | undefined
-    if (!typed)
-      continue
-    const slug = path.replace('../content/docs/', '').replace('.mdx', '')
-    const section = typed.section ?? 'General'
-    if (!sections.has(section))
-      sections.set(section, [])
-    sections.get(section)!.push({ slug, label: typed.title, frontmatter: typed })
+  const sections = new Map<string, DocNavItem[]>();
+  for (const doc of allDocs) {
+    const section = doc.section ?? "General";
+    if (!sections.has(section)) sections.set(section, []);
+    sections.get(section)!.push({
+      slug: doc.slug,
+      label: doc.title,
+      section,
+      order: doc.order ?? 999,
+    });
   }
-
-  const sorted: DocNavSection[] = []
+  const sorted: DocNavSection[] = [];
   for (const [section, items] of sections.entries()) {
     sorted.push({
       section,
-      items: items.toSorted((a, b) => {
-        const ao = a.frontmatter.order ?? 999
-        const bo = b.frontmatter.order ?? 999
-        return ao !== bo ? ao - bo : a.label.localeCompare(b.label)
-      }),
-    })
+      items: items.toSorted((a, b) =>
+        a.order !== b.order ? a.order - b.order : a.label.localeCompare(b.label),
+      ),
+    });
   }
-
-  return sorted.toSorted((a, b) => a.section.localeCompare(b.section))
+  return sorted.toSorted((a, b) => a.section.localeCompare(b.section));
 }
 
 export function getNextDocPage(currentSlug: string): DocNavItem | null {
-  const flat = getDocsSidebar().flatMap(s => s.items)
+  const flat = getDocsSidebar().flatMap((s) => s.items);
   const idx = flat.findIndex((item) => {
-    const clean = item.slug.replace(INDEX_SUFFIX_RE, '')
-    return clean === currentSlug || item.slug === currentSlug
-  })
-  return idx !== -1 ? (flat[idx + 1] ?? null) : null
+    const clean = item.slug.replace(INDEX_SUFFIX_RE, "");
+    return clean === currentSlug || item.slug === currentSlug;
+  });
+  return idx !== -1 ? (flat[idx + 1] ?? null) : null;
 }
 
-// ---------------------------------------------------------------------------
-// Guides helpers
-// ---------------------------------------------------------------------------
+// ── Guides helpers ───────────────────────────────────────────────────────────
 
-export interface GuideItem {
-  slug: string
-  frontmatter: GuideFrontmatter
-  readingTime: string
+// Compat alias
+export type GuideItem = Guide;
+
+export function getGuideList(): Guide[] {
+  return allGuides
+    .filter((g) => !g.draft)
+    .toSorted((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
 
-export function getGuideList(): GuideItem[] {
-  return guidesCollection.getAll().map(({ slug, frontmatter }) => ({
-    slug,
-    frontmatter,
-    readingTime: frontmatter.readingTime ?? '1 min read',
-  }))
+export function getPrevNextGuides(slug: string): { prev: Guide | null; next: Guide | null } {
+  const guides = getGuideList();
+  const idx = guides.findIndex((g) => g.slug === slug);
+  if (idx === -1) return { prev: null, next: null };
+  return { prev: guides[idx + 1] ?? null, next: guides[idx - 1] ?? null };
 }
 
-export function getGuideFrontmatter(slug: string): GuideFrontmatter {
-  return guidesCollection.getBySlug(slug)
+// ── Blocks helpers ───────────────────────────────────────────────────────────
+
+export function getBlockList(): Block[] {
+  return allBlocks;
 }
 
-export function getPrevNextGuides(slug: string): { prev: GuideItem | null, next: GuideItem | null } {
-  const guides = getGuideList()
-  const idx = guides.findIndex(g => g.slug === slug)
-  if (idx === -1)
-    return { prev: null, next: null }
-  return {
-    prev: guides[idx + 1] ?? null,
-    next: guides[idx - 1] ?? null,
-  }
+// ── Search index ─────────────────────────────────────────────────────────────
+
+export type ContentType = "blog" | "docs" | "guide" | "block";
+
+export interface SearchDocument {
+  type: ContentType;
+  slug: string;
+  title: string;
+  description: string;
+  tags?: string[];
+  section?: string;
+  category?: string;
 }
-
-// ---------------------------------------------------------------------------
-// Blocks helpers
-// ---------------------------------------------------------------------------
-
-export interface BlockItem {
-  slug: string
-  frontmatter: BlockFrontmatter
-}
-
-export function getBlockList(): BlockItem[] {
-  return blocksCollection.getAll()
-}
-
-export function getBlockFrontmatter(slug: string): BlockFrontmatter {
-  return blocksCollection.getBySlug(slug)
-}
-
-// ---------------------------------------------------------------------------
-// Search index for Fuse.js — all four content types
-// ---------------------------------------------------------------------------
 
 export function getSearchIndex(): SearchDocument[] {
-  const blog = blogCollection.getSearchDocuments((slug, fm) => ({
-    type: 'blog' as const,
-    slug,
-    title: fm.title,
-    description: fm.description,
-    tags: fm.tags,
-  }))
+  const blog: SearchDocument[] = allPosts.map((p) => ({
+    type: "blog",
+    slug: p.slug,
+    title: p.title,
+    description: p.description,
+    tags: p.tags,
+  }));
 
-  const docs = docsCollection.getSearchDocuments((slug, fm) => ({
-    type: 'docs' as const,
-    slug,
-    title: fm.title,
-    description: fm.description ?? '',
-    section: fm.section,
-  }))
+  const docs: SearchDocument[] = allDocs.map((d) => ({
+    type: "docs",
+    slug: d.slug,
+    title: d.title,
+    description: d.description ?? "",
+    section: d.section,
+  }));
 
-  const guides = guidesCollection.getSearchDocuments((slug, fm) => ({
-    type: 'guide' as const,
-    slug,
-    title: fm.title,
-    description: fm.description,
-    tags: fm.tags,
-    category: fm.category,
-  }))
+  const guides: SearchDocument[] = allGuides.map((g) => ({
+    type: "guide",
+    slug: g.slug,
+    title: g.title,
+    description: g.description,
+    tags: g.tags,
+    category: g.category,
+  }));
 
-  const blocks = blocksCollection.getSearchDocuments((slug, fm) => ({
-    type: 'block' as const,
-    slug,
-    title: fm.title,
-    description: fm.description,
-    tags: fm.tags,
-    category: fm.category,
-  }))
+  const blocks: SearchDocument[] = allBlocks.map((b) => ({
+    type: "block",
+    slug: b.slug,
+    title: b.title,
+    description: b.description,
+    tags: b.tags,
+    category: b.category,
+  }));
 
-  return [...blog, ...docs, ...guides, ...blocks]
+  return [...blog, ...docs, ...guides, ...blocks];
 }
 
-// ---------------------------------------------------------------------------
-// Sitemap helpers
-// ---------------------------------------------------------------------------
+// ── Sitemap helpers ──────────────────────────────────────────────────────────
+
+export interface SitemapEntry {
+  url: string;
+  lastmod?: string;
+}
 
 export function getBlogSitemapEntries(): SitemapEntry[] {
-  return blogCollection.getSitemapEntries((slug, fm) => ({
-    url: `/blog/${slug}`,
-    lastmod: fm.updatedAt ?? fm.publishedAt,
-  }))
+  return allPosts.map((p) => ({
+    url: `/blog/${p.slug}`,
+    lastmod: p.updatedAt ?? p.publishedAt,
+  }));
 }
 
 export function getDocsSitemapEntries(): SitemapEntry[] {
-  return Object.keys(_docsMeta).map((path) => {
-    const slug = path.replace('../content/docs/', '').replace('.mdx', '')
-    const url = slug === 'index' ? '/docs' : `/docs/${slug.replace(INDEX_SUFFIX_RE, '')}`
-    return { url }
-  })
+  return allDocs.map((d) => ({
+    url: d.slug === "index" ? "/docs" : `/docs/${d.slug.replace(INDEX_SUFFIX_RE, "")}`,
+  }));
 }
 
 export function getGuidesSitemapEntries(): SitemapEntry[] {
-  return guidesCollection.getSitemapEntries((slug, fm) => ({
-    url: `/guides/${slug}`,
-    lastmod: fm.updatedAt ?? fm.publishedAt,
-  }))
+  return allGuides.map((g) => ({
+    url: `/guides/${g.slug}`,
+    lastmod: g.updatedAt ?? g.publishedAt,
+  }));
 }
 
 export function getBlocksSitemapEntries(): SitemapEntry[] {
-  return blocksCollection.getSitemapEntries(slug => ({ url: `/blocks/${slug}` }))
+  return allBlocks.map((b) => ({ url: `/blocks/${b.slug}` }));
 }

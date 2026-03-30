@@ -1,48 +1,42 @@
-import type { DocsFrontmatter } from '../../../lib/content'
-import { NonIdealState } from '@blueprintjs/core'
-import { IconAlertCircle } from '@tabler/icons-react'
-import { createFileRoute } from '@tanstack/react-router'
-import { DocsLayout } from '../../../components/content/DocsLayout'
-import { mdxComponents } from '../../../components/mdx/MDXComponents'
-import { docsMeta, docsModules, getDocsSidebar } from '../../../lib/content'
+import { NonIdealState } from "@blueprintjs/core";
+import { IconAlertCircle } from "@tabler/icons-react";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { DocsLayout } from "../../../components/content/DocsLayout";
+import { mdxComponents } from "../../../components/mdx/MDXComponents";
+import { getDocsComponent, getDocsSidebar } from "../../../lib/content";
+import { allDocs } from "content-collections";
 
-const DOCS_INDEX_KEY = '../content/docs/index.mdx'
-
-interface DocsIndexData {
-  frontmatter: DocsFrontmatter
-  sections: ReturnType<typeof getDocsSidebar>
-}
-
-export const Route = createFileRoute('/_content/docs/')({
-  loader: (): DocsIndexData => {
-    const fm = docsMeta[DOCS_INDEX_KEY]
-    if (!fm)
-      throw new Error('Docs index not found')
-    return { frontmatter: fm, sections: getDocsSidebar() }
+export const Route = createFileRoute("/_content/docs/")({
+  loader: () => {
+    const doc = allDocs.find((d) => d.slug === "index");
+    if (!doc) throw notFound();
+    return { doc, sections: getDocsSidebar() };
   },
   head: ({ loaderData: ld }) => {
-    if (!ld)
-      return {}
+    if (!ld) return {};
     return {
       meta: [
-        { title: `${ld.frontmatter.title} — CBBI Blueprint` },
-        { name: 'description', content: ld.frontmatter.description },
+        { title: `${ld.doc.title} — CBBI Blueprint` },
+        { name: "description", content: ld.doc.description },
       ],
-      links: [{ rel: 'canonical', href: 'https://cbbi.jkrumm.com/docs' }],
-    }
+      links: [{ rel: "canonical", href: "https://cbbi.jkrumm.com/docs" }],
+    };
   },
   component: DocsIndexPage,
-})
+});
 
 function DocsIndexPage() {
-  const { sections } = Route.useLoaderData()
-  const MdxContent = docsModules[DOCS_INDEX_KEY]?.default
+  const { sections } = Route.useLoaderData();
+  const MdxContent = useMemo(() => getDocsComponent("index"), []);
 
   return (
     <DocsLayout sections={sections}>
-      {MdxContent
-        ? <MdxContent components={mdxComponents} />
-        : <NonIdealState icon={<IconAlertCircle size={40} />} title="Page not found" />}
+      {MdxContent ? (
+        <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
+      ) : (
+        <NonIdealState icon={<IconAlertCircle size={40} />} title="Page not found" />
+      )}
     </DocsLayout>
-  )
+  );
 }

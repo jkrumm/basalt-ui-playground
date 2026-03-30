@@ -7,7 +7,7 @@ section: "Reference"
 
 ## Overview
 
-The site has four content types, each modelled by a TypeBox schema in `src/lib/content.ts`.
+The site has four content types, each modelled by a Zod schema in `src/lib/content.ts`.
 They share a common base and differ in the fields they require, how they are navigated,
 and what structured data they emit.
 
@@ -15,14 +15,14 @@ and what structured data they emit.
 
 ## Shared base
 
-Every content type composes from `BaseContentSchema`:
+Every content type extends `BaseContentSchema`:
 
 ```ts
-const BaseContentSchema = Type.Object({
-  title: Type.String(),
-  draft: Type.Optional(Type.Boolean()),
-  noindex: Type.Optional(Type.Boolean()),
-})
+const BaseContentSchema = z.object({
+  title: z.string(),
+  draft: z.boolean().optional(),
+  noindex: z.boolean().optional(),
+});
 ```
 
 - **`draft`** — content exists but is excluded from listings and the search index.
@@ -30,8 +30,7 @@ const BaseContentSchema = Type.Object({
   `<meta name="robots" content="noindex">`. Use for preview links, stub pages, or content
   that is live but not ready for discovery.
 
-All four schemas use `Type.Composite([BaseContentSchema, Type.Object({...})])` so shared fields
-are never duplicated.
+All four schemas use `BaseContentSchema.extend({...})` so shared fields are never duplicated.
 
 ---
 
@@ -51,17 +50,17 @@ src/content/blog/*.mdx        (flat, sorted by publishedAt desc)
 title: "My Post"
 description: "Meta description (150–160 chars). Also used in listing cards."
 publishedAt: "2026-03-20"
-updatedAt: "2026-03-22"          # optional — update when revising
+updatedAt: "2026-03-22" # optional — update when revising
 author: "Johannes Krumm"
 tags: ["react", "tanstack"]
 
 # Optional SEO overrides
-image: "/images/hero.jpg"        # general in-content hero / share fallback
-ogImage: "/images/og-1200.jpg"  # explicit 1200×630 OG override (takes precedence over image)
-canonicalUrl: "https://dev.to/jkrumm/my-post"  # set when cross-posting
-excerpt: "Short blurb for listing cards."       # falls back to description if absent
-authorUrl: "https://github.com/jkrumm"         # maps to article:author OG + JSON-LD author.url
-noindex: true                    # suppress from search without hiding the page
+image: "/images/hero.jpg" # general in-content hero / share fallback
+ogImage: "/images/og-1200.jpg" # explicit 1200×630 OG override (takes precedence over image)
+canonicalUrl: "https://dev.to/jkrumm/my-post" # set when cross-posting
+excerpt: "Short blurb for listing cards." # falls back to description if absent
+authorUrl: "https://github.com/jkrumm" # maps to article:author OG + JSON-LD author.url
+noindex: true # suppress from search without hiding the page
 
 # Series grouping
 series: "TanStack Deep Dives"
@@ -73,6 +72,7 @@ readingTime: "5 min read"
 ```
 
 **Key behaviours:**
+
 - `ogImage` takes precedence over `image` for `og:image`, `twitter:image`, and JSON-LD `image`.
 - `canonicalUrl` overrides the generated canonical — required when cross-posting to avoid
   duplicate content penalties.
@@ -87,7 +87,7 @@ readingTime: "5 min read"
 
 ## Guides
 
-**Use for:** step-by-step procedural content. The reader wants to *do* something and reach a
+**Use for:** step-by-step procedural content. The reader wants to _do_ something and reach a
 defined outcome. Has difficulty, prerequisites, estimated time. Dates signal maintenance
 currency, not recency.
 
@@ -104,13 +104,13 @@ description: "Required. Shown in meta and listing cards."
 publishedAt: "2026-01-10"
 updatedAt: "2026-03-01"
 category: "TanStack"
-difficulty: "beginner"           # beginner | intermediate | advanced
+difficulty: "beginner" # beginner | intermediate | advanced
 estimatedTime: "20 min"
 tags: ["routing", "tanstack"]
 prerequisites: ["Install Bun", "Create a React project"]
 
 # Optional
-author: "Johannes Krumm"        # omit for org-authored guides
+author: "Johannes Krumm" # omit for org-authored guides
 ogImage: "/images/guide-og.jpg"
 noindex: true
 
@@ -120,6 +120,7 @@ readingTime: "8 min read"
 ```
 
 **Key behaviours:**
+
 - `difficulty` and `estimatedTime` render in the guide header for audience signalling.
 - `prerequisites` render as a checklist before the guide content.
 - `author` is optional — omit for guides that are effectively org-authored.
@@ -133,7 +134,7 @@ readingTime: "8 min read"
 ## Docs
 
 **Use for:** structural reference, architecture explanation, API documentation.
-The reader wants to *understand* the system, not follow steps. No dates, no authorship.
+The reader wants to _understand_ the system, not follow steps. No dates, no authorship.
 Organised by sections with explicit ordering for sidebar navigation.
 
 ```
@@ -146,13 +147,14 @@ src/content/docs/**/*.mdx       (nested subdirectories supported, ordered by sec
 ---
 title: "Collection System"
 description: "Optional but recommended — used in meta and search."
-section: "Reference"             # sidebar section heading
-order: 3                         # position within the section
-noindex: true                    # useful for stub/in-progress pages
+section: "Reference" # sidebar section heading
+order: 3 # position within the section
+noindex: true # useful for stub/in-progress pages
 ---
 ```
 
 **Key behaviours:**
+
 - `section` + `order` drive the sidebar. Pages without a section fall under "General".
   Within a section, pages sort by `order` then alphabetically by title.
 - `description` is optional (many reference pages have no natural summary) but Google
@@ -168,7 +170,7 @@ noindex: true                    # useful for stub/in-progress pages
 ## Blocks
 
 **Use for:** copy-paste UI component examples, design patterns, component showcases.
-No dates, no authorship, no narrative arc. The reader wants to *copy* a pattern.
+No dates, no authorship, no narrative arc. The reader wants to _copy_ a pattern.
 
 ```
 src/content/blocks/*.mdx        (flat, no inherent sort order)
@@ -182,14 +184,15 @@ title: "Data Table with Sorting"
 description: "Required. Shown in listing cards and meta."
 category: "Tables"
 tags: ["table", "sorting", "blueprint"]
-component: "DataTable"          # the React component being demonstrated
-previewUrl: "https://..."       # live demo URL for iframe embed (optional)
-dependencies: ["@tanstack/react-table", "blueprint-ui"]  # required packages/blocks
-noindex: true                   # useful for WIP blocks
+component: "DataTable" # the React component being demonstrated
+previewUrl: "https://..." # live demo URL for iframe embed (optional)
+dependencies: ["@tanstack/react-table", "blueprint-ui"] # required packages/blocks
+noindex: true # useful for WIP blocks
 ---
 ```
 
 **Key behaviours:**
+
 - `component` links the MDX file to its React source for tooling lookups.
 - `previewUrl` is available for layout components to render a live iframe demo alongside
   the code example.
@@ -202,30 +205,30 @@ noindex: true                   # useful for WIP blocks
 
 ## Comparison table
 
-| | Blog | Guides | Docs | Blocks |
-|--|------|--------|------|--------|
-| `publishedAt` | required | required | — | — |
-| `updatedAt` | optional | optional | — | — |
-| `author` | required | optional | — | — |
-| `tags` | required | required | — | required |
-| `category` | — | required | — | required |
-| `section`/`order` | — | — | optional | — |
-| `difficulty` | — | required | — | — |
-| `prerequisites` | — | optional | — | — |
-| `series`/`seriesOrder` | optional | — | — | — |
-| `image`/`ogImage` | both optional | `ogImage` only | — | — |
-| `canonicalUrl` | optional | — | — | — |
-| `excerpt` | optional | — | — | — |
-| `authorUrl` | optional | — | — | — |
-| `component` | — | — | — | optional |
-| `previewUrl` | — | — | — | optional |
-| `dependencies` | — | — | — | optional |
-| `noindex` | optional | optional | optional | optional |
-| `draft` | optional | optional | optional | optional |
-| Navigation | prev/next + related | prev/next | sidebar + sequential | none |
-| File nesting | flat | flat | recursive | flat |
-| JSON-LD type | `BlogPosting` | `Article` | — | — |
-| twitter:card | yes | yes | — | — |
+|                        | Blog                | Guides         | Docs                 | Blocks   |
+| ---------------------- | ------------------- | -------------- | -------------------- | -------- |
+| `publishedAt`          | required            | required       | —                    | —        |
+| `updatedAt`            | optional            | optional       | —                    | —        |
+| `author`               | required            | optional       | —                    | —        |
+| `tags`                 | required            | required       | —                    | required |
+| `category`             | —                   | required       | —                    | required |
+| `section`/`order`      | —                   | —              | optional             | —        |
+| `difficulty`           | —                   | required       | —                    | —        |
+| `prerequisites`        | —                   | optional       | —                    | —        |
+| `series`/`seriesOrder` | optional            | —              | —                    | —        |
+| `image`/`ogImage`      | both optional       | `ogImage` only | —                    | —        |
+| `canonicalUrl`         | optional            | —              | —                    | —        |
+| `excerpt`              | optional            | —              | —                    | —        |
+| `authorUrl`            | optional            | —              | —                    | —        |
+| `component`            | —                   | —              | —                    | optional |
+| `previewUrl`           | —                   | —              | —                    | optional |
+| `dependencies`         | —                   | —              | —                    | optional |
+| `noindex`              | optional            | optional       | optional             | optional |
+| `draft`                | optional            | optional       | optional             | optional |
+| Navigation             | prev/next + related | prev/next      | sidebar + sequential | none     |
+| File nesting           | flat                | flat           | recursive            | flat     |
+| JSON-LD type           | `BlogPosting`       | `Article`      | —                    | —        |
+| twitter:card           | yes                 | yes            | —                    | —        |
 
 ---
 
@@ -242,7 +245,7 @@ Copy-paste component, no narrative?              → Block
 
 ## Adding a new content type
 
-1. Define a schema using `Type.Composite([BaseContentSchema, Type.Object({...})])` in `content.ts`
+1. Define a schema using `BaseContentSchema.extend({...})` in `content.ts`
 2. Add `import.meta.glob` calls (must be string literals — cannot be moved to a factory)
 3. Call `defineCollection({...})` with the schema and slugify function
 4. Add `get*SitemapEntries()` and wire into `collectSitemapEntries()` in both `vite.config.ts`

@@ -1,18 +1,29 @@
 {
-  "name": "cbbi-blueprint",
+  "name": "basalt-ui-playground",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "dev": "(cd apps/api && bun run dev) & (cd apps/web && bun run dev)",
-    "dev:api": "cd apps/api && bun run dev",
-    "dev:web": "cd apps/web && bun run dev",
-    "build": "cd apps/web && bun run build",
-    "start": "cd apps/web && bun run start",
-    "typecheck": "cd apps/web && bun run typecheck",
-    "lint": "cd apps/web && bun run lint",
-    "pre": "cd apps/web && bun run pre",
-    "db:setup": "cd apps/api && bun run db:setup",
-    "db:generate": "cd apps/api && bun run db:generate"
-  }
+    "dev": "vp run web#dev",
+    "dev:api": "cd apps/api && node --import tsx --watch src/index.ts",
+    "dev:web": "vp run web#dev",
+    "build": "vp run web#build",
+    "start": "vp run web#start",
+    "typecheck": "vp run typecheck -r",
+    "ready": "vp fmt && vp lint && vp run typecheck -r && vp run build -r",
+    "prepare": "vp config",
+    "db:setup": "vp run api#db:setup",
+    "db:generate": "vp run api#db:generate"
+  },
+  "devDependencies": {
+    "@blueprintjs/eslint-plugin": "^6.1.24",
+    "@tanstack/eslint-plugin-router": "^1.161.6",
+    "eslint-plugin-react-compiler": "19.1.0-rc.2",
+    "oxlint-plugin-eslint": "^1.57.0",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@10.33.0"
 }

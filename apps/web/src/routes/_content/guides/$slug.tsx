@@ -1,94 +1,89 @@
-import type { GuideFrontmatter, GuideItem, HeadingItem } from '../../../lib/content'
-import { NonIdealState } from '@blueprintjs/core'
-import { IconAlertCircle } from '@tabler/icons-react'
-import { createFileRoute, notFound } from '@tanstack/react-router'
-import { useMemo } from 'react'
-import { GuideLayout } from '../../../components/content/GuideLayout'
-import { mdxComponents } from '../../../components/mdx/MDXComponents'
-import { getGuideList, getPrevNextGuides, guidesCollection } from '../../../lib/content'
+import type { Guide } from "../../../lib/content";
+import { NonIdealState } from "@blueprintjs/core";
+import { IconAlertCircle } from "@tabler/icons-react";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { useMemo } from "react";
+import { GuideLayout } from "../../../components/content/GuideLayout";
+import { mdxComponents } from "../../../components/mdx/MDXComponents";
+import { getGuidesComponent, getPrevNextGuides } from "../../../lib/content";
+import { allGuides } from "content-collections";
 
-const BASE_URL = 'https://cbbi.jkrumm.com'
+const BASE_URL = "https://cbbi.jkrumm.com";
 
 interface GuideLoaderData {
-  slug: string
-  frontmatter: GuideFrontmatter
-  readingTime: string
-  headings: HeadingItem[]
-  prevNext: { prev: GuideItem | null, next: GuideItem | null }
+  guide: Guide;
+  prevNext: { prev: Guide | null; next: Guide | null };
 }
 
-export const Route = createFileRoute('/_content/guides/$slug')({
+export const Route = createFileRoute("/_content/guides/$slug")({
   loader: ({ params }): GuideLoaderData => {
-    const { slug } = params
-    const metaKey = `../content/guides/${slug}.mdx`
-    if (!guidesCollection.meta[metaKey])
-      throw notFound()
-
-    const fm = guidesCollection.getBySlug(slug)
-    const guide = getGuideList().find(g => g.slug === slug)
-
-    return {
-      slug,
-      frontmatter: fm,
-      readingTime: guide?.readingTime ?? '1 min read',
-      headings: guidesCollection.getHeadings(slug),
-      prevNext: getPrevNextGuides(slug),
-    }
+    const { slug } = params;
+    const guide = allGuides.find((g) => g.slug === slug);
+    if (!guide) throw notFound();
+    return { guide, prevNext: getPrevNextGuides(slug) };
   },
   head: ({ loaderData: ld }) => {
-    if (!ld)
-      return {}
-    const fm = ld.frontmatter
-    const url = `${BASE_URL}/guides/${ld.slug}`
-    const resolvedImage = fm.ogImage
-      ? (fm.ogImage.startsWith('http') ? fm.ogImage : `${BASE_URL}${fm.ogImage}`)
-      : undefined
+    if (!ld) return {};
+    const { guide } = ld;
+    const url = `${BASE_URL}/guides/${guide.slug}`;
+    const resolvedImage = guide.ogImage
+      ? guide.ogImage.startsWith("http")
+        ? guide.ogImage
+        : `${BASE_URL}${guide.ogImage}`
+      : undefined;
     const jsonLd = {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      'headline': fm.title,
-      'description': fm.description,
-      'datePublished': fm.publishedAt,
-      'dateModified': fm.updatedAt ?? fm.publishedAt,
-      ...(fm.author ? { author: { '@type': 'Person', 'name': fm.author } } : {}),
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: guide.title,
+      description: guide.description,
+      datePublished: guide.publishedAt,
+      dateModified: guide.updatedAt ?? guide.publishedAt,
+      ...(guide.author ? { author: { "@type": "Person", name: guide.author } } : {}),
       ...(resolvedImage ? { image: resolvedImage } : {}),
       url,
-      'keywords': fm.tags.join(', '),
-    }
+      keywords: guide.tags.join(", "),
+    };
     return {
       meta: [
-        { title: `${fm.title} — CBBI Blueprint` },
-        { name: 'description', content: fm.description },
-        ...(fm.noindex ? [{ name: 'robots', content: 'noindex' }] : []),
-        { property: 'og:title', content: fm.title },
-        { property: 'og:description', content: fm.description },
-        { property: 'og:type', content: 'article' },
-        { property: 'og:url', content: url },
-        ...(resolvedImage ? [{ property: 'og:image', content: resolvedImage }] : []),
-        { name: 'article:published_time', content: fm.publishedAt },
-        ...(fm.updatedAt ? [{ name: 'article:modified_time', content: fm.updatedAt }] : []),
-        ...fm.tags.map(tag => ({ name: 'article:tag', content: tag })),
-        { name: 'twitter:card', content: resolvedImage ? 'summary_large_image' : 'summary' },
-        { name: 'twitter:title', content: fm.title },
-        { name: 'twitter:description', content: fm.description },
-        ...(resolvedImage ? [{ name: 'twitter:image', content: resolvedImage }] : []),
+        { title: `${guide.title} — CBBI Blueprint` },
+        { name: "description", content: guide.description },
+        ...(guide.noindex ? [{ name: "robots", content: "noindex" }] : []),
+        { property: "og:title", content: guide.title },
+        { property: "og:description", content: guide.description },
+        { property: "og:type", content: "article" },
+        { property: "og:url", content: url },
+        ...(resolvedImage ? [{ property: "og:image", content: resolvedImage }] : []),
+        { name: "article:published_time", content: guide.publishedAt },
+        ...(guide.updatedAt ? [{ name: "article:modified_time", content: guide.updatedAt }] : []),
+        ...guide.tags.map((tag) => ({ name: "article:tag", content: tag })),
+        { name: "twitter:card", content: resolvedImage ? "summary_large_image" : "summary" },
+        { name: "twitter:title", content: guide.title },
+        { name: "twitter:description", content: guide.description },
+        ...(resolvedImage ? [{ name: "twitter:image", content: resolvedImage }] : []),
       ],
-      links: [{ rel: 'canonical', href: url }],
-      scripts: [{ type: 'application/ld+json', children: JSON.stringify(jsonLd) }],
-    }
+      links: [{ rel: "canonical", href: url }],
+      scripts: [{ type: "application/ld+json", children: JSON.stringify(jsonLd) }],
+    };
   },
   component: GuidePage,
-})
+});
 
 function GuidePage() {
-  const { slug, frontmatter, readingTime, headings, prevNext } = Route.useLoaderData()
-  const MdxContent = useMemo(() => guidesCollection.getComponent(slug), [slug])
+  const { guide, prevNext } = Route.useLoaderData();
+  const MdxContent = useMemo(() => getGuidesComponent(guide.slug), [guide.slug]);
 
   return (
-    <GuideLayout frontmatter={frontmatter} readingTime={readingTime} headings={headings} prevNext={prevNext}>
-      {MdxContent
-        ? <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
-        : <NonIdealState icon={<IconAlertCircle size={40} />} title="Failed to load guide" />}
+    <GuideLayout
+      frontmatter={guide}
+      readingTime={guide.readingTime}
+      headings={guide.headings}
+      prevNext={prevNext}
+    >
+      {MdxContent ? (
+        <MdxContent components={mdxComponents} /> // eslint-disable-line react-hooks/static-components -- stable import.meta.glob reference
+      ) : (
+        <NonIdealState icon={<IconAlertCircle size={40} />} title="Failed to load guide" />
+      )}
     </GuideLayout>
-  )
+  );
 }

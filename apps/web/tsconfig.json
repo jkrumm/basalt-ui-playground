@@ -8,15 +8,16 @@
     "strict": true,
     "verbatimModuleSyntax": true,
     "noUncheckedIndexedAccess": true,
-    "types": ["vite/client", "node", "bun-types"],
+    "types": ["vite/client", "node"],
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "skipLibCheck": true,
     "paths": {
-      "~/*": ["./src/*"]
+      "~/*": ["./src/*"],
+      "content-collections": ["./.content-collections/generated"]
     }
   },
-  "include": ["src", "vite.config.ts", "src/content/**/*.mdx"]
+  "include": ["src", "vite.config.ts", "content-collections.ts", "src/content/**/*.mdx"]
 }

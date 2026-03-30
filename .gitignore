@@ -14,9 +14,17 @@ apps/web/dist/
 apps/web/.vite/
 apps/web/.output/
 apps/web/.tanstack/
+apps/web/.content-collections/
 apps/web/node_modules/
 
 # Environment
 apps/web/.env.local
 .env.local
 *.local
+
+# Lock files (bun legacy)
+bun.lock
+
+# Vite+
+.vite-hooks/
+AGENTS.md
