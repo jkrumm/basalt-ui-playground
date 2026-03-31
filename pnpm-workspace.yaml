@@ -9,6 +9,9 @@ catalog:
 overrides:
   vite: "catalog:"
   vitest: "catalog:"
+  # Force beta everywhere to prevent dual-version resolution via better-auth peer deps
+  drizzle-orm: "1.0.0-beta.20"
+  drizzle-kit: "1.0.0-beta.20"
 peerDependencyRules:
   allowAny:
     - vite
@@ -22,3 +25,7 @@ peerDependencyRules:
     react: "19"
     react-dom: "19"
     "@types/react": "19"
+  ignoreMissing:
+    - bun-types # drizzle-orm v1 beta optional peer — not a runtime target
+    - "@types/mssql" # drizzle-orm v1 beta optional peer — using postgres only
+    - mssql # drizzle-orm v1 beta optional peer — using postgres only

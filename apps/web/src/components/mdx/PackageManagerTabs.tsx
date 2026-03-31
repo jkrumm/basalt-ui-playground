@@ -26,10 +26,10 @@ function buildCommand(manager: Manager, command: string): string {
   }
 }
 
-const MANAGERS: Manager[] = ["Bun", "npm", "pnpm", "yarn"];
+const MANAGERS: Manager[] = ["pnpm", "npm", "yarn", "Bun"];
 
 export function PackageManagerTabs({ command }: PackageManagerTabsProps) {
-  const [selected, setSelected] = useState<string>("Bun");
+  const [selected, setSelected] = useState<string>("pnpm");
 
   return (
     <div className="mdx-pm-tabs">

@@ -18,11 +18,11 @@ apps/web/.content-collections/
 apps/web/node_modules/
 
 # Environment
-apps/web/.env.local
 .env.local
 *.local
+apps/web/.env.local
 
-# Lock files (bun legacy)
+# Legacy
 bun.lock
 
 # Vite+
