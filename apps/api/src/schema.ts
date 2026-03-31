@@ -1,8 +1,7 @@
-import { relations } from "drizzle-orm";
-import { pgTable, text } from "drizzle-orm/pg-core";
-import { user } from "./schema/auth-schema.ts";
+import { text } from "drizzle-orm/pg-core";
+import { appSchema, user } from "./schema/auth-schema.ts";
 
-export const userPreferences = pgTable("user_preferences", {
+export const userPreferences = appSchema.table("user_preferences", {
   userId: text("user_id")
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -13,10 +12,3 @@ export const userPreferences = pgTable("user_preferences", {
     .notNull()
     .default("default"),
 });
-
-export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
-  user: one(user, {
-    fields: [userPreferences.userId],
-    references: [user.id],
-  }),
-}));

@@ -11,22 +11,13 @@ import { auth } from "./auth.ts";
 import { env } from "./env.ts";
 import { getPreferences, patchPreferences } from "./routes/preferences.ts";
 
-type BetterAuthUser = {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image: string | null | undefined;
-  createdAt: Date;
-  updatedAt: Date;
-};
-type Variables = { userId: string; user: BetterAuthUser };
+type Variables = { userId: string; user: typeof auth.$Infer.Session.user };
 
 const authMiddleware = createMiddleware<{ Variables: Variables }>(async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
   if (!session) return c.json({ error: "Unauthorized" }, HttpStatusCodes.UNAUTHORIZED);
   c.set("userId", session.user.id);
-  c.set("user", session.user as BetterAuthUser);
+  c.set("user", session.user);
   await next();
 });
 
@@ -88,8 +79,16 @@ const userRoutes = new OpenAPIHono<{ Variables: Variables }>()
   });
 
 const _app = new OpenAPIHono<{ Variables: Variables }>();
-_app.use("/api/*", cors({ origin: env.ALLOWED_ORIGIN, credentials: true }));
-_app.on(["POST", "GET"], "/api/auth/**", (c) => auth.handler(c.req.raw));
+_app.use(
+  "/api/*",
+  cors({
+    origin: env.ALLOWED_ORIGIN,
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    credentials: true,
+  }),
+);
+_app.all("/api/auth/**", (c) => auth.handler(c.req.raw));
 _app.use("/api/user/*", authMiddleware);
 _app.route("/", userRoutes);
 _app.doc("/doc", { openapi: "3.1.0", info: { version: "1.0.0", title: "CBBI API" } });

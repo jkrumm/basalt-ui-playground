@@ -2,11 +2,15 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "./db.ts";
 import { env } from "./env.ts";
-import * as authSchema from "./schema/auth-schema.ts";
+import { user, session, account, verification } from "./schema/auth-schema.ts";
 
 export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   secret: env.BETTER_AUTH_SECRET,
-  database: drizzleAdapter(db, { provider: "pg", schema: authSchema }),
+  trustedOrigins: [env.ALLOWED_ORIGIN],
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: { user, session, account, verification },
+  }),
   emailAndPassword: { enabled: true },
 });

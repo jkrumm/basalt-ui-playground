@@ -12,7 +12,7 @@
     "start": "node --experimental-strip-types src/index.ts",
     "typecheck": "tsc --noEmit",
     "db:setup": "drizzle-kit migrate",
-    "db:generate": "pnpm dlx @better-auth/cli generate --config src/auth.ts --output src/schema/auth-schema.ts",
+    "db:generate": "drizzle-kit generate",
     "db:seed": "node --env-file=.env.local --experimental-strip-types src/seed.ts"
   },
   "dependencies": {
@@ -22,7 +22,7 @@
     "@scalar/hono-api-reference": "^0.10.5",
     "@t3-oss/env-core": "^0.13.11",
     "better-auth": "^1.5.6",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "1.0.0-beta.20",
     "hono": "^4.12.9",
     "postgres": "^3.4.8",
     "stoker": "^2.0.1",
@@ -30,7 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "1.0.0-beta.20",
     "typescript": "^6.0.2"
   }
 }

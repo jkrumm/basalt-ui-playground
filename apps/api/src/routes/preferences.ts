@@ -1,4 +1,5 @@
 import type { PatchUserPreferences, UserPreferences } from "@cbbi/schemas";
+import { eq } from "drizzle-orm";
 import { db } from "../db.ts";
 import { userPreferences } from "../schema.ts";
 
@@ -13,28 +14,20 @@ function toUserPreferences(row: typeof userPreferences.$inferSelect): UserPrefer
 }
 
 export async function getPreferences(userId: string): Promise<UserPreferences> {
-  const result = await db.query.userPreferences.findFirst({
-    where: (t, { eq }) => eq(t.userId, userId),
-  });
-  return result ? toUserPreferences(result) : DEFAULTS;
+  const [row] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
+  return row ? toUserPreferences(row) : DEFAULTS;
 }
 
 export async function patchPreferences(
   userId: string,
   updates: PatchUserPreferences,
 ): Promise<UserPreferences> {
-  // Build explicit set of only the provided fields to preserve un-patched values
-  const fields: {
-    theme?: "light" | "dark" | "system";
-    viewMode?: "grid" | "table";
-    sortBy?: "default" | "value-asc" | "value-desc" | "name-asc";
-  } = {};
+  const fields: Partial<typeof userPreferences.$inferInsert> = {};
   if (updates.theme !== undefined) fields.theme = updates.theme;
   if (updates.viewMode !== undefined) fields.viewMode = updates.viewMode;
   if (updates.sortBy !== undefined) fields.sortBy = updates.sortBy;
 
   if (Object.keys(fields).length > 0) {
-    // Insert with defaults for new users; on conflict update only provided fields
     const [updated] = await db
       .insert(userPreferences)
       .values({ userId, ...DEFAULTS, ...fields })
@@ -43,8 +36,6 @@ export async function patchPreferences(
     return toUserPreferences(updated!);
   }
 
-  const result = await db.query.userPreferences.findFirst({
-    where: (t, { eq }) => eq(t.userId, userId),
-  });
-  return result ? toUserPreferences(result) : DEFAULTS;
+  const [row] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
+  return row ? toUserPreferences(row) : DEFAULTS;
 }
