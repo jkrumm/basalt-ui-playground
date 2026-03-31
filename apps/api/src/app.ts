@@ -79,8 +79,11 @@ const userRoutes = new OpenAPIHono<{ Variables: Variables }>()
   });
 
 const _app = new OpenAPIHono<{ Variables: Variables }>();
+// CORS scoped to user routes only — /api/auth/** is handled by BetterAuth which sets
+// its own Access-Control-* headers via trustedOrigins. Applying cors() there too
+// produces duplicate headers that some browsers reject.
 _app.use(
-  "/api/*",
+  "/api/user/*",
   cors({
     origin: env.ALLOWED_ORIGIN,
     allowHeaders: ["Content-Type", "Authorization"],

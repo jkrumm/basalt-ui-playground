@@ -13,4 +13,13 @@ export const auth = betterAuth({
     schema: { user, session, account, verification },
   }),
   emailAndPassword: { enabled: true },
+  rateLimit: {
+    // In-memory store — resets on restart, sufficient for a POC/demo.
+    // For production, swap storage to "database" or a Redis adapter.
+    window: 60, // 60-second sliding window
+    max: 10, // 10 auth requests per window per IP
+    customRules: {
+      "/sign-in/email": { window: 60, max: 5 },
+    },
+  },
 });
