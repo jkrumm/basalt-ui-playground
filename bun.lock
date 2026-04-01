@@ -36,9 +36,12 @@
         "@blueprintjs/core": "^6.11.2",
         "@blueprintjs/icons": "^6.8.0",
         "@blueprintjs/select": "^6.1.7",
+        "@cbbi/schemas": "workspace:*",
+        "@elysiajs/eden": "^1.4.9",
         "@tanstack/react-query": "^5.96.1",
         "@tanstack/react-router": "^1.168.10",
         "@tanstack/react-start": "^1.167.16",
+        "better-auth": "^1.5.6",
         "jotai": "^2.19.0",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
@@ -46,6 +49,7 @@
       },
       "devDependencies": {
         "@babel/core": "^7.29.0",
+        "@cbbi/api": "workspace:*",
         "@rolldown/plugin-babel": "^0.2.2",
         "@tailwindcss/vite": "^4.2.2",
         "@types/react": "^19.2.14",
@@ -179,6 +183,8 @@
     "@drizzle-team/brocli": ["@drizzle-team/brocli@0.11.0", "", {}, "sha512-hD3pekGiPg0WPCCGAZmusBBJsDqGUR66Y452YgQsZOnkdQ7ViEPKuyP4huUGEZQefp8g34RRodXYmJ2TbCH+tg=="],
 
     "@elysiajs/cors": ["@elysiajs/cors@1.4.1", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-lQfad+F3r4mNwsxRKbXyJB8Jg43oAOXjRwn7sKUL6bcOW3KjUqUimTS+woNpO97efpzjtDE0tEjGk9DTw8lqTQ=="],
+
+    "@elysiajs/eden": ["@elysiajs/eden@1.4.9", "", { "peerDependencies": { "elysia": ">=1.4.19" } }, "sha512-3CKVD4ycVjB8nCNssfmhnUuq3SzSHkUES3v5PNCFr9LxIrx39/HVRAZ8z2sLxrFqzUs48dCBZaxoZzJ5UUVHDA=="],
 
     "@elysiajs/openapi": ["@elysiajs/openapi@1.4.14", "", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-kWmJWdvP8/LwHwAJXSpz6xFfYUoyUyEPRimEYABuDU1rOnS27Da1u9T2jyU7frOopxKWV/wDfDxMP8z2xdCPJw=="],
 
