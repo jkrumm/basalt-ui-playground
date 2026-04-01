@@ -1,0 +1,22 @@
+/* Blueprint v6 — must come before Tailwind so Tailwind utilities can override */
+@import "@blueprintjs/core/lib/css/blueprint.css";
+@import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+
+/* Tailwind v4 */
+@import "tailwindcss";
+
+/* ── Blueprint font override ───────────────────────────────────────────────
+   Blueprint v6 uses CSS custom properties for font families. System fonts
+   are fine for this initial shell — add custom fonts in a later group.
+   ──────────────────────────────────────────────────────────────────────── */
+
+body {
+  margin: 0;
+  background-color: var(--bp-surface-background-color-default-rest);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body.bp6-dark {
+  background-color: var(--bp-palette-dark-gray-1);
+}

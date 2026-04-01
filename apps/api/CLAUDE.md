@@ -81,7 +81,10 @@ export const authMiddleware = new Elysia({ name: "auth" })
       if (!enabled) return {};
       return {
         beforeHandle: ({ user, set }) => {
-          if (!user) { set.status = 401; return "Unauthorized"; }
+          if (!user) {
+            set.status = 401;
+            return "Unauthorized";
+          }
         },
       };
     },
