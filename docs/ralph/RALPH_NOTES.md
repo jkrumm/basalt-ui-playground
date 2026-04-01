@@ -213,3 +213,54 @@ None — no test infrastructure yet.
   the PR preview package at `pkg.pr.new/better-auth/@better-auth/drizzle-adapter@6913`.
 - The `port 3001 in use` error on server start (from a conflicting process in the main repo)
   — the worktree's `.env.local` must use `PORT=7713`. Document in project setup.
+
+---
+
+## Group 5: OpenTelemetry (API Layer)
+
+### What was implemented
+
+Added `@elysiajs/opentelemetry` 1.4.10, `@opentelemetry/api` 1.9.1, and
+`@opentelemetry/exporter-trace-otlp-proto` 0.214.0 to `apps/api`. Created `src/telemetry.ts`
+with `OTLPTraceExporter` and exported `telemetryConfig` and a `tracer` for manual spans.
+Wired `opentelemetry()` plugin into `app.ts` first (before all routes) with a `checkIfShouldTrace`
+that skips `/health`. Added SIGTERM handler to `index.ts` to flush the exporter on shutdown.
+
+### Deviations from prompt
+
+- **`Resource` + `ATTR_SERVICE_NAME` dropped**: `@opentelemetry/resources` 2.6.1 exports
+  `Resource` as a type-only export — `new Resource(...)` fails TypeScript with `verbatimModuleSyntax`
+  enabled. Instead, `serviceName` is passed directly to the `opentelemetry()` plugin config, which
+  forwards it to NodeSDK's `serviceName` option. NodeSDK handles resource creation internally.
+  `@opentelemetry/resources` and `@opentelemetry/semantic-conventions` were not installed.
+- **No explicit `BatchSpanProcessor`**: `traceExporter` is passed directly to the plugin;
+  NodeSDK wraps it in a `BatchSpanProcessor` internally. Avoids importing `sdk-trace-base` directly.
+- **No `AsyncLocalStorageContextManager` override**: NodeSDK 0.200+ uses `AsyncLocalStorageContextManager`
+  by default. No override was needed in testing — API started cleanly.
+
+### Gotchas & surprises
+
+- `@opentelemetry/resources` 2.x exports `Resource` as `export type { Resource }` in its index —
+  this is a class but the ESM declaration uses type-only re-export. With `verbatimModuleSyntax: true`,
+  TypeScript treats it as type-only and rejects `new Resource(...)`. The NodeSDK `serviceName`
+  shortcut is simpler anyway.
+- Connection errors to `localhost:4318` (ClickStack not running) appear in stderr at startup but
+  do NOT crash the API. The `BatchSpanProcessor` swallows export errors by design.
+- `PORT` env var in the worktree `.env.local` is set to 3001 (leftover from main repo). The API
+  started on 3001 but port was in use. Confirmed clean startup on 7799 explicitly.
+
+### Security notes
+
+No security-sensitive decisions. OTEL spans carry request URLs — `checkIfShouldTrace` excludes
+`/health` to avoid noise. Auth spans may include user context in future via `tracer` hooks.
+
+### Tests added
+
+None.
+
+### Future improvements
+
+- Add userId as span attribute on authenticated requests via the `authMiddleware` derive hook
+  using `tracer.startActiveSpan` or `context.with(trace.setSpan(...))`.
+- The `tracer` export in `telemetry.ts` is available for manual spans in route handlers; no
+  handlers use it yet.

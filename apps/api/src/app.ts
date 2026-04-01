@@ -1,12 +1,20 @@
 import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
+import { opentelemetry } from "@elysiajs/opentelemetry";
 import { Elysia } from "elysia";
 
 import { auth } from "./auth.ts";
 import { env } from "./env.ts";
 import { userRoutes } from "./routes/user.ts";
+import { telemetryConfig } from "./telemetry.ts";
 
 export const app = new Elysia({ prefix: "/api" })
+  .use(
+    opentelemetry({
+      ...telemetryConfig,
+      checkIfShouldTrace: (req) => !req.url.includes("/health"),
+    }),
+  )
   .use(
     cors({
       origin: env.ALLOWED_ORIGIN,
