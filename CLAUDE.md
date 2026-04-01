@@ -98,6 +98,9 @@ make db-generate  # drizzle-kit generate
 make db-migrate   # drizzle-kit migrate
 make db-seed      # Seed demo user
 make kill         # Kill processes on 7712 and 7713
+make docker-build # Build Docker images (web + api)
+make docker-up    # Start Docker Compose stack
+make docker-down  # Stop Docker Compose stack
 ```
 
 Root-level npm scripts mirror Make targets:

@@ -1,0 +1,61 @@
+services:
+  web:
+    build:
+      context: .
+      target: web
+    ports:
+      - "7712:7712"
+    environment:
+      PORT: 7712
+      API_INTERNAL_URL: http://api:7713
+    depends_on:
+      api:
+        condition: service_started
+
+  api:
+    build:
+      context: .
+      target: api
+    ports:
+      - "7713:7713"
+    environment:
+      PORT: 7713
+      DATABASE_URL: postgresql://cbbi:cbbi@postgres:5432/cbbi
+      BETTER_AUTH_SECRET: change-me-in-production-at-least-32-chars
+      BETTER_AUTH_URL: http://api:7713
+      ALLOWED_ORIGIN: http://localhost:7712
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318
+      OTEL_SERVICE_NAME: cbbi-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: cbbi
+      POSTGRES_PASSWORD: cbbi
+      POSTGRES_DB: cbbi
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cbbi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  # Optional: HyperDX ClickStack for observability.
+  # The user manages this separately — included here for reference.
+  # Uncomment to run as part of the stack.
+  #
+  # clickstack:
+  #   image: docker.hyperdx.io/hyperdx/hyperdx-all-in-one
+  #   ports:
+  #     - "8080:8080"   # HyperDX UI
+  #     - "4317:4317"   # OTLP gRPC
+  #     - "4318:4318"   # OTLP HTTP
+
+volumes:
+  pgdata:

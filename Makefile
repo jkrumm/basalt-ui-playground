@@ -1,5 +1,6 @@
 .PHONY: dev start build check fmt fmt-fix lint typecheck test clean \
-        db-setup db-generate db-migrate db-seed db-studio kill
+        db-setup db-generate db-migrate db-seed db-studio kill \
+        docker-build docker-up docker-down
 
 dev: kill
 	bun run dev:web & bun run dev:api
@@ -49,3 +50,12 @@ db-seed:
 
 db-studio:
 	bun run db:studio
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down

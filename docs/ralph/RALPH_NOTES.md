@@ -537,3 +537,32 @@ None.
 ### Future improvements
 - Consider adding `eslint-plugin-jotai` if it gains flat config support — would provide atomWithStorage naming conventions.
 - Stylelint rules are minimal — could add Blueprint-specific CSS property ordering rules if CSS grows.
+
+## Group 12: Production Server + Docker
+
+### What was implemented
+Production SSR server (`apps/web/server.ts`) using `Bun.serve()` with static asset serving, API reverse proxy, and SSR fallback. Multi-stage Dockerfile with separate `web` and `api` targets. Docker Compose stack with web, api, and postgres services. Makefile targets for docker-build/up/down.
+
+### Deviations from prompt
+- ClickStack service commented out in compose.yml per prompt guidance that user manages it separately.
+- Used `cd apps/web && bun run build` instead of `bun run --filter` in Dockerfile — Bun's `--filter` uses package names, not directory names, and the workspace resolution doesn't work the same inside Docker.
+- Skipped the `start` Makefile target (local production mode) — `bun run start` already works via root package.json.
+
+### Gotchas & surprises
+- TanStack Start's Vite plugin builds to `dist/server/server.js` (default export with `.fetch()` method) and `dist/client/` for static assets. No Nitro/Vinxi — the Vite 8 plugin outputs a plain ESM module.
+- `bun install --production=false` is not valid syntax — Bun doesn't accept `=false` for boolean flags. Just `bun install --frozen-lockfile` installs everything including devDependencies by default.
+- The built server.js uses `import.meta` and dynamic imports internally, so it must be imported with `await import()` at runtime.
+- API proxy needs error handling — without it, a connection refused from the API server falls through to the SSR handler and returns an HTML page instead of a proper error.
+
+### Security notes
+- compose.yml uses placeholder `BETTER_AUTH_SECRET` — documented that it must be changed in production.
+- `.dockerignore` excludes `.env.local` to prevent secrets from leaking into Docker build context.
+
+### Tests added
+None — validated manually via Docker build + run + curl.
+
+### Future improvements
+- Add nginx/Caddy reverse proxy for production deployments instead of the built-in API proxy.
+- Add health check endpoint to the web server for Docker healthcheck.
+- Consider `oven/bun:distroless` for even smaller production images.
+- Add `docker compose --profile` to make ClickStack opt-in rather than commented out.
