@@ -1,0 +1,90 @@
+---
+title: "Stack Overview"
+description: "Tech stack table with actual versions, architecture diagram, and key design decisions."
+section: "Architecture"
+order: 0
+---
+
+## Architecture
+
+The CBBI Blueprint is a Bun monorepo with three packages:
+
+```
+┌──────────────────────────────────────────────┐
+│                   Browser                     │
+│  TanStack Start · Blueprint v6 · Jotai        │
+│  HyperDX RUM · Umami Analytics                │
+│         ↓ EdenTreaty (typed HTTP)             │
+├──────────────────────────────────────────────┤
+│              Vite Dev Proxy /api              │
+│      (Production: Bun.serve reverse proxy)    │
+├──────────────────────────────────────────────┤
+│               Elysia API (:7713)              │
+│  BetterAuth · Drizzle v1 · OTEL              │
+│         ↓ postgres.js                         │
+├──────────────────────────────────────────────┤
+│             PostgreSQL (pgSchema)              │
+│         basalt_ui_playground.*                 │
+└──────────────────────────────────────────────┘
+```
+
+## Tech Stack
+
+| Concern    | Choice                  | Version     |
+| ---------- | ----------------------- | ----------- |
+| Runtime    | Bun                     | >=1.3       |
+| Language   | TypeScript              | 6.0         |
+| Frontend   | TanStack Start          | >=1.167     |
+| Router     | TanStack Router         | >=1.168     |
+| Query      | TanStack Query          | >=5.96      |
+| Build      | Vite                    | >=8.0       |
+| UI         | Blueprint v6            | >=6.10      |
+| State      | Jotai                   | >=2.19      |
+| CSS        | Tailwind CSS            | >=4.2       |
+| API        | Elysia                  | 1.4         |
+| API Client | EdenTreaty              | 1.4         |
+| Auth       | better-auth             | >=1.5       |
+| ORM        | drizzle-orm             | 1.0.0-beta  |
+| DB         | PostgreSQL              | 17          |
+| Validation | Zod                     | >=4.3       |
+| RUM        | @hyperdx/browser        | >=0.22      |
+| Telemetry  | @elysiajs/opentelemetry | 1.4         |
+| Lint       | oxlint + ESLint         | >=1.58 / 10 |
+| Format     | oxfmt                   | >=0.43      |
+
+## Key Design Decisions
+
+### Why Bun?
+
+Single runtime for everything — API server, build tooling, package management, test runner.
+No node/npm/pnpm split. Bun workspaces replace pnpm workspaces with less configuration.
+
+### Why Elysia over Hono?
+
+End-to-end type safety with EdenTreaty. Elysia's type system propagates route definitions
+to the client — changes to an API response type are immediately visible in frontend code.
+Plugin ecosystem (CORS, OpenAPI, OpenTelemetry) is first-class.
+
+### Why TanStack Start?
+
+SSR-first React meta-framework with file-based routing and server functions. Built on
+Vite 8 (not Vinxi/Nitro). Provides `beforeLoad` for auth guards and data prefetching
+without render-then-redirect patterns.
+
+### Why Blueprint v6?
+
+Data-dense UI components designed for complex dashboards. Intent system (primary, success,
+warning, danger) maps naturally to financial data visualization. Pairs with Tailwind for
+layout utilities while Blueprint handles component styling.
+
+### Why Jotai over Zustand?
+
+Atomic state model fits naturally with React's component tree. No boilerplate stores —
+atoms compose. `atomWithStorage` provides cookie-backed persistence for theme preferences
+with SSR support.
+
+### Why Drizzle v1 Beta?
+
+Forward-looking choice. v1 beta API is the future; starting with it avoids a migration
+later. `pgSchema` isolation keeps tables in `basalt_ui_playground` namespace, preventing
+conflicts with other applications sharing the same database.

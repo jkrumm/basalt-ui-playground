@@ -1,0 +1,139 @@
+---
+title: "Observability"
+description: "OTEL backend setup, HyperDX browser SDK, trace linking, and ClickStack self-hosted setup."
+section: "Architecture"
+order: 4
+---
+
+## Architecture
+
+Observability spans three layers:
+
+```
+Browser (HyperDX)  →  SSR (OTEL propagation)  →  API (@elysiajs/opentelemetry)
+     ↓                        ↓                          ↓
+     └────────── traceparent header ──────────────────────┘
+                          ↓
+              HyperDX ClickStack (self-hosted)
+              OTLP HTTP on :4318
+```
+
+## Backend: Elysia OTEL
+
+`@elysiajs/opentelemetry` instruments all Elysia routes automatically:
+
+```typescript
+// apps/api/src/app.ts
+app.use(
+  opentelemetry({
+    serviceName: env.OTEL_SERVICE_NAME,
+    traceExporter: new OTLPTraceExporter({
+      url: `${env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces`,
+    }),
+    checkIfShouldTrace: (req) => !req.url.includes("/health"),
+  }),
+);
+```
+
+The `serviceName` is passed directly to the plugin — NodeSDK handles `Resource` creation
+internally. No need to import `@opentelemetry/resources` or `@opentelemetry/semantic-conventions`.
+
+A manual `tracer` is also exported from `telemetry.ts` for custom spans in route handlers.
+
+<Admonition type="tip" title="Connection errors are safe">
+  If ClickStack isn't running, the `BatchSpanProcessor` swallows export errors silently. The API
+  starts and runs normally — traces are just dropped.
+</Admonition>
+
+## Frontend: HyperDX Browser SDK
+
+`@hyperdx/browser` provides session replay, console capture, and network capture:
+
+```typescript
+// apps/web/src/lib/hyperdx.ts
+HyperDX.init({
+  apiKey: import.meta.env.VITE_HYPERDX_API_KEY,
+  service: "cbbi-web",
+  tracePropagationTargets: [/\/api\//],
+  consoleCapture: true,
+  advancedNetworkCapture: true,
+});
+```
+
+### Trace Propagation
+
+`tracePropagationTargets: [/\/api\//]` tells HyperDX to inject a `traceparent` header on
+any fetch to `/api/*`. This links browser spans to API spans in ClickStack, creating
+end-to-end traces across the full request lifecycle.
+
+### User Identification
+
+Authenticated users are identified in the `_protected.tsx` layout:
+
+```typescript
+HyperDX.setGlobalAttributes({
+  userId: user.id,
+  userEmail: user.email,
+  userName: user.name,
+});
+```
+
+This attaches user context to all subsequent spans and session replay recordings.
+
+## SSR Trace Context
+
+Server functions can propagate trace context from the browser to API calls using
+`@opentelemetry/api`:
+
+```typescript
+import { propagation, context } from "@opentelemetry/api";
+
+// Inject traceparent into outgoing headers
+const headers: Record<string, string> = {};
+propagation.inject(context.active(), headers);
+```
+
+This is a no-op if no OTEL SDK is registered on the SSR side — safe to call unconditionally.
+
+## ClickStack Setup
+
+HyperDX ClickStack is self-hosted. **No passwords or tokens are validated** — the API key
+can be any non-empty string.
+
+### Environment Variables
+
+```bash
+# API (backend traces)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # dev
+OTEL_EXPORTER_OTLP_ENDPOINT=http://clickstack:4318  # docker
+OTEL_SERVICE_NAME=cbbi-api
+
+# Web (browser RUM)
+VITE_HYPERDX_API_KEY=dev                              # any non-empty string
+VITE_HYPERDX_SERVICE_NAME=cbbi-web
+```
+
+### Docker Compose
+
+ClickStack is included in `compose.yml` but commented out (managed separately):
+
+```yaml
+# clickstack:
+#   image: docker.hyperdx.io/hyperdx/hyperdx-all-in-one
+#   ports:
+#     - "8080:8080"   # HyperDX UI
+#     - "4317:4317"   # OTLP gRPC
+#     - "4318:4318"   # OTLP HTTP
+```
+
+## Umami Analytics
+
+Umami is configured via environment variables and injected as a script tag:
+
+```bash
+VITE_UMAMI_SCRIPT_URL=    # Leave empty to disable
+VITE_UMAMI_WEBSITE_ID=
+```
+
+Auto-tracking is disabled — the `RouteTracker` component handles SPA navigation events
+with typed custom properties. Scroll depth tracking via `useScrollDepth` hook on content pages.

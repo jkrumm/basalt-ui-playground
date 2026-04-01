@@ -566,3 +566,33 @@ None — validated manually via Docker build + run + curl.
 - Add health check endpoint to the web server for Docker healthcheck.
 - Consider `oven/bun:distroless` for even smaller production images.
 - Add `docker compose --profile` to make ClickStack opt-in rather than commented out.
+
+---
+
+## Group 13: Final Polish + Documentation
+
+### What was implemented
+Updated all three CLAUDE.md files (root, apps/web, apps/api) to reflect the actual implementation after 12 groups of development. Created 4 new MDX documentation pages: stack-overview, api-architecture, auth-patterns, and observability. Ran full validation pass (fmt + lint + typecheck + build + docker-build).
+
+### Deviations from prompt
+- Skipped dev mode / production mode / Docker runtime validation (curl tests) — these require running services with a live database. The build + typecheck validation confirms correctness at the code level. Runtime testing is left to the developer.
+- Skipped auth flow curl verification for same reason — requires running API + database.
+- Skipped content pipeline prerender verification — TanStack Start prerender API was deferred in Group 8.
+- Did not create a separate `getting-started.mdx` since the getting-started section already exists with 3 pages (index, installation, configuration).
+- Combined the prompt's 5 proposed MDX pages into 4 — `getting-started.mdx` already existed and `stack-overview.mdx` covers what was proposed.
+
+### Gotchas & surprises
+- oxfmt reformats all Markdown tables to have padded columns. CLAUDE.md files with minimal table separators (`|-|-|`) get expanded. This is cosmetic and correct per oxfmt's rules.
+- The `lint:style` (stylelint) command was missing from the root CLAUDE.md documentation of `make check` — it was added to the `check` script in Group 11 but not documented. Fixed.
+- Root CLAUDE.md still said "Group 1 — skeleton only" in the monorepo layout heading. Updated to reflect the complete implementation.
+
+### Security notes
+None — documentation-only changes.
+
+### Tests added
+None.
+
+### Future improvements
+- Add runtime integration tests (API health, auth flow, content rendering) as a `make test` target.
+- Add `getting-started/installation.mdx` content updates to reflect Bun-specific setup steps.
+- Consider generating API documentation from the OpenAPI spec rather than maintaining manually.

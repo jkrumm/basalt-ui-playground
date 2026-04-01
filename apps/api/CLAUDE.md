@@ -7,12 +7,13 @@ src/
 ├── env.ts          # Zod v4 env validation (parse-at-startup, fail fast)
 ├── app.ts          # Elysia instance with plugins and routes — NO .listen()
 ├── index.ts        # Entry: imports app, calls .listen()
-├── auth.ts         # BetterAuth instance (Group 4)
-├── db.ts           # Drizzle v1 instance (Group 3)
-├── telemetry.ts    # OpenTelemetry setup (Group 3)
-├── schema/         # Drizzle table definitions (Group 3)
-├── routes/         # Elysia route modules (Group 5+)
-└── seed.ts         # Demo user seeding (Group 3)
+├── auth.ts         # BetterAuth instance (email/password, Drizzle adapter, rate limiting)
+├── db.ts           # Drizzle v1 beta instance (pgSchema: basalt_ui_playground)
+├── telemetry.ts    # OpenTelemetry setup (OTLPTraceExporter + tracer)
+├── schema/         # Drizzle table definitions (auth tables + user_preferences)
+├── routes/         # Elysia route modules (user.ts)
+├── middleware/      # Auth middleware (derive + macro pattern)
+└── seed.ts         # Demo user seeding (argon2id hashed)
 ```
 
 ## Key Patterns
@@ -22,16 +23,15 @@ src/
 Route modules are `Elysia` instances registered via `.use()`:
 
 ```ts
-// src/routes/users.ts
+// src/routes/user.ts
 import { Elysia } from "elysia";
 
-export const users = new Elysia({ prefix: "/users" })
-  .get("/", () => [...])
-  .post("/", ({ body }) => ...);
+export const userRoutes = new Elysia({ prefix: "/user" })
+  .use(authMiddleware)
+  .get("/me", ({ user }) => user, { auth: true });
 
 // src/app.ts
-import { users } from "./routes/users.ts";
-app.use(users);
+app.use(userRoutes);
 ```
 
 ### App Type for EdenTreaty
@@ -39,36 +39,28 @@ app.use(users);
 The `App` type is exported from `app.ts` (not `index.ts`). Web app imports it:
 
 ```ts
-import { treaty } from "@elysiajs/eden";
 import type { App } from "@cbbi/api";
-
 const api = treaty<App>("http://localhost:7713");
 ```
 
-### BetterAuth Mount (Group 4)
+### BetterAuth Mount
 
-`prefix: "/api"` is **NOT applied** to `.mount()` — mount paths are absolute. BetterAuth's
-default `basePath` is `/api/auth`, so the mount must use the full path:
+`app.prefix` is `/api`. `.mount()` ignores the prefix scope, so use `.all()` instead:
 
 ```ts
-// CORRECT — Elysia prefix does NOT apply to .mount(), so use the full path
-app.mount("/api/auth", auth.handler);
+// CORRECT — .all() respects prefix, resolves to /api/auth/*
+app.all("/auth/*", ({ request }) => auth.handler(request));
 
-// WRONG — prefix is not applied, so this would be at /auth/* only
+// WRONG — .mount() ignores prefix
 // app.mount("/auth", auth.handler);
 ```
 
-**Why `.all()` instead of `.mount()`**: `.all("/auth/*", ({ request }) => auth.handler(request))`
-respects the prefix scope AND passes the full request URL to BetterAuth, matching its default
-`basePath: "/api/auth"`.
-
-### Auth Middleware Pattern (Group 4)
+### Auth Middleware Pattern
 
 `derive` + `macro` — session fetched once per request, guard via `beforeHandle`:
 
 ```ts
 // Elysia lifecycle: derive → beforeHandle → handler
-// resolve runs before beforeHandle — do NOT use resolve for auth checks
 // Use derive (nullable user) + beforeHandle gate (401 if null)
 
 export const authMiddleware = new Elysia({ name: "auth" })
@@ -99,8 +91,7 @@ non-null in the guarded scope.
 Env is validated at startup via `src/env.ts`. Missing required vars (DATABASE_URL,
 BETTER_AUTH_SECRET) will throw immediately with a clear Zod error.
 
-`PORT` defaults to 7713 — set in `.env` as `API_PORT=7713` for the Makefile/scripts
-(which pass it explicitly), but the API server reads `PORT` directly.
+`PORT` defaults to 7713. `BETTER_AUTH_SECRET` enforced minimum 32 chars.
 
 ### Elysia + Zod
 
@@ -114,11 +105,40 @@ const Body = z.object({ name: z.string() });
 app.post("/", ({ body }) => body, { body: Body });
 ```
 
+### Drizzle v1 Beta
+
+```typescript
+// CORRECT v1 beta API:
+export const db = drizzle({ client, schema: { ...tables } });
+
+// WRONG (old v0 — silently ignores client):
+export const db = drizzle(client, { schema });
+```
+
+- pgSchema: `basalt_ui_playground` (isolated from public schema)
+- Config files use `process.env["KEY"]` bracket notation (TS 6.0 strict, TS4111)
+- `db.select()` for queries (no `defineRelations()` needed)
+
+### OpenTelemetry
+
+`@elysiajs/opentelemetry` wired as first plugin in `app.ts`. `serviceName` passed directly
+to plugin config (NodeSDK handles resource creation internally). Health endpoint excluded
+from tracing via `checkIfShouldTrace`.
+
+`tracer` export available for manual spans in route handlers.
+
+## Plugin Order in app.ts
+
+```
+opentelemetry → cors → openapi → auth (.all) → health → routes → onError
+```
+
 ## Scripts
 
 | Command               | Effect                      |
 | --------------------- | --------------------------- |
 | `bun run dev`         | Watch mode (`--watch`)      |
+| `bun run start`       | Production start            |
 | `bun run typecheck`   | TypeScript check            |
 | `bun run db:generate` | Generate Drizzle migrations |
 | `bun run db:migrate`  | Run migrations              |

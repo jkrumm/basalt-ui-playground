@@ -1,0 +1,119 @@
+---
+title: "Auth Patterns"
+description: "BetterAuth integration, SSR session resolution, protected routes, and auth client usage."
+section: "Architecture"
+order: 3
+---
+
+## Overview
+
+Authentication uses [better-auth](https://www.better-auth.com/) with email/password.
+The auth server lives in `apps/api/src/auth.ts`, and the web app communicates via the
+BetterAuth React client and SSR server functions.
+
+## Auth Server (API)
+
+```typescript
+// apps/api/src/auth.ts
+export const auth = betterAuth({
+  database: drizzleAdapter(db, { provider: "pg" }),
+  emailAndPassword: { enabled: true },
+  trustedOrigins: [env.ALLOWED_ORIGIN],
+  // Rate limiting: 10 req/min global, 5 req/min for sign-in
+});
+```
+
+BetterAuth handles session tokens via httpOnly cookies (`better-auth.session_token`).
+
+## Auth Client (Web)
+
+```typescript
+// apps/web/src/lib/auth-client.ts
+import { createAuthClient } from "better-auth/react";
+
+export const authClient = createAuthClient({
+  baseURL: import.meta.env.VITE_API_URL ?? "",
+});
+```
+
+Usage in components:
+
+```tsx
+const { data: session, isPending } = authClient.useSession();
+
+// Sign in
+await authClient.signIn.email({ email, password });
+
+// Sign out
+await authClient.signOut();
+```
+
+## SSR Session Resolution
+
+Server functions use `getRequestHeader("cookie")` to forward the browser's session cookie
+to BetterAuth for server-side verification:
+
+```typescript
+// apps/web/src/lib/auth.functions.ts
+import { getRequestHeader } from "@tanstack/react-start/server";
+
+export const getSessionFn = createServerFn({ method: "GET" }).handler(async () => {
+  const cookie = getRequestHeader("cookie");
+  const response = await fetch("http://localhost:7713/api/auth/get-session", {
+    headers: { cookie: cookie ?? "" },
+  });
+  return response.json();
+});
+```
+
+<Admonition type="info" title="Why not getWebRequest()?">
+  `getWebRequest()` was removed in recent TanStack Start versions. The new API exposes
+  purpose-specific helpers like `getRequestHeader(name)` and `getCookie(name)`.
+</Admonition>
+
+## Protected Routes
+
+The `_protected.tsx` pathless layout enforces authentication via `beforeLoad`:
+
+```typescript
+// apps/web/src/routes/_protected.tsx
+export const Route = createFileRoute("/_protected")({
+  beforeLoad: async () => {
+    const session = await getSessionFn();
+    if (!session?.user) {
+      throw redirect({ to: "/sign-in" });
+    }
+    return { user: session.user };
+  },
+  component: ProtectedLayout,
+});
+```
+
+`beforeLoad` runs before the component renders — there is no flash of unauthenticated content.
+Child routes (`/settings`, `/account`) inherit the `user` from route context.
+
+## HyperDX User Identification
+
+The protected layout identifies authenticated users for session replay:
+
+```typescript
+function ProtectedLayout() {
+  const { user } = Route.useRouteContext();
+  if (typeof window !== "undefined") {
+    identifyUser({ id: user.id, email: user.email, name: user.name });
+  }
+  return <Outlet />;
+}
+```
+
+## Demo User
+
+Seed the demo user with `make db-seed`:
+
+| Field    | Value            |
+| -------- | ---------------- |
+| Email    | demo@example.com |
+| Password | demo1234         |
+| Name     | Demo User        |
+
+The seed script hashes the password with Argon2id (matching BetterAuth's default hasher).

@@ -1,0 +1,126 @@
+---
+title: "API Architecture"
+description: "Elysia app structure, route modules, auth middleware macro, and EdenTreaty type export."
+section: "Architecture"
+order: 2
+---
+
+## Elysia App Structure
+
+The API lives in `apps/api/`. The app instance is split across two files:
+
+- **`app.ts`** — Elysia instance with plugins and routes. Exports the `App` type for EdenTreaty.
+- **`index.ts`** — Entry point that imports `app` and calls `.listen()`.
+
+This split lets the web app import the `App` type without pulling in the server bootstrap.
+
+## Plugin Order
+
+```typescript
+// app.ts — order matters
+const app = new Elysia({ prefix: "/api" })
+  .use(opentelemetry(...))   // Must be first (instruments all downstream)
+  .use(cors(...))
+  .use(openapi(...))
+  .all("/auth/*", ...)       // BetterAuth handler
+  .get("/health", ...)       // Health check
+  .use(userRoutes)           // Route modules
+  .onError(...)              // Global error handler
+```
+
+## Route Modules
+
+Each domain gets its own `Elysia` instance in `src/routes/`:
+
+```typescript
+// src/routes/user.ts
+export const userRoutes = new Elysia({ prefix: "/user" })
+  .use(authMiddleware)
+  .get("/me", ({ user }) => ({
+    id: user!.id,
+    email: user!.email,
+    name: user!.name,
+  }), { auth: true })
+  .get("/preferences", ...)
+  .patch("/preferences", ...);
+```
+
+The `{ auth: true }` option triggers the auth macro's `beforeHandle` guard.
+
+## Auth Middleware
+
+The middleware uses Elysia's `derive` + `macro` pattern:
+
+1. **`derive`** runs on every request — fetches the session (nullable)
+2. **`macro.auth`** — when `{ auth: true }` is set, adds a `beforeHandle` that returns 401 if no session
+
+```
+Request → derive (session lookup) → beforeHandle (401 gate) → handler
+```
+
+<Admonition type="warning" title="Lifecycle gotcha">
+  Do NOT use `resolve` for auth — it runs before `beforeHandle`, so the guard hasn't executed yet.
+  Always use `derive` (nullable) + `beforeHandle` (gate).
+</Admonition>
+
+## BetterAuth Mount
+
+Elysia's `.mount()` ignores the `prefix` scope — paths are absolute. Since the app uses
+`prefix: "/api"`, BetterAuth is mounted via `.all()` instead:
+
+```typescript
+// .all() respects prefix → resolves to /api/auth/*
+app.all("/auth/*", ({ request }) => auth.handler(request));
+```
+
+## EdenTreaty Type Export
+
+The `App` type is exported from `app.ts`:
+
+```typescript
+export type App = typeof app;
+```
+
+The web app imports it as a dev dependency:
+
+```typescript
+import { treaty } from "@elysiajs/eden";
+import type { App } from "@cbbi/api";
+
+const api = treaty<App>(""); // same-origin (proxied)
+```
+
+## Standard Schema (Zod v4)
+
+Elysia 1.4 supports Standard Schema natively. Zod v4 schemas work directly in route
+definitions without any adapter plugin:
+
+```typescript
+import { z } from "zod";
+
+app.patch(
+  "/preferences",
+  ({ body, userId }) => {
+    // body is typed from the Zod schema
+  },
+  {
+    auth: true,
+    body: z.object({
+      viewMode: z.enum(["grid", "table"]).optional(),
+      sortBy: z.string().optional(),
+    }),
+  },
+);
+```
+
+## OpenAPI Docs
+
+`@elysiajs/openapi` with Scalar UI at `/api/scalar`. Auto-generates OpenAPI spec from
+route definitions and Zod schemas.
+
+## Environment Validation
+
+`src/env.ts` validates all env vars at startup using Zod. Missing required vars
+(`DATABASE_URL`, `BETTER_AUTH_SECRET`) throw immediately with clear error messages.
+
+`BETTER_AUTH_SECRET` enforces a minimum of 32 characters.
