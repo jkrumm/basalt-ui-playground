@@ -1,5 +1,5 @@
 {
-  "name": "@cbbi/schemas",
+  "name": "@basalt-ui-playground/schemas",
   "private": true,
   "type": "module",
   "exports": {

@@ -10,10 +10,10 @@ export function initHyperDX() {
 
   HyperDX.init({
     apiKey,
-    service: import.meta.env.VITE_HYPERDX_SERVICE_NAME ?? "cbbi-web",
+    service: import.meta.env.VITE_HYPERDX_SERVICE_NAME ?? "basalt-ui-playground-web",
     // For self-hosted ClickStack: point at your collector HTTP endpoint.
-    // The SDK defaults to HyperDX cloud if url is omitted.
-    url: import.meta.env.VITE_HYPERDX_ENDPOINT ?? "http://localhost:8080",
+    // VPS dev.compose.yml maps 7707:8080 — the SDK defaults to HyperDX cloud if url is omitted.
+    url: import.meta.env.VITE_HYPERDX_ENDPOINT ?? "http://localhost:7707",
     tracePropagationTargets: [/\/api\//],
     consoleCapture: true,
     advancedNetworkCapture: true,

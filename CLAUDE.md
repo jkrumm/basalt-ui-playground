@@ -1,4 +1,4 @@
-# cbbi-blueprint — Project Configuration
+# basalt-ui-playground — Project Configuration
 
 ## Project Purpose
 
@@ -49,14 +49,13 @@ basalt-ui-playground/
 │       ├── drizzle/            # Migrations
 │       └── package.json
 ├── packages/
-│   └── schemas/                # Shared Zod v4 schemas (@cbbi/schemas)
+│   └── schemas/                # Shared Zod v4 schemas (@basalt-ui-playground/schemas)
 │       └── src/
 │           ├── auth.ts
 │           ├── user.ts
 │           ├── user-preferences.ts
 │           └── index.ts
 ├── scripts/
-│   ├── setup-cbbi-db.sql       # Postgres provisioning (run as superuser)
 │   └── kill-ports.sh           # Kill 7712/7713
 ├── docs/
 │   └── ralph/                  # RALPH loop state and learning notes
@@ -135,7 +134,6 @@ make fmt          # oxfmt check (read-only)
 make fmt-fix      # oxfmt write
 make lint         # oxlint + eslint
 make typecheck    # tsc --noEmit across all workspaces
-make db-setup     # Run scripts/setup-cbbi-db.sql via psql
 make db-generate  # drizzle-kit generate
 make db-migrate   # drizzle-kit migrate
 make db-seed      # Seed demo user
@@ -174,7 +172,7 @@ import { foo } from "./bar.ts";
 Internal packages use `workspace:*` protocol:
 
 ```json
-{ "@cbbi/schemas": "workspace:*" }
+{ "@basalt-ui-playground/schemas": "workspace:*" }
 ```
 
 ### Drizzle v1 Beta API

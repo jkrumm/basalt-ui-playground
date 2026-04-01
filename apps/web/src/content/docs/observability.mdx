@@ -53,7 +53,7 @@ A manual `tracer` is also exported from `telemetry.ts` for custom spans in route
 // apps/web/src/lib/hyperdx.ts
 HyperDX.init({
   apiKey: import.meta.env.VITE_HYPERDX_API_KEY,
-  service: "cbbi-web",
+  service: import.meta.env.VITE_HYPERDX_SERVICE_NAME ?? "basalt-ui-playground-web",
   tracePropagationTargets: [/\/api\//],
   consoleCapture: true,
   advancedNetworkCapture: true,
@@ -106,11 +106,11 @@ can be any non-empty string.
 # API (backend traces)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # dev
 OTEL_EXPORTER_OTLP_ENDPOINT=http://clickstack:4318  # docker
-OTEL_SERVICE_NAME=cbbi-api
+OTEL_SERVICE_NAME=basalt-ui-playground-api
 
 # Web (browser RUM)
 VITE_HYPERDX_API_KEY=dev                              # any non-empty string
-VITE_HYPERDX_SERVICE_NAME=cbbi-web
+VITE_HYPERDX_SERVICE_NAME=basalt-ui-playground-web
 ```
 
 ### Docker Compose

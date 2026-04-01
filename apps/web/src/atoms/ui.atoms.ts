@@ -1,4 +1,4 @@
-import type { UserPreferences } from "@cbbi/schemas";
+import type { UserPreferences } from "@basalt-ui-playground/schemas";
 import { atom } from "jotai";
 import { atomWithStorage } from "jotai/utils";
 
@@ -6,6 +6,6 @@ import { atomWithStorage } from "jotai/utils";
 export const searchOpenAtom = atom<boolean>(false);
 
 // Persistent atoms — survive page refresh via localStorage
-export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>("cbbi-view-mode", "grid");
+export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>("basalt-view-mode", "grid");
 
-export const sortByAtom = atomWithStorage<UserPreferences["sortBy"]>("cbbi-sort-by", "default");
+export const sortByAtom = atomWithStorage<UserPreferences["sortBy"]>("basalt-sort-by", "default");

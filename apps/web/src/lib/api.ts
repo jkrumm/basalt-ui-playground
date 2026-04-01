@@ -1,5 +1,5 @@
 import { treaty } from "@elysiajs/eden";
-import type { App } from "@cbbi/api";
+import type { App } from "@basalt-ui-playground/api";
 
 function getBaseUrl(): string {
   if (typeof window === "undefined") {

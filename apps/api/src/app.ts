@@ -26,7 +26,7 @@ export const app = new Elysia({ prefix: "/api" })
     openapi({
       documentation: {
         info: {
-          title: "CBBI API",
+          title: "Basalt UI Playground API",
           version: "1.0.0",
         },
       },
@@ -36,7 +36,7 @@ export const app = new Elysia({ prefix: "/api" })
     }),
   )
   // .mount() ignores the prefix scope; use .all() so prefix "/api" is applied normally
-  .all("/auth/*", ({ request }) => auth.handler(request))
+  .all("/auth/*", ({ request }) => auth.handler(request), { detail: { hide: true } })
   .get("/health", () => ({
     status: "ok",
     timestamp: new Date().toISOString(),

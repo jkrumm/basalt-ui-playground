@@ -57,7 +57,7 @@ virtual module. `StartClient` takes zero props (router resolved internally).
 
 ```ts
 import { treaty } from "@elysiajs/eden";
-import type { App } from "@cbbi/api";
+import type { App } from "@basalt-ui-playground/api";
 
 const api = treaty<App>(typeof window === "undefined" ? "http://localhost:7713" : "");
 ```

@@ -39,7 +39,7 @@ app.use(userRoutes);
 The `App` type is exported from `app.ts` (not `index.ts`). Web app imports it:
 
 ```ts
-import type { App } from "@cbbi/api";
+import type { App } from "@basalt-ui-playground/api";
 const api = treaty<App>("http://localhost:7713");
 ```
 

@@ -109,16 +109,16 @@ table column visibility, sidebar collapsed state.
 **Primitive:** Jotai `atomWithStorage()` — defined in `src/atoms/`
 
 ```typescript filename="apps/web/src/atoms/ui.atoms.ts"
-import type { UserPreferences } from "@cbbi/schemas";
+import type { UserPreferences } from "@basalt-ui-playground/schemas";
 import { atomWithStorage } from "jotai/utils";
 
-// Persists to localStorage under 'cbbi-view-mode'
+// Persists to localStorage under 'basalt-view-mode'
 export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>(
-  "cbbi-view-mode",
+  "basalt-view-mode",
   "grid", // default on first visit
 );
 
-export const sortByAtom = atomWithStorage<UserPreferences["sortBy"]>("cbbi-sort-by", "default");
+export const sortByAtom = atomWithStorage<UserPreferences["sortBy"]>("basalt-sort-by", "default");
 ```
 
 The `atomWithStorage` default value applies on first visit; after that, the stored value

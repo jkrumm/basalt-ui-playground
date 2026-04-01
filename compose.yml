@@ -20,13 +20,13 @@ services:
       - "7713:7713"
     environment:
       PORT: 7713
-      DATABASE_URL: postgresql://cbbi:cbbi@postgres:5432/cbbi
+      DATABASE_URL: postgresql://basalt_ui_playground:${BASALT_UI_PLAYGROUND_DB_PASSWORD:?must be set}@postgres:5432/basalt_ui_playground
       # Set BETTER_AUTH_SECRET in your shell env or a .env file before running
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}
-      BETTER_AUTH_URL: http://api:7713
+      BETTER_AUTH_URL: http://api:7713/api/auth
       ALLOWED_ORIGIN: http://localhost:7712
       OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318
-      OTEL_SERVICE_NAME: cbbi-api
+      OTEL_SERVICE_NAME: basalt-ui-playground-api
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,11 +36,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: cbbi
-      POSTGRES_PASSWORD: cbbi
-      POSTGRES_DB: cbbi
+      POSTGRES_USER: basalt_ui_playground
+      POSTGRES_PASSWORD: ${BASALT_UI_PLAYGROUND_DB_PASSWORD:?must be set}
+      POSTGRES_DB: basalt_ui_playground
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U cbbi"]
+      test: ["CMD-SHELL", "pg_isready -U basalt_ui_playground"]
       interval: 5s
       timeout: 5s
       retries: 5

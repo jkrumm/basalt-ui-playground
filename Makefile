@@ -5,7 +5,7 @@
 dev: kill
 	bun run dev
 
-start: kill
+start:
 	bun run start
 
 build:

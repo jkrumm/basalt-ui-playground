@@ -1,5 +1,5 @@
 {
-  "name": "@cbbi/api",
+  "name": "@basalt-ui-playground/api",
   "private": true,
   "type": "module",
   "exports": {

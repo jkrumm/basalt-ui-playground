@@ -1,4 +1,4 @@
-import type { PatchUserPreferences } from "@cbbi/schemas";
+import type { PatchUserPreferences } from "@basalt-ui-playground/schemas";
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "../lib/api.ts";
 
