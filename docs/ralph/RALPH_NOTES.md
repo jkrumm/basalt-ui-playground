@@ -51,3 +51,53 @@ None — no test infrastructure yet at this stage.
   framework-specific rules are needed (Blueprint, TanStack Router, React Compiler).
 - `make dev` uses `&` backgrounding which doesn't cleanly propagate Ctrl+C. Consider `concurrently`
   or a Procfile approach in Group 2.
+
+---
+
+## Group 2: Elysia API Server (Core)
+
+### What was implemented
+
+Created `apps/api` with Elysia 1.4.28, `@elysiajs/cors` 1.4.1, `@elysiajs/openapi` 1.4.14,
+Zod v4 env validation, health endpoint at `/api/health`, and Scalar docs at `/api/scalar`.
+Split into `app.ts` (Elysia instance, no listen) and `index.ts` (entry with `.listen()`).
+
+### Deviations from prompt
+
+- `DATABASE_URL` uses `z.string().min(1)` instead of `z.string().url()` — `postgresql://` is not
+  a valid HTTP URL and Zod v4's URL validator would reject it.
+- `BETTER_AUTH_URL` default set to `http://localhost:7713` (API port) not `http://localhost:7712`
+  (web port). In BetterAuth, `baseURL` points to the auth server itself (the API), not the client.
+  The prompt had a likely typo.
+- `@types/bun` package is installed but the tsconfig `types` entry uses `"bun"` (not `"bun-types"`).
+  The package name under `@types/` determines the tsconfig key.
+- `package.json` devDependencies: `bun-types` swapped for `@types/bun` (current standard).
+- `onError` handler returns typed `Response` objects rather than raw strings, for consistent status codes.
+
+### Gotchas & surprises
+
+- `@elysiajs/swagger` is deprecated (last published 7 months ago). `@elysiajs/openapi` is the
+  current package — confirmed on npm.
+- `@types/bun` is the current package (not `bun-types`). tsconfig `types` entry is `"bun"`.
+- Elysia 1.4.x supports Standard Schema natively — Zod v4 schemas work in route definitions
+  without any plugin.
+- oxfmt reformatted CLAUDE.md table columns (padded cell widths). This is cosmetic.
+
+### Security notes
+
+- CORS is scoped to `ALLOWED_ORIGIN` (defaults to web app URL). `credentials: true` enables
+  cookie-based session sharing with BetterAuth.
+- `BETTER_AUTH_SECRET` minimum 32 chars enforced at startup via Zod.
+- No secrets in committed files.
+
+### Tests added
+
+None — no test infrastructure yet.
+
+### Future improvements
+
+- Add `concurrently` to `make dev` for clean Ctrl+C propagation (deferred from Group 1).
+- BetterAuth mounts in Group 4 must use `.mount("/auth", ...)` not `.mount("/api/auth", ...)` —
+  the app already has `prefix: "/api"`, so double prefix would break auth routes.
+- `OTEL_SERVICE_NAME` in `.env` is `basalt-ui-playground-api` but env schema defaults to
+  `cbbi-api`. The `.env` value wins at runtime — consistent.
