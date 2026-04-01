@@ -6,7 +6,14 @@
 declare global {
   interface Window {
     umami?: {
+      track(): void;
       track(event: string, data?: Record<string, string | number | boolean>): void;
+      track(
+        callback: (props: { url: string; title: string }) => {
+          url: string;
+          title: string;
+        },
+      ): void;
     };
   }
 }

@@ -1,11 +1,10 @@
-import { Button, Intent } from "@blueprintjs/core";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { createRootRoute, HeadContent, Link, Outlet, Scripts, useRouter } from "@tanstack/react-router";
-import { Provider, useAtom, useSetAtom } from "jotai";
-import { useEffect } from "react";
-import { searchOpenAtom, themeAtom } from "../atoms/index.ts";
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { Provider, useAtom } from "jotai";
+import { RouteTracker } from "../components/analytics/RouteTracker.tsx";
+import { ContentNav } from "../components/layout/ContentNav.tsx";
 import { SearchModal } from "../components/content/SearchModal.tsx";
-import { authClient } from "../lib/auth-client.ts";
+import { searchOpenAtom, themeAtom } from "../atoms/index.ts";
 import { getThemeFn } from "../lib/auth.functions.ts";
 import { store as jotaiStore } from "../lib/jotai-store.ts";
 import { queryClient } from "../lib/query-client.ts";
@@ -13,7 +12,6 @@ import appCss from "../styles/app.css?url";
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
-    // Skip server function call on client — atom reads cookie directly.
     if (typeof window !== "undefined") return { theme: undefined as "light" | "dark" | undefined };
     const theme = await getThemeFn();
     return { theme };
@@ -25,74 +23,27 @@ export const Route = createRootRoute({
       { title: "CBBI Blueprint — TanStack Start" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
+    scripts: umamiScript(),
   }),
   component: RootComponent,
 });
 
-function NavBar() {
-  const { data: session, isPending } = authClient.useSession();
-  const router = useRouter();
-  const [theme, setTheme] = useAtom(themeAtom, { store: jotaiStore });
-  const setSearchOpen = useSetAtom(searchOpenAtom, { store: jotaiStore });
-
-  const handleSignOut = async () => {
-    await authClient.signOut();
-    await router.navigate({ to: "/" });
-  };
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
-  return (
-    <nav className="flex items-center justify-between border-b px-4 py-2">
-      <div className="flex items-center gap-1">
-        <Link to="/" className="font-semibold">
-          CBBI
-        </Link>
-        <Link to="/docs"><Button minimal small text="Docs" /></Link>
-        <Link to="/blog" search={{ tag: "" }}><Button minimal small text="Blog" /></Link>
-        <Link to="/guides" search={{ category: "", difficulty: "" }}><Button minimal small text="Guides" /></Link>
-        <Link to="/blocks" search={{ category: "" }}><Button minimal small text="Blocks" /></Link>
-      </div>
-      <div className="flex items-center gap-2">
-        <Button minimal small onClick={() => setSearchOpen(true)}>Search</Button>
-        <Button minimal small onClick={toggleTheme}>
-          {theme === "dark" ? "Light" : "Dark"}
-        </Button>
-        {!isPending && session ? (
-          <>
-            <Link to="/settings">
-              <Button minimal small>
-                {session.user.name}
-              </Button>
-            </Link>
-            <Button minimal small intent={Intent.DANGER} onClick={handleSignOut}>
-              Sign Out
-            </Button>
-          </>
-        ) : !isPending ? (
-          <Link to="/sign-in">
-            <Button minimal small intent={Intent.PRIMARY}>
-              Sign In
-            </Button>
-          </Link>
-        ) : null}
-      </div>
-    </nav>
-  );
+function umamiScript(): Array<{ src: string; async: boolean; [key: string]: string | boolean }> {
+  const url = import.meta.env.VITE_UMAMI_SCRIPT_URL;
+  const id = import.meta.env.VITE_UMAMI_WEBSITE_ID;
+  if (!url || !id) return [];
+  return [
+    {
+      src: url,
+      async: true,
+      "data-website-id": id,
+      "data-auto-track": "false",
+    },
+  ];
 }
 
 function SearchModalWrapper() {
   const [isOpen, setIsOpen] = useAtom(searchOpenAtom, { store: jotaiStore });
-
-  // Listen for open-search event dispatched by DocsSidebar
-  useEffect(() => {
-    const handler = () => setIsOpen(true);
-    window.addEventListener("open-search", handler);
-    return () => window.removeEventListener("open-search", handler);
-  }, [setIsOpen]);
-
   return <SearchModal isOpen={isOpen} onClose={() => setIsOpen(false)} />;
 }
 
@@ -100,7 +51,6 @@ function RootComponent() {
   const { theme: ssrTheme } = Route.useRouteContext();
   const [atomTheme] = useAtom(themeAtom, { store: jotaiStore });
 
-  // Server: use cookie value from beforeLoad. Client: atom reads cookie directly.
   const theme = typeof window === "undefined" ? (ssrTheme ?? "dark") : atomTheme;
 
   return (
@@ -111,9 +61,10 @@ function RootComponent() {
             <HeadContent />
           </head>
           <body className={theme === "dark" ? "bp6-dark" : ""}>
-            <NavBar />
+            <ContentNav />
             <Outlet />
             <SearchModalWrapper />
+            <RouteTracker />
             <Scripts />
           </body>
         </html>

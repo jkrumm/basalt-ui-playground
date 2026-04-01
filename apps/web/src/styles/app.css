@@ -1,6 +1,7 @@
 /* Blueprint v6 — must come before Tailwind so Tailwind utilities can override */
 @import "@blueprintjs/core/lib/css/blueprint.css";
 @import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+@import "@blueprintjs/table/lib/css/table.css";
 
 /* Tailwind v4 */
 @import "tailwindcss";
@@ -19,4 +20,27 @@ body {
 
 body.bp6-dark {
   background-color: var(--bp-palette-dark-gray-1);
+}
+
+/* ── Dashboard utilities ──────────────────────────────────────────────── */
+
+.cbbi-meta {
+  color: #8f99a8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cbbi-source {
+  text-align: center;
+  color: #5f6b7c;
+  font-size: 12px;
+}
+
+.cbbi-source a {
+  color: #5f6b7c;
+  text-decoration: underline;
+}
+
+.cbbi-source a:hover {
+  color: #8f99a8;
 }

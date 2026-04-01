@@ -448,3 +448,33 @@ None.
   `noPropertyAccessFromIndexSignature` in the web tsconfig.
 - HyperDX browser RUM integration for content page analytics.
 - Cmd+K keyboard shortcut for search (currently only wired via DocsSidebar click).
+
+---
+
+## Group 9: Remaining Components + Analytics
+
+### What was implemented
+Ported the full CBBI dashboard (index route with confidence card, callout, indicator grid/table views, Recharts chart), table comparison page (TanStack Table + Blueprint Table2), ContentNav with Blueprint Navbar, ThemeToggle, BlueprintTableSection, Jotai atoms (viewMode, sortBy, serverPreferences), TanStack Query preferences queries, Umami analytics (RouteTracker, scroll depth hook, typed events), account page, and date formatting utilities.
+
+### Deviations from prompt
+- ThemeToggle uses the existing Jotai atom-based theme (light/dark toggle button) instead of the master branch's SegmentedControl with system theme — the worktree's theme architecture uses cookie-backed Jotai atoms without a ThemeContext, so porting the 3-way toggle would require additional context infrastructure.
+- Removed `sessionExpiresAt` from the account page since the _protected route context only exposes `user`, not session expiry time.
+- EdenTreaty API client pattern (`api.api.user.preferences.get()`) used for queries instead of Hono client pattern from master.
+
+### Gotchas & surprises
+- The `window.umami.track()` type declaration needed three overloads: no-arg (initial pageview), string+data (events), and callback (SPA navigation with props transformation). The original single overload caused TS errors in RouteTracker.
+- The routeTree.gen.ts was already regenerated with /table and /account routes from a previous dev server run, avoiding the need to manually edit it.
+- Recharts 3.x API is backwards compatible with the 2.x patterns used in the reference — no migration needed.
+
+### Security notes
+- Umami script injection is gated by env vars (VITE_UMAMI_SCRIPT_URL, VITE_UMAMI_WEBSITE_ID) — no analytics in dev unless configured.
+- Auto-tracking disabled to prevent leaking URL params.
+
+### Tests added
+None
+
+### Future improvements
+- Add system theme option (3-way light/system/dark toggle) with ThemeContext and useSyncExternalStore for OS preference detection.
+- Implement preferences sync: load server preferences in settings page loader, sync to Jotai atoms on mutation success.
+- Add Cmd+K keyboard shortcut for search modal.
+- Consider code-splitting the indicator grid/table views for better initial load.

@@ -9,12 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TableRouteImport } from './routes/table'
 import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ContentRouteImport } from './routes/_content'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
+import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
 import { Route as ContentSearchRouteImport } from './routes/_content/search'
 import { Route as ContentGuidesIndexRouteImport } from './routes/_content/guides/index'
 import { Route as ContentDocsIndexRouteImport } from './routes/_content/docs/index'
@@ -25,6 +27,11 @@ import { Route as ContentDocsSplatRouteImport } from './routes/_content/docs/$'
 import { Route as ContentBlogSlugRouteImport } from './routes/_content/blog/$slug'
 import { Route as ContentBlocksSlugRouteImport } from './routes/_content/blocks/$slug'
 
+const TableRoute = TableRouteImport.update({
+  id: '/table',
+  path: '/table',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SignUpRoute = SignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -51,6 +58,11 @@ const IndexRoute = IndexRouteImport.update({
 const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => ProtectedRoute,
+} as any)
+const ProtectedAccountRoute = ProtectedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => ProtectedRoute,
 } as any)
 const ContentSearchRoute = ContentSearchRouteImport.update({
@@ -103,7 +115,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
+  '/account': typeof ProtectedAccountRoute
   '/settings': typeof ProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
@@ -118,7 +132,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/table': typeof TableRoute
   '/search': typeof ContentSearchRoute
+  '/account': typeof ProtectedAccountRoute
   '/settings': typeof ProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
@@ -136,7 +152,9 @@ export interface FileRoutesById {
   '/_protected': typeof ProtectedRouteWithChildren
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
+  '/table': typeof TableRoute
   '/_content/search': typeof ContentSearchRoute
+  '/_protected/account': typeof ProtectedAccountRoute
   '/_protected/settings': typeof ProtectedSettingsRoute
   '/_content/blocks/$slug': typeof ContentBlocksSlugRoute
   '/_content/blog/$slug': typeof ContentBlogSlugRoute
@@ -153,7 +171,9 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/table'
     | '/search'
+    | '/account'
     | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
@@ -168,7 +188,9 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
+    | '/table'
     | '/search'
+    | '/account'
     | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
@@ -185,7 +207,9 @@ export interface FileRouteTypes {
     | '/_protected'
     | '/sign-in'
     | '/sign-up'
+    | '/table'
     | '/_content/search'
+    | '/_protected/account'
     | '/_protected/settings'
     | '/_content/blocks/$slug'
     | '/_content/blog/$slug'
@@ -203,10 +227,18 @@ export interface RootRouteChildren {
   ProtectedRoute: typeof ProtectedRouteWithChildren
   SignInRoute: typeof SignInRoute
   SignUpRoute: typeof SignUpRoute
+  TableRoute: typeof TableRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/table': {
+      id: '/table'
+      path: '/table'
+      fullPath: '/table'
+      preLoaderRoute: typeof TableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sign-up': {
       id: '/sign-up'
       path: '/sign-up'
@@ -247,6 +279,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof ProtectedSettingsRouteImport
+      parentRoute: typeof ProtectedRoute
+    }
+    '/_protected/account': {
+      id: '/_protected/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof ProtectedAccountRouteImport
       parentRoute: typeof ProtectedRoute
     }
     '/_content/search': {
@@ -343,10 +382,12 @@ const ContentRouteWithChildren =
   ContentRoute._addFileChildren(ContentRouteChildren)
 
 interface ProtectedRouteChildren {
+  ProtectedAccountRoute: typeof ProtectedAccountRoute
   ProtectedSettingsRoute: typeof ProtectedSettingsRoute
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
+  ProtectedAccountRoute: ProtectedAccountRoute,
   ProtectedSettingsRoute: ProtectedSettingsRoute,
 }
 
@@ -360,16 +401,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProtectedRoute: ProtectedRouteWithChildren,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
+  TableRoute: TableRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
