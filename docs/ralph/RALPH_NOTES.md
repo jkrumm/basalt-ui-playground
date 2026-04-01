@@ -101,3 +101,53 @@ None — no test infrastructure yet.
   the app already has `prefix: "/api"`, so double prefix would break auth routes.
 - `OTEL_SERVICE_NAME` in `.env` is `basalt-ui-playground-api` but env schema defaults to
   `cbbi-api`. The `.env` value wins at runtime — consistent.
+
+---
+
+## Group 3: Database + Drizzle v1 Beta
+
+### What was implemented
+
+Added Drizzle ORM v1.0.0-beta.20, drizzle-kit v1.0.0-beta.20, and postgres.js 3.4.8.
+Created the `basalt_ui_playground` schema with BetterAuth tables (user, session, account,
+verification) and user_preferences, all isolated in a named `pgSchema`. Generated the initial
+migration, wired `db.ts`, and wrote an idempotent seed script for the demo user.
+
+### Deviations from prompt
+
+- `drizzle.config.ts` uses `process.env["DATABASE_URL"]` (bracket notation) instead of
+  `process.env.DATABASE_URL` — TypeScript 6.0 in strict mode raises TS4111 for dot-notation
+  access on index signatures. Bracket notation is the correct fix.
+- `setup-cbbi-db.sql` kept structurally unchanged — `GRANT ALL PRIVILEGES ON DATABASE` already
+  includes `CREATE`, which is what drizzle-kit needs to create the `basalt_ui_playground` schema.
+  Added an inline comment to document this.
+- Makefile and root `package.json` db scripts were already correctly wired from Group 2 planning —
+  no changes needed.
+
+### Gotchas & surprises
+
+- drizzle-kit v1 beta generates `CREATE SCHEMA` without `IF NOT EXISTS` — manually patched to
+  `CREATE SCHEMA IF NOT EXISTS` so the migration is re-runnable without errors.
+- `process.env.DATABASE_URL` triggers TS4111 with TypeScript 6.0's strict index signature checks.
+  Use `process.env["DATABASE_URL"]` in config files that TypeScript type-checks.
+- drizzle-kit v1 beta config format is identical to v0.45.x — `dialect`, `schema`, `out`,
+  `dbCredentials.url` all unchanged. No breaking changes.
+
+### Security notes
+
+- `setup-cbbi-db.sql` uses local-only credentials (`cbbi`/`cbbi`) — intentionally weak for
+  local dev. Prod would use Doppler-managed secrets.
+- Seed script hashes demo password with Argon2id (65536 memory, 2 time cost) — must match
+  BetterAuth's hasher config when wired in Group 4.
+- No secrets committed — DATABASE_URL must be in `.env.local`.
+
+### Tests added
+
+None.
+
+### Future improvements
+
+- Seed script directly inserts into auth tables. In Group 4, once BetterAuth is wired, prefer
+  seeding via BetterAuth's admin API to ensure password hashing params stay in sync.
+- `db.query.table` syntax (with `defineRelations()`) deferred — using `db.select()` is simpler
+  for now and avoids the v1 beta relations API surface.
