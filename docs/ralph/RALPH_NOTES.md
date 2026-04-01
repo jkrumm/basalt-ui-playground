@@ -478,3 +478,33 @@ None
 - Implement preferences sync: load server preferences in settings page loader, sync to Jotai atoms on mutation success.
 - Add Cmd+K keyboard shortcut for search modal.
 - Consider code-splitting the indicator grid/table views for better initial load.
+
+---
+
+## Group 10: HyperDX Browser SDK (Frontend RUM + Session Replay)
+
+### What was implemented
+Added @hyperdx/browser for frontend observability — session replay, console capture, and advanced network capture. Wired trace context propagation via @opentelemetry/api in SSR server functions so browser → SSR → API calls form continuous traces. Added user identification in the protected route layout.
+
+### Deviations from prompt
+- Skipped React error boundary integration — no error boundary exists in the app yet. Adding `react-error-boundary` as a dependency just for HyperDX attachment would be scope creep; HyperDX already captures unhandled errors via its global error listener.
+- Used module-level `initHyperDX()` call in `__root.tsx` instead of `useEffect` — simpler and runs once on module load (guarded by `typeof window` and `initialized` flag).
+- Called `identifyUser` directly in `ProtectedLayout` render (guarded by `typeof window`) rather than in a `useEffect` — the function is idempotent (just sets attributes) and avoids an extra render cycle.
+
+### Gotchas & surprises
+- `@hyperdx/browser` 0.22.0 is still pre-1.0. The init API is straightforward but documentation is sparse for self-hosted ClickStack setups.
+- `tracePropagationTargets` takes `RegExp[]` — must match the fetch URL path, not the domain. `/\/api\//` works because EdenTreaty calls go through the Vite proxy at `/api/`.
+- `@opentelemetry/api` propagation.inject() is a no-op if no propagator is registered — safe to call even without a full OTEL SDK on the SSR side. When OTEL is configured, it automatically injects `traceparent` headers.
+
+### Security notes
+- `maskAllInputs` and `maskAllText` are available but not enabled — this is a POC playground with no sensitive data. Downstream apps should enable these for production.
+- `advancedNetworkCapture: true` captures request/response bodies — fine for dev, should be evaluated per-app for production.
+
+### Tests added
+None
+
+### Future improvements
+- Add React error boundary and wire `HyperDX.attachToReactErrorBoundary()` when error handling is implemented.
+- Consider `maskAllInputs: true` for production deployments with sensitive form data.
+- Add custom HyperDX actions for key user interactions beyond what Umami tracks.
+- Wire OTEL SDK on SSR side (e.g. `@opentelemetry/sdk-node`) for full SSR span visibility.

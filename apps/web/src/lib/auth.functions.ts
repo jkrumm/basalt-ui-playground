@@ -1,3 +1,4 @@
+import { context, propagation } from "@opentelemetry/api";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie, getRequestHeader } from "@tanstack/react-start/server";
 
@@ -11,8 +12,12 @@ type SessionResponse = {
 export const getSessionFn = createServerFn({ method: "GET" }).handler(async () => {
   const cookie = getRequestHeader("cookie") ?? "";
   const apiUrl = process.env["API_INTERNAL_URL"] ?? "http://localhost:7713";
+
+  const traceHeaders: Record<string, string> = {};
+  propagation.inject(context.active(), traceHeaders);
+
   const response = await fetch(`${apiUrl}/api/auth/get-session`, {
-    headers: { cookie },
+    headers: { cookie, ...traceHeaders },
   });
   if (!response.ok) return null;
   return response.json() as Promise<SessionResponse | null>;

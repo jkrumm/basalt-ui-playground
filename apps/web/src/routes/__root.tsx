@@ -6,9 +6,14 @@ import { ContentNav } from "../components/layout/ContentNav.tsx";
 import { SearchModal } from "../components/content/SearchModal.tsx";
 import { searchOpenAtom, themeAtom } from "../atoms/index.ts";
 import { getThemeFn } from "../lib/auth.functions.ts";
+import { initHyperDX } from "../lib/hyperdx.ts";
 import { store as jotaiStore } from "../lib/jotai-store.ts";
 import { queryClient } from "../lib/query-client.ts";
 import appCss from "../styles/app.css?url";
+
+if (typeof window !== "undefined") {
+  initHyperDX();
+}
 
 export const Route = createRootRoute({
   beforeLoad: async () => {
