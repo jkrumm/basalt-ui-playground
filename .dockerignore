@@ -1,9 +1,34 @@
-node_modules
+# Dependencies — exclude all levels (root + workspace node_modules)
+**/node_modules
+
+# Git history
 .git
+.gitignore
+
+# Local secrets
 .env.local
+.env.*.local
+
+# Built artifacts (rebuilt in Docker)
 apps/web/dist
+apps/api/dist
+
+# Generated content (rebuilt on build)
 apps/web/.content-collections
+apps/web/.tanstack
+
+# RALPH automation artifacts
+.ralph-tasks.json
+.ralph-logs
+
+# Dev/docs only
 docs
+scripts
 *.md
-!package.json
-!bunfig.toml
+.claude
+design
+
+# Editor
+.vscode
+.idea
+*.swp

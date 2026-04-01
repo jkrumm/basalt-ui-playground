@@ -9,6 +9,8 @@ export default tseslint.config(
   // Ignores must be first — ESLint processes them in order
   {
     ignores: [
+      // Bun creates a literal "~" directory in the project root for its install cache symlinks.
+      // Without this ignore, ESLint traverses ~/.bun/install/cache and errors on package internals.
       "~/",
       "**/dist/",
       "**/node_modules/",

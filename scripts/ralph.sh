@@ -187,6 +187,8 @@ run_group() {
   local exit_code=0
   if CLAUDE_CODE_ENABLE_TASKS=true CLAUDECODE="" gtimeout "$CLAUDE_TIMEOUT" claude \
     -p "$full_prompt" \
+    --model sonnet \
+    --effort high \
     --dangerously-skip-permissions \
     --output-format stream-json \
     --verbose \
@@ -197,10 +199,12 @@ run_group() {
     exit_code=$?
   fi
 
-  [[ $exit_code -eq 124 ]] && { log_error "Timed out after ${CLAUDE_TIMEOUT}s"; return 1; }
-
+  # Check completion signal even on timeout — Claude may have finished and the
+  # cleanup/summary after the signal pushed the process past the timeout limit.
   grep -q "RALPH_TASK_COMPLETE: Group $group_id" "$log_file" && return 0
   grep -q "RALPH_TASK_BLOCKED: Group $group_id" "$log_file" && return 2
+
+  [[ $exit_code -eq 124 ]] && { log_error "Timed out after ${CLAUDE_TIMEOUT}s"; return 1; }
 
   log_warn "Claude finished but no completion signal in log."
   return 1

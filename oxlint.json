@@ -21,6 +21,7 @@
     "**/node_modules/**",
     "**/dist/**",
     "**/.tanstack/**",
+    "**/.content-collections/**",
     "**/.output/**",
     "**/.vite/**",
     "**/drizzle/**"

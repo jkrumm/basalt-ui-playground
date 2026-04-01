@@ -2,6 +2,7 @@ import { cors } from "@elysiajs/cors";
 import { openapi } from "@elysiajs/openapi";
 import { opentelemetry } from "@elysiajs/opentelemetry";
 import { Elysia } from "elysia";
+import { z } from "zod";
 
 import { auth } from "./auth.ts";
 import { env } from "./env.ts";
@@ -29,6 +30,8 @@ export const app = new Elysia({ prefix: "/api" })
           version: "1.0.0",
         },
       },
+      // Zod v4 schemas need explicit JSON Schema serialization for Scalar docs
+      mapJsonSchema: { zod: z.toJSONSchema },
       path: "/scalar",
     }),
   )

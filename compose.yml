@@ -21,7 +21,8 @@ services:
     environment:
       PORT: 7713
       DATABASE_URL: postgresql://cbbi:cbbi@postgres:5432/cbbi
-      BETTER_AUTH_SECRET: change-me-in-production-at-least-32-chars
+      # Set BETTER_AUTH_SECRET in your shell env or a .env file before running
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET must be set}
       BETTER_AUTH_URL: http://api:7713
       ALLOWED_ORIGIN: http://localhost:7712
       OTEL_EXPORTER_OTLP_ENDPOINT: http://clickstack:4318

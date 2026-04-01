@@ -15,7 +15,7 @@
     "typecheck": "bun run --filter '*' typecheck",
     "fmt": "oxfmt --check packages/ apps/ *.json *.toml *.md",
     "fmt:fix": "oxfmt packages/ apps/ *.json *.toml *.md",
-    "lint": "oxlint packages/ apps/ --deny-warnings && eslint .",
+    "lint": "oxlint packages/ apps/ --max-warnings 0 && eslint .",
     "lint:style": "stylelint 'apps/**/*.css'",
     "check": "bun run fmt && bun run lint && bun run lint:style && bun run typecheck",
     "db:setup": "psql -h localhost -U postgres -f scripts/setup-cbbi-db.sql",

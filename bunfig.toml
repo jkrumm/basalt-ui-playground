@@ -1,7 +1,12 @@
 [install]
 # Use workspace:* protocol for internal packages
 # Workspace packages are resolved from the packages/ and apps/ dirs
+exact = true
 
 [install.cache]
 # Share cache across workspace installs
 dir = "~/.bun/install/cache"
+
+[install.security]
+# Flag packages less than 3 days old as a basic supply-chain guard
+minimumReleaseAge = "3 days"
