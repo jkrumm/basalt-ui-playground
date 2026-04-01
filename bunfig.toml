@@ -1,0 +1,7 @@
+[install]
+# Use workspace:* protocol for internal packages
+# Workspace packages are resolved from the packages/ and apps/ dirs
+
+[install.cache]
+# Share cache across workspace installs
+dir = "~/.bun/install/cache"

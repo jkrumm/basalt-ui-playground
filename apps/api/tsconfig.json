@@ -1,9 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "types": ["node"],
-    // Enforces only erasable syntax — required for node --experimental-strip-types
-    "erasableSyntaxOnly": true
-  },
-  "include": ["src", "drizzle.config.ts"]
-}

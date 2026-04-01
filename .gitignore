@@ -1,30 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.output/
+.vite/
+
+# TanStack / Vite generated
+.tanstack/
+.content-collections/
+
+# Drizzle migration metadata (generated artifacts)
+drizzle/meta/
+
+# Environment (real secrets go in .env.local)
+.env.local
+*.local
+apps/web/.env.local
+apps/api/.env.local
+
 # RALPH runner state and logs
 .ralph-tasks.json
 .ralph-logs/
 
-# Workspace packages
-apps/api/data/
-apps/api/node_modules/
-packages/schemas/node_modules/
-node_modules/
-dist/
+# OS / Editor
+.DS_Store
+*.swp
+*.swo
 
-# Web app
-apps/web/dist/
-apps/web/.vite/
-apps/web/.output/
-apps/web/.tanstack/
-apps/web/.content-collections/
-apps/web/node_modules/
-
-# Environment
-.env.local
-*.local
-apps/web/.env.local
-
-# Legacy
-bun.lock
-
-# Vite+
-.vite-hooks/
+# Misc
 AGENTS.md
+.vite-hooks/
+
+# NOTE: bun.lock IS committed (Bun's lockfile)

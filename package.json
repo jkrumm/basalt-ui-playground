@@ -1,30 +1,31 @@
 {
   "name": "basalt-ui-playground",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "type": "module",
   "scripts": {
-    "dev": "vp run web#dev",
-    "dev:api": "vp run api#dev",
-    "dev:web": "vp run web#dev",
-    "build": "vp run web#build",
-    "start": "vp run web#start",
-    "typecheck": "vp run typecheck -r",
-    "ready": "vp fmt && vp lint && vp run typecheck -r && vp run build -r",
-    "prepare": "vp config",
-    "db:setup": "vp run api#db:setup",
-    "db:generate": "vp run api#db:generate",
-    "db:seed": "vp run api#db:seed"
+    "dev": "bun run --filter 'web' dev & bun run --filter 'api' dev",
+    "dev:web": "bun run --filter 'web' dev",
+    "dev:api": "bun run --filter 'api' dev",
+    "build": "bun run --filter '*' build",
+    "start": "bun run --filter 'web' start",
+    "typecheck": "bun run --filter '*' typecheck",
+    "fmt": "oxfmt --check packages/ apps/ *.json *.toml *.md",
+    "fmt:fix": "oxfmt packages/ apps/ *.json *.toml *.md",
+    "lint": "oxlint packages/ apps/ --deny-warnings",
+    "check": "bun run fmt && bun run lint && bun run typecheck",
+    "db:setup": "psql -h localhost -U postgres -f scripts/setup-cbbi-db.sql",
+    "db:generate": "bun run --filter 'api' db:generate",
+    "db:migrate": "bun run --filter 'api' db:migrate",
+    "db:seed": "bun run --filter 'api' db:seed",
+    "db:studio": "bun run --filter 'api' db:studio"
   },
   "devDependencies": {
-    "@blueprintjs/eslint-plugin": "^6.1.24",
-    "@tanstack/eslint-plugin-router": "^1.161.6",
-    "eslint-plugin-react-compiler": "19.1.0-rc.2",
-    "oxlint-plugin-eslint": "^1.57.0",
-    "vite": "catalog:",
-    "vite-plus": "catalog:"
-  },
-  "engines": {
-    "node": ">=24.0.0"
-  },
-  "packageManager": "pnpm@10.33.0"
+    "oxfmt": "^0.43.0",
+    "oxlint": "^1.58.0",
+    "typescript": "^6.0.2"
+  }
 }

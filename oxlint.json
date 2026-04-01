@@ -1,0 +1,28 @@
+{
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2025": true
+  },
+  "plugins": ["typescript", "react", "react-hooks"],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "restriction": "off",
+    "style": "off",
+    "pedantic": "off",
+    "nursery": "off"
+  },
+  "rules": {
+    "no-console": "warn",
+    "no-debugger": "error"
+  },
+  "ignorePatterns": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/.tanstack/**",
+    "**/.output/**",
+    "**/.vite/**",
+    "**/drizzle/**"
+  ]
+}

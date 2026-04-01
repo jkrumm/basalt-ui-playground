@@ -5,13 +5,13 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "typescript": "^6.0.2"
-  },
-  "engines": {
-    "node": ">=24.0.0"
   }
 }

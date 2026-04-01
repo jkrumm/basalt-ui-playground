@@ -4,23 +4,150 @@
 
 This is a **POC playground and greenfield boilerplate** — not a production application. Its goal
 is to align and optimise frontend stack patterns (TanStack Start, Blueprint v6, Jotai, TanStack
-Query, analytics, PWA, SSR/SSG, state architecture) so that individual apps built on top of it
+Query, analytics, SSR/SSG, state architecture) so that individual apps built on top of it
 start from a well-considered baseline.
 
 **The CBBI dashboard content is the vehicle, not the destination.** Every architectural decision
 should be made with "what would downstream apps need?" in mind, not "what does this dashboard need?".
 
-### Documentation convention
+---
 
-Learnings, patterns, and per-app setup requirements go into the internal docs as MDX files:
+## Monorepo Layout (current state: Group 1 — skeleton only)
 
 ```
-apps/web/src/content/docs/
+basalt-ui-playground/
+├── apps/
+│   ├── web/                    # TanStack Start frontend (:7712) — Group 2+
+│   └── api/                    # Elysia API server (:7713) — Group 2+
+├── packages/
+│   └── schemas/                # Shared Zod v4 schemas (@cbbi/schemas)
+│       └── src/
+│           ├── auth.ts
+│           ├── user.ts
+│           ├── user-preferences.ts
+│           └── index.ts
+├── scripts/
+│   ├── setup-cbbi-db.sql       # Postgres provisioning (run as superuser)
+│   └── kill-ports.sh           # Kill 7712/7713
+├── docs/
+│   └── ralph/                  # RALPH loop state and learning notes
+├── Makefile                    # Developer commands
+├── bunfig.toml                 # Bun workspace config
+├── tsconfig.json               # Root TypeScript config (extended by all packages)
+├── oxlint.json                 # OxLint config
+├── .oxfmtrc.json               # oxfmt formatter config
+├── .env                        # Committed non-secret defaults
+└── .env.example                # Full variable reference with placeholders
 ```
 
-When a pattern is established or a setup step is identified that future apps will need to repeat,
-write it up there. The docs are rendered at `/docs` and serve as the living spec for what this
-boilerplate provides and what each consuming app must configure itself.
+---
+
+## Tech Stack
+
+| Concern    | Choice                           | Version      |
+| ---------- | -------------------------------- | ------------ |
+| Runtime    | Bun                              | >=1.3.x      |
+| Language   | TypeScript                       | 6.0.x        |
+| Frontend   | TanStack Start                   | >=1.167.x    |
+| API        | Elysia                           | >=1.4.x      |
+| API Client | @elysiajs/eden                   | >=1.4.x      |
+| Auth       | better-auth                      | >=1.5.x      |
+| ORM        | drizzle-orm                      | 1.0.0-beta.x |
+| DB         | PostgreSQL via `postgres` driver |              |
+| Validation | Zod                              | >=4.3.x      |
+| UI         | Blueprint v6                     | >=6.10.x     |
+| State      | Jotai                            | >=2.19.x     |
+| CSS        | Tailwind CSS                     | >=4.2.x      |
+| Query      | TanStack Query                   | >=5.96.x     |
+| Lint       | oxlint                           | >=1.58.x     |
+| Format     | oxfmt                            | >=0.43.x     |
+
+---
+
+## Port Configuration
+
+| App                  | Port | Local alias                                |
+| -------------------- | ---- | ------------------------------------------ |
+| Web (TanStack Start) | 7712 | http://basalt-ui-playground.local:7712     |
+| API (Elysia)         | 7713 | http://basalt-ui-playground-api.local:7713 |
+
+Ports are hardcoded as defaults; override via env.
+
+---
+
+## Environment Strategy
+
+- `.env` — committed, non-secret defaults (ports, local URLs, OTEL endpoint)
+- `.env.local` — gitignored, real secrets (DATABASE_URL, BETTER_AUTH_SECRET, etc.)
+- `.env.example` — full reference with placeholder values (committed)
+
+---
+
+## Developer Commands
+
+```bash
+make dev          # Kill ports, start web + api concurrently
+make build        # Build all workspaces
+make check        # fmt + lint + typecheck + test
+make fmt          # oxfmt check (read-only)
+make fmt-fix      # oxfmt write
+make lint         # oxlint
+make typecheck    # tsc --noEmit across all workspaces
+make db-setup     # Run scripts/setup-cbbi-db.sql via psql
+make db-generate  # drizzle-kit generate
+make db-migrate   # drizzle-kit migrate
+make db-seed      # Seed demo user
+make kill         # Kill processes on 7712 and 7713
+```
+
+Root-level npm scripts mirror Make targets:
+
+```bash
+bun run typecheck   # tsc --noEmit across all workspaces
+bun run fmt         # oxfmt --check .
+bun run fmt:fix     # oxfmt .
+bun run lint        # oxlint .
+bun run check       # fmt + lint + typecheck
+```
+
+---
+
+## Key Patterns
+
+### TypeScript Imports
+
+Bun requires `.ts` extensions in relative imports:
+
+```ts
+import { foo } from "./bar.ts";
+```
+
+### Shared Schemas
+
+Internal packages use `workspace:*` protocol:
+
+```json
+{ "@cbbi/schemas": "workspace:*" }
+```
+
+### Drizzle v1 Beta API
+
+```typescript
+// CORRECT (v1 beta):
+export const db = drizzle({ client, schema: { ...tables } });
+
+// WRONG (old v0 pattern — silently ignores client):
+export const db = drizzle(client, { schema });
+```
+
+### Zod v4 Validators
+
+`z.email()` is now a standalone function (not `z.string().email()`):
+
+```ts
+z.email(); // Zod v4
+z.url(); // Zod v4
+```
 
 ---
 
@@ -29,96 +156,29 @@ boilerplate provides and what each consuming app must configure itself.
 ### URL state vs custom events — the boundary
 
 **If the state is in the URL → it's a pageview. No custom event needed.**
-
-- Blog tag filter `?tag=blueprint` → URL change → pageview captures it
-- Docs page, blog post slug → already pageviews
-- Chart timeframe `?range=1Y` (if added to URL) → pageview
-
 **If the state is ephemeral UI (not in URL) → custom event.**
 
-- View toggle (grid/table), sort order, chart range (client-only state), pagination
-
-Rule: ask "can I share this URL and reproduce the state?" — if yes, it belongs in the URL, not an event.
-
-### Event naming convention
+### Event naming
 
 **Format:** `snake_case`, Object-Action past tense.
 **Always include `component`** as a property (not in the event name itself).
 
-```ts
-track(EVENTS.TABLE_SORTED, { component: "indicator-grid", value: "value-asc" });
-track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "table" });
-track(EVENTS.TIMEFRAME_CHANGED, { component: "cbbi-chart", value: "1Y" });
-track(EVENTS.SEARCH_QUERY, { query: "rupl", result_count: 3 });
-```
-
-Never encode component into the event name (`indicator_grid_table_sorted` is bad).
-Fewer event names with richer properties beats many narrow event names.
-
-### Two tracking patterns
-
-**Declarative** — `data-umami-event` attributes on Blueprint components. Auto-fires on click.
-
-```tsx
-<Button data-umami-event="outbound-click" data-umami-event-destination="github">
-  GitHub
-</Button>
-```
-
-Use for: CTAs, outbound links, nav buttons — anything with a static label.
-
-**Programmatic** — `track()` from `src/lib/analytics.ts` in event handlers or `useEffect`.
-
-```ts
-import { track, EVENTS } from "../lib/analytics";
-track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "table" });
-```
-
-Use for: interactions with dynamic values (sort, view mode, chart timeframe, search query).
-
-### Auto-tracked (no code needed)
-
-- Pageviews on every route change (RouteTracker in `__root.tsx`)
-- Inbound UTM params — captured automatically by Umami
-- Blog tag filter — `?tag=` search param in URL → captured as pageview URL
-- Blog post views — `/blog/$slug` URL captures the post
-
-### Scroll depth
-
-Fires at 25/50/75/100% on all `PageLayout` pages (/, /blog, /docs, /search). NOT on /table.
-Per-section scroll tracking is non-standard and creates event catalog bloat — don't add it.
-
 ### URL state — TanStack Router search params
 
-This project uses Zod v4 (`zod`) for schema validation. Use `z.object().safeParse()` for
-`validateSearch` — no adapter package needed. `.default()` values apply automatically on parse:
+Use `z.object().safeParse()` for `validateSearch` — no adapter needed. `.default()` applies on parse:
 
 ```ts
-import { z } from "zod";
-
-const BlogSearch = z.object({
-  tag: z.string().default(""),
-});
-type BlogSearch = z.infer<typeof BlogSearch>;
-
-export const Route = createFileRoute("/blog/")({
-  validateSearch: (search: Record<string, unknown>): BlogSearch => {
-    const result = BlogSearch.safeParse(search);
-    return result.success ? result.data : { tag: "" };
-  },
-  // loaderDeps only needed if the loader uses the param:
-  // loaderDeps: ({ search }) => ({ tag: search.tag }),
-});
+validateSearch: (search: Record<string, unknown>): BlogSearch => {
+  const result = BlogSearch.safeParse(search);
+  return result.success ? result.data : { tag: "" };
+},
 ```
-
-Read in component: `const { tag } = Route.useSearch()`
-Navigate: `<Link to="/blog" search={{ tag }}>` — all Links to a route with `validateSearch` MUST include `search`
-Toggle: `search={{ tag: activeTag === tag ? '' : tag }}` — empty string = "all"
 
 **Never** use `useState` for filter state that belongs in the URL.
 
-### Rules
+---
 
-- **Never** create a TrackedButton wrapper — use data attributes on Blueprint Button instead.
-- **Never** add custom events for things already captured as pageviews.
-- **Never** encode component into event name — use `component` property instead.
+## Documentation Convention
+
+Learnings and patterns go into MDX docs under `apps/web/src/content/docs/` (once web app exists).
+Rendered at `/docs`.
