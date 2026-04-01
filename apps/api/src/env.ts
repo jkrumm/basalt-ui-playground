@@ -7,7 +7,7 @@ const EnvSchema = z.object({
   ALLOWED_ORIGIN: z.url().default("http://localhost:7712"),
   PORT: z.coerce.number().default(7713),
   OTEL_EXPORTER_OTLP_ENDPOINT: z.url().default("http://localhost:4318"),
-  OTEL_SERVICE_NAME: z.string().default("cbbi-api"),
+  OTEL_SERVICE_NAME: z.string().default("basalt-ui-playground-api"),
 });
 
 export const env = EnvSchema.parse(process.env);

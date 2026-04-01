@@ -7,26 +7,28 @@ section: "Getting Started"
 
 ## Environment strategy
 
-| File           | Committed       | Purpose                                                |
-| -------------- | --------------- | ------------------------------------------------------ |
-| `.env`         | Yes             | Non-secret defaults (ports, local URLs, service names) |
-| `.env.local`   | No (gitignored) | Real secrets — DATABASE_URL, BETTER_AUTH_SECRET        |
-| `.env.example` | Yes             | Full reference with placeholder values                 |
+| File              | Committed | Purpose                                                   |
+| ----------------- | --------- | ---------------------------------------------------------- |
+| `apps/api/.env`   | Yes       | API defaults + local dev credentials (no prod secrets)    |
+| `apps/web/.env`   | Yes       | Web defaults — `VITE_*` vars, port                        |
+| `.env.example`    | Yes       | Full reference with placeholder values                    |
 
-Bun auto-loads `.env` and `.env.local` — no `dotenv` package needed.
+Bun auto-loads `.env` from each app's directory — no `dotenv` package needed.
+Production injects variables via Doppler — no `.env` files at runtime.
 
 ---
 
-## Required secrets
+## Local dev credentials
 
-Create `.env.local` in the project root:
+`apps/api/.env` ships with ready-to-use local values:
 
 ```bash
-DATABASE_URL=postgresql://cbbi:cbbi@localhost:5432/cbbi
-BETTER_AUTH_SECRET=<generate-32-char-random-string>
+DATABASE_URL=postgresql://basalt_ui_playground:<password>@localhost:5432/<main-db>
+BETTER_AUTH_SECRET=<local-dev-secret>
 ```
 
-Everything else defaults to values in `.env`.
+The `basalt_ui_playground` Postgres user and schema are provisioned by the VPS
+`setup-postgres.sh` script. Adjust credentials if your local setup differs.
 
 ---
 
@@ -45,7 +47,7 @@ Everything else defaults to values in `.env`.
 | `WEB_PORT`                    | Web          | `7712`                     | No                           |
 | `VITE_HYPERDX_API_KEY`        | Web          | `dev`                      | No (self-hosted ignores key) |
 | `VITE_HYPERDX_SERVICE_NAME`   | Web          | `basalt-ui-playground-web` | No                           |
-| `VITE_HYPERDX_ENDPOINT`       | Web          | `http://localhost:8080`    | No                           |
+| `VITE_HYPERDX_ENDPOINT`       | Web          | `http://localhost:7707`    | No                           |
 | `VITE_UMAMI_SCRIPT_URL`       | Web          | — (disabled if empty)      | No                           |
 | `VITE_UMAMI_WEBSITE_ID`       | Web          | — (disabled if empty)      | No                           |
 
@@ -88,9 +90,11 @@ the event naming convention.
 For self-hosted ClickStack, set the API endpoint:
 
 ```bash
-# .env (committed default for local dev)
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # backend SDK
-VITE_HYPERDX_ENDPOINT=http://localhost:8080          # browser SDK UI port
+# apps/api/.env — backend OTEL exporter
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # VPS dev.compose.yml maps 4318:4318
+
+# apps/web/.env — browser SDK
+VITE_HYPERDX_ENDPOINT=http://localhost:7707          # VPS dev.compose.yml maps 7707:8080
 VITE_HYPERDX_API_KEY=dev                             # any non-empty string (self-hosted ignores key)
 ```
 

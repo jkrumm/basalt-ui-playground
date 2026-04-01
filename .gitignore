@@ -13,11 +13,10 @@ dist/
 # Drizzle migration metadata (generated artifacts)
 drizzle/meta/
 
-# Environment (real secrets go in .env.local)
+# Environment (.env files are committed — local dev values only, no prod secrets)
+# Prod uses Doppler — no .env files at runtime
 .env.local
 *.local
-apps/web/.env.local
-apps/api/.env.local
 
 # RALPH runner state and logs
 .ralph-tasks.json

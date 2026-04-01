@@ -115,16 +115,12 @@ Ports are hardcoded as defaults; override via env.
 
 ## Environment Strategy
 
-- `.env` — committed, non-secret defaults (ports, local URLs, OTEL endpoint, HyperDX RUM)
-- `.env.local` — gitignored, real secrets (DATABASE_URL, BETTER_AUTH_SECRET, etc.)
+- `apps/api/.env` — committed, all local dev values including DB credentials (no prod secrets)
+- `apps/web/.env` — committed, `VITE_*` defaults and port
 - `.env.example` — full reference with placeholder values (committed)
+- Production: Doppler injects env vars at runtime — no `.env` files used
 
-Required secrets in `.env.local`:
-
-```bash
-DATABASE_URL=postgresql://cbbi:cbbi@localhost:5432/cbbi
-BETTER_AUTH_SECRET=<at-least-32-characters>
-```
+Bun reads `.env` from each app's directory when running via `--filter`.
 
 ---
 

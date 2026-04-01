@@ -27,14 +27,9 @@ separate `bun install` in each workspace.
 
 ## Database setup
 
-Create the database user and schema (run once as a Postgres superuser):
-
-```bash
-make db-setup
-# equivalent: psql -h localhost -U postgres -f scripts/setup-cbbi-db.sql
-```
-
-Run the Drizzle migrations:
+The database user and schema are provisioned by the VPS init script (`setup-postgres.sh`).
+For local dev, create the `basalt_ui_playground` user and schema manually if needed,
+then run migrations:
 
 ```bash
 make db-migrate
@@ -48,15 +43,12 @@ make db-seed
 
 ## Environment variables
 
-Create `.env.local` in the project root:
+Both `apps/api/.env` and `apps/web/.env` are committed with local dev values — no secrets
+for this playground project. On production, Doppler injects environment variables at runtime
+(no `.env` files used).
 
-```bash
-DATABASE_URL=postgresql://cbbi:cbbi@localhost:5432/cbbi
-BETTER_AUTH_SECRET=<at-least-32-random-characters>
-```
-
-All other variables have defaults in the committed `.env` file. See
-[Configuration](/docs/getting-started/configuration) for the full reference.
+Update `apps/api/.env` if your local Postgres credentials differ. See
+[Configuration](/docs/getting-started/configuration) for the full variable reference.
 
 ## Start development
 

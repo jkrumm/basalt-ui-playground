@@ -14,4 +14,4 @@ export const telemetryConfig = {
 };
 
 // Manual tracer for custom spans in route handlers
-export const tracer = trace.getTracer("cbbi-api");
+export const tracer = trace.getTracer(env.OTEL_SERVICE_NAME);

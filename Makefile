@@ -1,11 +1,11 @@
 .PHONY: dev start build check fmt fmt-fix lint typecheck test clean \
-        db-setup db-generate db-migrate db-seed db-studio kill \
+        db-generate db-migrate db-seed db-studio kill \
         docker-build docker-up docker-down
 
 dev: kill
-	bun run dev:web & bun run dev:api
+	bun run dev
 
-start:
+start: kill
 	bun run start
 
 build:
@@ -35,9 +35,6 @@ clean:
 
 kill:
 	@bash scripts/kill-ports.sh
-
-db-setup:
-	psql -h localhost -U postgres -f scripts/setup-cbbi-db.sql
 
 db-generate:
 	bun run db:generate
