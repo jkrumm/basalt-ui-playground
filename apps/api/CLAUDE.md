@@ -47,16 +47,49 @@ const api = treaty<App>("http://localhost:7713");
 
 ### BetterAuth Mount (Group 4)
 
-BetterAuth mounts at `/auth` — **not** `/api/auth`. The app already has `prefix: "/api"`,
-so the final path becomes `/api/auth/...`:
+`prefix: "/api"` is **NOT applied** to `.mount()` — mount paths are absolute. BetterAuth's
+default `basePath` is `/api/auth`, so the mount must use the full path:
 
 ```ts
-// CORRECT — resolves to /api/auth/...
-app.mount("/auth", auth.handler);
+// CORRECT — Elysia prefix does NOT apply to .mount(), so use the full path
+app.mount("/api/auth", auth.handler);
 
-// WRONG — would resolve to /api/api/auth/...
-// app.mount("/api/auth", auth.handler);
+// WRONG — prefix is not applied, so this would be at /auth/* only
+// app.mount("/auth", auth.handler);
 ```
+
+**Why `.all()` instead of `.mount()`**: `.all("/auth/*", ({ request }) => auth.handler(request))`
+respects the prefix scope AND passes the full request URL to BetterAuth, matching its default
+`basePath: "/api/auth"`.
+
+### Auth Middleware Pattern (Group 4)
+
+`derive` + `macro` — session fetched once per request, guard via `beforeHandle`:
+
+```ts
+// Elysia lifecycle: derive → beforeHandle → handler
+// resolve runs before beforeHandle — do NOT use resolve for auth checks
+// Use derive (nullable user) + beforeHandle gate (401 if null)
+
+export const authMiddleware = new Elysia({ name: "auth" })
+  .derive({ as: "scoped" }, async ({ request: { headers } }) => {
+    const session = await auth.api.getSession({ headers });
+    return { user: session?.user ?? null, userId: session?.user?.id ?? null };
+  })
+  .macro({
+    auth(enabled: boolean) {
+      if (!enabled) return {};
+      return {
+        beforeHandle: ({ user, set }) => {
+          if (!user) { set.status = 401; return "Unauthorized"; }
+        },
+      };
+    },
+  });
+```
+
+Handlers use `user!` / `userId!` — non-null assertion is safe because `beforeHandle` guarantees
+non-null in the guarded scope.
 
 ### Env Validation
 

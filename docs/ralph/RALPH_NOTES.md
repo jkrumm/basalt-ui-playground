@@ -151,3 +151,65 @@ None.
   seeding via BetterAuth's admin API to ensure password hashing params stay in sync.
 - `db.query.table` syntax (with `defineRelations()`) deferred — using `db.select()` is simpler
   for now and avoids the v1 beta relations API surface.
+
+---
+
+## Group 4: BetterAuth + Elysia Integration
+
+### What was implemented
+
+Added `better-auth@^1.5.6` to `apps/api`. Created `src/auth.ts` (BetterAuth instance with
+Drizzle adapter, email/password auth, OpenAPI plugin, rate limiting). Created
+`src/middleware/auth.ts` (auth middleware using `derive` + `macro` pattern). Created
+`src/routes/user.ts` (protected `/user/me`, `/user/preferences` GET/PATCH). Mounted BetterAuth
+in `app.ts` via `.all("/auth/*", ...)`. Fixed the `?schema=` Prisma param stripping in `db.ts`.
+Updated `apps/api/CLAUDE.md` with corrected mount and middleware patterns.
+
+### Deviations from prompt
+
+- **`.mount()` abandoned in favour of `.all()`**: `app.mount("/path", handler)` does NOT respect
+  Elysia's `prefix` scope — the path is absolute regardless of prefix. `.all("/auth/*", ...)` is
+  prefix-aware and correctly resolves to `/api/auth/*`. CLAUDE.md had incorrect guidance.
+- **No `resolve` in macro**: Elysia lifecycle runs `resolve` BEFORE `beforeHandle`. Using `resolve`
+  to gate auth (with non-null assertions) caused 500s on unauthenticated requests. Fixed by using
+  `derive` (nullable session) + `macro.beforeHandle` (401 gate). Handlers use `user!` / `userId!`.
+- **`db.ts` URL stripping**: The existing `.env.local` from the previous pnpm repo contained
+  `?schema=basalt_ui_playground` (Prisma-specific). postgres.js forwards unknown query params to
+  PostgreSQL which rejects them. Stripped in `db.ts` with a regex.
+- **Seed script left unchanged**: Already used `Bun.password.hash` with argon2id and correct
+  `credential` provider pattern — no changes needed.
+
+### Gotchas & surprises
+
+- **Elysia `.mount()` ignores prefix**: Documented in several GitHub issues. `.all()` is the
+  correct alternative when a prefix is in use. Research and CLAUDE.md were both wrong on this.
+- **Elysia macro `resolve` vs `beforeHandle` lifecycle order**: `resolve` runs first (derives
+  context), `beforeHandle` runs second (guards). Auth checks in `resolve` fail because the
+  guard hasn't run yet. This is a common Elysia gotcha for auth macros.
+- **better-auth + Drizzle v1 beta**: No official support (GitHub issue #6766 open). The Drizzle
+  adapter likely uses `db.query.*` relational queries internally. For the basic email/password
+  flow tested here, it worked (simple inserts/selects), but more complex auth operations may fail.
+  Known runtime risk — documented for future groups.
+- **`?schema=` Prisma parameter in DATABASE_URL**: Must be stripped before passing to postgres.js.
+  The `.env.local` from the previous project setup included it. Fixed in `db.ts`.
+
+### Security notes
+
+- Auth CORS: `credentials: true` already on global CORS — sessions work via cookie.
+- `BETTER_AUTH_SECRET` enforced at startup (minimum 32 chars via Zod).
+- Rate limiting: 10 req/min global, 5 req/min for `/sign-in/email`.
+- `trustedOrigins` scoped to `ALLOWED_ORIGIN` env var.
+
+### Tests added
+
+None — no test infrastructure yet.
+
+### Future improvements
+
+- Seed via BetterAuth's admin API once it stabilises for Drizzle v1.
+- Replace `user!` / `userId!` assertions with proper type narrowing if Elysia's macro types
+  improve to narrow context after `beforeHandle` guards.
+- Investigate better-auth Drizzle v1 compatibility: track issue #6766 for official support or
+  the PR preview package at `pkg.pr.new/better-auth/@better-auth/drizzle-adapter@6913`.
+- The `port 3001 in use` error on server start (from a conflicting process in the main repo)
+  — the worktree's `.env.local` must use `PORT=7713`. Document in project setup.
