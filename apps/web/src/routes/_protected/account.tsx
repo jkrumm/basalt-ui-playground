@@ -1,4 +1,4 @@
-import { Button, Card, Elevation, H2, H4, Tag } from "@blueprintjs/core";
+import { Button, Card, Elevation, H2, H4, HTMLTable, Tag } from "@blueprintjs/core";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { authClient } from "~/lib/auth-client.ts";
 import { PageLayout } from "~/components/layout/PageLayout.tsx";
@@ -54,7 +54,7 @@ function AccountPage() {
         {/* Session details */}
         <Card elevation={Elevation.ONE} style={{ marginBottom: 16 }}>
           <H4 style={{ marginTop: 0, marginBottom: 12 }}>Session</H4>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <HTMLTable style={{ width: "100%", borderCollapse: "collapse" }}>
             <tbody>
               <tr>
                 <td style={{ padding: "6px 0", fontWeight: 500, width: "40%" }}>Status</td>
@@ -87,7 +87,7 @@ function AccountPage() {
                 </td>
               </tr>
             </tbody>
-          </table>
+          </HTMLTable>
         </Card>
 
         <Button

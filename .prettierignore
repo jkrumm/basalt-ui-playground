@@ -1,0 +1,15 @@
+# Generated files
+.content-collections/
+*.gen.ts
+
+# Build outputs
+dist/
+.output/
+.vite/
+.tanstack/
+
+# Dependencies
+node_modules/
+
+# Migrations (generated metadata)
+drizzle/meta/

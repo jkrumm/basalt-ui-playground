@@ -1,3 +1,4 @@
+import { Classes } from "@blueprintjs/core";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { Provider, useAtom } from "jotai";
@@ -65,7 +66,7 @@ function RootComponent() {
           <head>
             <HeadContent />
           </head>
-          <body className={theme === "dark" ? "bp6-dark" : ""}>
+          <body className={theme === "dark" ? Classes.DARK : ""}>
             <ContentNav />
             <Outlet />
             <SearchModalWrapper />

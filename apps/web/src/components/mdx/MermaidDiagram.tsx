@@ -60,11 +60,5 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
     );
   }
 
-  return (
-    <div
-      className="mdx-mermaid"
-      // eslint-disable-next-line react-dom/no-dangerously-set-innerhtml
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
-  );
+  return <div className="mdx-mermaid" dangerouslySetInnerHTML={{ __html: svg }} />;
 }

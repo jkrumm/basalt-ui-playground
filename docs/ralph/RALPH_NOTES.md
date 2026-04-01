@@ -508,3 +508,32 @@ None
 - Consider `maskAllInputs: true` for production deployments with sensitive form data.
 - Add custom HyperDX actions for key user interactions beyond what Umami tracks.
 - Wire OTEL SDK on SSR side (e.g. `@opentelemetry/sdk-node`) for full SSR span visibility.
+
+---
+
+## Group 11: Linting + Quality Pipeline
+
+### What was implemented
+ESLint 10 flat config (`eslint.config.ts`) with typescript-eslint, eslint-plugin-react-compiler, @blueprintjs/eslint-plugin, @tanstack/eslint-plugin-router, and eslint-plugin-oxlint for deduplication. Stylelint with standard config for CSS files. Updated `make check` pipeline to run oxfmt + oxlint + eslint + stylelint + typecheck.
+
+### Deviations from prompt
+- Used manual Blueprint plugin config instead of `flatConfigs.recommended` — the Blueprint plugin's flat config export has a broken CJS require path that crashes ESLint 10 in Bun's cache layout.
+- Used `oxlint.buildFromOxlintConfigFile()` instead of `configs["flat/recommended"]` for smarter deduplication based on our actual oxlint.json rules.
+- Added `.prettierignore` — oxfmt uses it to skip generated files (`.content-collections/`, `*.gen.ts`) that were causing false format failures.
+- Added Jotai `no-restricted-imports` exemption for `**/atoms/**` directory — the atoms directory itself needs to import `atom`/`atomWithStorage` from jotai.
+
+### Gotchas & surprises
+- Blueprint ESLint plugin's `flatConfigs.recommended` export references `../../eslint.config.js` via a CJS require — works in npm layout but breaks in Bun's flat cache structure. Manual plugin/rules config works fine.
+- ESLint 10 natively supports `eslint.config.ts` without additional packages (unlike v9 which needed `jiti`).
+- The `react-dom/no-dangerously-set-innerhtml` disable comment in MermaidDiagram.tsx referenced a rule from a plugin not in our config — removed it since oxlint covers this via its react plugin.
+- Blueprint v6 uses `bp6-` prefix (not `bp5-`), so class constants like `Classes.DARK` resolve to `"bp6-dark"`.
+
+### Security notes
+None.
+
+### Tests added
+None.
+
+### Future improvements
+- Consider adding `eslint-plugin-jotai` if it gains flat config support — would provide atomWithStorage naming conventions.
+- Stylelint rules are minimal — could add Blueprint-specific CSS property ordering rules if CSS grows.

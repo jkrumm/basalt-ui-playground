@@ -7,6 +7,7 @@ import {
   H2,
   H5,
   InputGroup,
+  Classes,
   Intent,
 } from "@blueprintjs/core";
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
@@ -48,7 +49,7 @@ function SignInPage() {
     <div className="flex min-h-screen items-center justify-center p-8">
       <Card elevation={Elevation.TWO} style={{ maxWidth: 400, width: "100%" }}>
         <H2>Sign In</H2>
-        <H5 className="bp6-text-muted">Welcome back</H5>
+        <H5 className={Classes.TEXT_MUTED}>Welcome back</H5>
         {error && (
           <Callout intent={Intent.DANGER} className="mb-4">
             {error}
@@ -79,7 +80,7 @@ function SignInPage() {
             <Button type="submit" intent={Intent.PRIMARY} loading={pending}>
               Sign In
             </Button>
-            <Link to="/sign-up" className="bp6-text-muted text-sm">
+            <Link to="/sign-up" className={`${Classes.TEXT_MUTED} text-sm`}>
               Create account
             </Link>
           </div>

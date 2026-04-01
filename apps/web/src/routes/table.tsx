@@ -242,8 +242,8 @@ function TableComparison() {
           <strong>SSR-safe</strong> — fully rendered in the initial HTML response. Use this on
           landing pages, docs, public dashboards. Produces semantic <Code>&lt;table&gt;</Code>{" "}
           markup that search engines index and screen readers navigate without JavaScript. TanStack
-          Table is headless (zero DOM access) — you own the markup; Blueprint{" "}
-          <Code>HTMLTable</Code> handles styling.
+          Table is headless (zero DOM access) — you own the markup; Blueprint <Code>HTMLTable</Code>{" "}
+          handles styling.
         </Callout>
 
         <TanStackSection data={data} />
