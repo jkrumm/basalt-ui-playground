@@ -1,0 +1,199 @@
+---
+title: "Collection System"
+description: "How @content-collections works — Zod schemas, compileMDX, heading extraction, and the typed data/rendering split."
+order: 3
+section: "Reference"
+---
+
+## Overview
+
+All four content types (Blog, Docs, Guides, Blocks) are defined in `apps/web/content-collections.ts`
+using [`@content-collections/core`](https://www.content-collections.dev/). This page explains the
+internals — useful when adding a new content type or debugging why a page isn't appearing.
+
+---
+
+## Architecture
+
+The content pipeline has two layers, both driven by content-collections:
+
+```
+content-collections.ts
+  ├── defineCollection (×4)
+  │     ├── Zod schema → validates frontmatter at build time
+  │     └── transform() → compileMDX + headings + readingTime + slug
+  │
+  └── defineConfig → @content-collections/vite picks this up
+
+.content-collections/generated/
+  └── index.ts   (auto-generated — do not edit)
+        ├── allPosts: Post[]
+        ├── allDocs: Doc[]
+        ├── allGuides: Guide[]
+        └── allBlocks: Block[]
+```
+
+Routes import from the virtual `"content-collections"` module:
+
+```typescript
+import { allPosts } from "content-collections";
+
+// Each document is a flat typed object:
+// { title, slug, body, headings, readingTime, ...frontmatter }
+```
+
+Rendering uses `MDXContent` from `@content-collections/mdx/react`:
+
+```tsx
+import { MDXContent } from "@content-collections/mdx/react";
+
+<MDXContent code={post.body} components={mdxComponents} />;
+```
+
+---
+
+## defineCollection
+
+Each collection in `content-collections.ts` follows this shape:
+
+```typescript
+const posts = defineCollection({
+  name: "posts",
+  directory: "src/content/blog",
+  include: "*.mdx",
+  schema: z.object({
+    ...base,
+    content: z.string(), // required: the raw MDX body
+    title: z.string(),
+    description: z.string(),
+    publishedAt: z.string(),
+    tags: z.array(z.string()),
+    // ...other fields
+  }),
+  transform: async (doc, context) => {
+    const { content, _meta, ...frontmatter } = doc;
+    const body = await compileMDX(context, doc, mdxOptions);
+    return {
+      ...frontmatter,
+      slug: _meta.path, // derived from filesystem — no manual slug field
+      body,
+      readingTime: computeReadingTime(content),
+      headings: extractHeadings(content),
+    };
+  },
+});
+```
+
+Key points:
+
+- `content: z.string()` must be declared explicitly in every schema (it holds the raw MDX source)
+- `_meta.path` is the canonical slug — derived from the file path, never a frontmatter field
+- `transform` is `async` because `compileMDX` is async
+- Zod validation errors throw at build time — broken frontmatter is caught immediately
+
+---
+
+## MDX Pipeline
+
+`compileMDX` (from `@content-collections/mdx`) runs the full unified pipeline inside each transform:
+
+```
+remarkGfm           → GitHub Flavored Markdown (tables, task lists, strikethrough)
+rehypeSlug          → Adds id="" to h2/h3 headings
+rehypeAutolinkHeadings → Appends anchor links to headings
+rehypeShiki         → Syntax highlighting with Blueprint dark theme
+```
+
+The result is a serialised JS string (`body`) stored on the document. At render time,
+`MDXContent` evaluates it and returns a React component tree — no file system access required.
+
+The full plugin config lives in `mdxOptions` in `content-collections.ts`, typed via
+`Options` from `@content-collections/mdx` to ensure correct inference of plugin tuples.
+
+---
+
+## Heading extraction
+
+Headings are extracted from raw MDX source using `github-slugger` (the same library
+`rehype-slug` uses internally), ensuring TOC anchor IDs always match rendered heading IDs:
+
+```typescript
+function extractHeadings(content: string): HeadingItem[] {
+  const slugger = new Slugger();
+  // Matches ## and ### headings, strips inline markdown (bold, code, links)
+  // Produces { id, text, depth } for each heading
+}
+```
+
+`HeadingItem` is `{ id: string; text: string; depth: 2 | 3 }`.
+
+---
+
+## Slug derivation
+
+Slugs come from `_meta.path`, which is the file path relative to the collection's `directory`,
+without the `.mdx` extension:
+
+```
+src/content/blog/my-post.mdx                → slug: "my-post"
+src/content/docs/getting-started/index.mdx  → slug: "getting-started/index"
+```
+
+To change a slug, rename the file with `git mv`. The `/index` suffix is stripped for clean
+URLs in the docs route (`getting-started/index` → `/docs/getting-started`).
+
+---
+
+## Draft and noindex filtering
+
+`draft: true` excludes a document from `getBlogList()`, `getGuideList()`, and the search
+index, but the document still exists in `allPosts` / `allGuides`. The route loader will find
+it by slug — allowing preview links to work before publishing.
+
+`noindex: true` is not filtered by the collection layer. It is emitted as
+`<meta name="robots" content="noindex">` in the route's `head()` function.
+
+---
+
+## Search index
+
+`getSearchIndex()` in `src/lib/content.ts` maps all four collections to a flat
+`SearchDocument[]` used by Fuse.js in the `SearchModal`:
+
+```typescript
+export function getSearchIndex(): SearchDocument[] {
+  return [
+    ...allPosts.map((p) => ({ type: "blog", slug: p.slug, title: p.title, ... })),
+    ...allDocs.map((d) => ({ type: "docs", ... })),
+    ...allGuides.map((g) => ({ type: "guide", ... })),
+    ...allBlocks.map((b) => ({ type: "block", ... })),
+  ];
+}
+```
+
+---
+
+## Sitemap entries
+
+Each helper in `src/lib/content.ts` produces sitemap entries. The `lastmod` date comes
+from frontmatter — update `updatedAt` when revising a post so Google re-crawls it:
+
+```typescript
+export function getBlogSitemapEntries(): SitemapEntry[] {
+  return allPosts.map((p) => ({
+    url: `/blog/${p.slug}`,
+    lastmod: p.updatedAt ?? p.publishedAt,
+  }));
+}
+```
+
+---
+
+## Adding a new content type
+
+1. Add a `defineCollection` in `content-collections.ts` with a Zod schema and async transform
+2. Export the new collection from `defineConfig({ content: [...] })`
+3. Add derived type and helper functions to `src/lib/content.ts`
+4. Add `get*SitemapEntries()` and wire into `collectSitemapEntries()` in `src/lib/sitemap.ts`
+5. Add a route under `src/routes/_content/<type>/`
+6. Update this doc and `content-types.mdx`

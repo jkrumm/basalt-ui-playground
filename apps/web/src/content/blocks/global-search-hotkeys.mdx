@@ -1,0 +1,148 @@
+---
+title: "Global Search & Hotkeys"
+description: "Cmd+K search palette wired via searchOpenAtom — how @tanstack/react-hotkeys, a Jotai atom, and a DOM custom event connect the keyboard shortcut, the navbar button, and the SearchModal."
+category: "interaction"
+tags: ["search", "hotkeys", "keyboard", "jotai", "tanstack"]
+---
+
+## Overview
+
+The global search palette (`SearchModal`) is controlled by a single atom: `searchOpenAtom`.
+Three triggers open it:
+
+1. `Cmd+K` / `Ctrl+K` — registered via `useHotkey` in `__root.tsx`
+2. Any component writing `setSearchOpen(true)` via `useSetAtom`
+3. A `window.dispatchEvent(new Event('open-search'))` custom event for non-React contexts
+
+The modal is mounted once in `__root.tsx` — always in the tree, never duplicated.
+
+<Admonition type="tip" title="Try it now">
+  Press `Cmd+K` (macOS) or `Ctrl+K` (Windows/Linux) anywhere on this page to open the search
+  palette.
+</Admonition>
+
+---
+
+## The Atom
+
+```typescript filename="apps/web/src/atoms/ui.atoms.ts"
+import { atom } from "jotai";
+
+// Session-only — false on every page load, no persistence needed
+export const searchOpenAtom = atom<boolean>(false);
+```
+
+---
+
+## Hotkey + Modal Registration
+
+Both the hotkey listener and the modal live in the root component so they are always
+active regardless of which route is rendered:
+
+```tsx filename="apps/web/src/routes/__root.tsx"
+import { useHotkey } from "@tanstack/react-hotkeys";
+import { useAtom } from "jotai";
+import { searchOpenAtom } from "~/atoms";
+import { EVENTS, track } from "~/lib/analytics";
+
+function RootComponent() {
+  const [searchOpen, setSearchOpen] = useAtom(searchOpenAtom);
+
+  // 'Mod' = Cmd on macOS, Ctrl on Windows/Linux — one binding covers all platforms
+  useHotkey(
+    "Mod+K",
+    () => {
+      setSearchOpen(true);
+      track(EVENTS.SEARCH_OPENED, {});
+    },
+    { preventDefault: true },
+  );
+
+  // DOM event escape hatch — opens search from non-React contexts or web components
+  useEffect(() => {
+    const handler = () => {
+      setSearchOpen(true);
+      track(EVENTS.SEARCH_OPENED, {});
+    };
+    window.addEventListener("open-search", handler);
+    return () => window.removeEventListener("open-search", handler);
+  }, [setSearchOpen]);
+
+  return (
+    <>
+      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      {/* rest of layout */}
+    </>
+  );
+}
+```
+
+`{ preventDefault: true }` stops the browser from triggering its built-in Cmd+K
+behaviour (focus the address bar in some browsers).
+
+---
+
+## Triggering from a Component
+
+Any component can open the search palette by writing to `searchOpenAtom` directly:
+
+```tsx
+import { useSetAtom } from "jotai";
+import { searchOpenAtom } from "~/atoms";
+
+function NavSearchButton() {
+  // useSetAtom — write-only, no re-render when searchOpen changes
+  const setSearchOpen = useSetAtom(searchOpenAtom);
+
+  return (
+    <Button onClick={() => setSearchOpen(true)} data-umami-event="nav-search-open">
+      Search
+      <kbd>⌘K</kbd>
+    </Button>
+  );
+}
+```
+
+Using `useSetAtom` (not `useAtom`) avoids subscribing to the atom value — the button does
+not re-render when the modal closes.
+
+---
+
+## Triggering via DOM Event
+
+For components outside the Jotai Provider, or for non-React code:
+
+```ts
+window.dispatchEvent(new Event("open-search"));
+```
+
+This is a secondary escape hatch — prefer `useSetAtom` in React components.
+
+---
+
+## Keyboard Reference
+
+| Key                | Action               | Implemented in              |
+| ------------------ | -------------------- | --------------------------- |
+| `Cmd+K` / `Ctrl+K` | Open search          | `useHotkey` in `__root.tsx` |
+| `Escape`           | Close search         | Inside `SearchModal`        |
+| `↑` / `↓`          | Navigate results     | Inside `SearchModal`        |
+| `Enter`            | Open selected result | Inside `SearchModal`        |
+
+---
+
+## Analytics
+
+The search open event is tracked programmatically (not declaratively) because it carries
+no additional payload. Both the hotkey trigger and the custom event trigger fire the same
+analytics call:
+
+```ts
+import { EVENTS, track } from "~/lib/analytics";
+
+track(EVENTS.SEARCH_OPENED, {});
+```
+
+No `component` property is needed here — `SEARCH_OPENED` unambiguously identifies the
+global search palette. Search query analytics fire separately inside `SearchModal` with
+`{ query, result_count }`.

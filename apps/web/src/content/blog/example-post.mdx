@@ -1,0 +1,132 @@
+---
+title: "Building an MDX Content System with TanStack Start"
+description: "A walkthrough of integrating MDX, Shiki syntax highlighting, and Blueprint components into a TanStack Start application."
+publishedAt: "2026-01-15"
+tags: ["mdx", "tanstack-start", "blueprint", "react"]
+author: "Johannes Krumm"
+---
+
+## Overview
+
+This post demonstrates all available MDX features in this content system.
+The pipeline uses `@mdx-js/rollup` with Shiki for compile-time syntax highlighting — zero runtime JS for code blocks.
+
+<Admonition type="tip" title="Before you start">
+  Make sure you have Bun ≥ 1.2 installed. The examples below use `bun` as the package manager.
+</Admonition>
+
+## Installation
+
+<PackageManagerTabs command="add @mdx-js/rollup rehype-shiki" />
+
+## Configuration Steps
+
+<Steps>
+  <Step title="Install dependencies">
+    Add the MDX rollup plugin and remark/rehype plugins to your project.
+  </Step>
+  <Step title="Configure vite.config.ts">
+    Add the MDX plugin before `tanstackStart()`. The `enforce: 'pre'` is critical — MDX must transform files before Vite sees them as JSX.
+
+    ```typescript
+    { enforce: 'pre', ...mdx({ remarkPlugins: [...], rehypePlugins: [...] }) }
+    ```
+
+  </Step>
+  <Step title="Create content files">
+    Add `.mdx` files to `src/content/blog/` or `src/content/docs/`. Frontmatter is automatically exported as a named `frontmatter` constant.
+  </Step>
+</Steps>
+
+## Code Examples
+
+### TypeScript — with line highlighting
+
+```typescript
+import type { ThemeRegistration } from "shiki"; // [!code highlight]
+
+export const blueprintDarkTheme: ThemeRegistration = {
+  // [!code highlight]
+  name: "blueprint-dark",
+  type: "dark",
+  colors: {
+    "editor.background": "#1c2127",
+  },
+  tokenColors: [],
+};
+```
+
+### Bash — with diff markers
+
+```bash
+# Before
+npm install rehype-shiki # [!code --]
+
+# After
+bun add @shikijs/rehype  # [!code ++]
+```
+
+## Admonitions
+
+<Admonition type="note" title="Note">
+  This is a note. Uses Blueprint's primary intent color.
+</Admonition>
+
+<Admonition type="warning" title="Breaking change">
+  `rehype-shiki` (the old package) is deprecated. Use `@shikijs/rehype` instead.
+</Admonition>
+
+<Admonition type="danger" title="Do not do this">
+  Never commit secrets to your repository. Use environment variables and a secret manager like
+  Doppler.
+</Admonition>
+
+## Tabs
+
+<Tabs defaultTab="ts">
+  <Tab id="ts" title="TypeScript">
+    ```typescript const greeting: string = 'Hello, Blueprint!' console.log(greeting) ```
+  </Tab>
+  <Tab id="py" title="Python">
+    ```python greeting: str = "Hello, Blueprint!" print(greeting) ```
+  </Tab>
+</Tabs>
+
+## Mermaid Diagram
+
+<Mermaid
+  chart={`graph TD
+  A[vite.config.ts] -->|MDX plugin| B[remark pipeline]
+  B --> C[rehype pipeline]
+  C -->|Shiki| D[Highlighted HTML]
+  D --> E[React component]`}
+/>
+
+## GitHub Flavored Markdown
+
+Tables work out of the box via `remark-gfm`:
+
+| Plugin                   | Role                              | Runs at |
+| ------------------------ | --------------------------------- | ------- |
+| `remark-frontmatter`     | Parse YAML frontmatter            | Build   |
+| `remark-mdx-frontmatter` | Export frontmatter as ESM         | Build   |
+| `remark-gfm`             | Tables, task lists, strikethrough | Build   |
+| `rehype-slug`            | Add `id` to headings              | Build   |
+| `@shikijs/rehype`        | Syntax highlighting               | Build   |
+
+Task lists:
+
+- [x] MDX pipeline configured
+- [x] Shiki theme implemented
+- [x] Blueprint components wired up
+- [ ] Deploy to production
+
+## Diagram Stubs
+
+Placeholder components for future diagram integrations:
+
+<Excalidraw src="/diagrams/architecture.excalidraw" />
+
+## Conclusion
+
+The full MDX pipeline is now operational. Shiki runs at build time — no JavaScript is shipped for syntax highlighting. Blueprint components integrate seamlessly as MDX component overrides.

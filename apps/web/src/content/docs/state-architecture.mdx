@@ -1,0 +1,230 @@
+---
+title: "State Architecture"
+description: "Five-layer state decision guide — URL params, session atoms, persistent atoms, server state, and forms."
+section: "Architecture"
+order: 1
+---
+
+## Decision Tree
+
+Before reaching for any state primitive, ask these questions in order:
+
+```
+Can I share a URL and reproduce this state?         → URL State (validateSearch)
+
+Does this state cross component boundaries?
+  Should it survive page refresh?         YES → atomWithStorage (persistent atom)
+                                           NO → atom() (session atom)
+
+Is it purely local to one component?               → useState
+
+Is it from the server / fetched over the network?  → useSuspenseQuery (TanStack Query)
+
+Is it user input that needs validation?            → useAppForm (TanStack Form)
+```
+
+Each layer has a specific responsibility. Mixing them (e.g. using `useState` for something
+that should be in the URL) causes bugs that are hard to reproduce and state that gets lost
+on page refresh.
+
+---
+
+## Layer 1: URL State
+
+**When to use:** Any state that can be shared via URL — filters, pagination, sort order,
+active tab, or a modal that has a shareable link.
+
+**Primitive:** TanStack Router `validateSearch` + Zod v4
+
+```typescript filename="apps/web/src/routes/_content/blog/index.tsx"
+import { z } from 'zod'
+
+const BlogSearch = z.object({
+  tag: z.string().default(''),
+})
+type BlogSearch = z.infer<typeof BlogSearch>
+
+export const Route = createFileRoute('/blog/')({
+  validateSearch: (search: Record<string, unknown>): BlogSearch => {
+    const result = BlogSearch.safeParse(search)
+    return result.success ? result.data : { tag: '' }
+  },
+})
+
+// Read in component:
+const { tag } = Route.useSearch()
+
+// Navigate (toggle a filter):
+<Link to="/blog" search={{ tag: activeTag === tag ? '' : tag }}>Filter</Link>
+```
+
+**Never use `useState` for this.** URL state survives page refresh and is shareable —
+localStorage and component state cannot do that.
+
+---
+
+## Layer 2: Session State
+
+**When to use:** State that crosses component boundaries but should reset on page close.
+Typical for UI overlays: modals, command palettes, popovers, notification trays.
+
+**Primitive:** Jotai `atom()` — defined in `src/atoms/`, never inline
+
+```typescript filename="apps/web/src/atoms/ui.atoms.ts"
+import { atom } from "jotai";
+
+// Session-only: cleared when the browser tab closes
+export const searchOpenAtom = atom<boolean>(false);
+```
+
+```tsx
+import { useAtom, useSetAtom } from "jotai";
+import { searchOpenAtom } from "~/atoms";
+
+// useSetAtom when you only write — avoids re-renders when the atom changes
+function NavSearchButton() {
+  const setSearchOpen = useSetAtom(searchOpenAtom);
+  return <Button onClick={() => setSearchOpen(true)}>Search</Button>;
+}
+
+// useAtom when you need both read + write
+function SearchModal() {
+  const [isOpen, setIsOpen] = useAtom(searchOpenAtom);
+  return <Dialog isOpen={isOpen} onClose={() => setIsOpen(false)} />;
+}
+```
+
+<Admonition type="tip" title="All atoms live in src/atoms/">
+  ESLint enforces this. Calling `atom()` or `atomWithStorage()` outside `src/atoms/` is a lint
+  error. This keeps state centralized and easy to discover.
+</Admonition>
+
+---
+
+## Layer 3: Persistent UI State
+
+**When to use:** UI preferences that should survive page refresh — theme, view mode,
+table column visibility, sidebar collapsed state.
+
+**Primitive:** Jotai `atomWithStorage()` — defined in `src/atoms/`
+
+```typescript filename="apps/web/src/atoms/ui.atoms.ts"
+import type { UserPreferences } from "@cbbi/schemas";
+import { atomWithStorage } from "jotai/utils";
+
+// Persists to localStorage under 'cbbi-view-mode'
+export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>(
+  "cbbi-view-mode",
+  "grid", // default on first visit
+);
+
+export const sortByAtom = atomWithStorage<UserPreferences["sortBy"]>("cbbi-sort-by", "default");
+```
+
+The `atomWithStorage` default value applies on first visit; after that, the stored value
+is restored automatically on every page load via a synchronous localStorage read.
+
+**Server sync:** When the user logs in, their server preferences override the localStorage
+defaults exactly once. See [Auth & Data Flow](/docs/auth-and-data-flow) for the
+`useEffect` override pattern used in `/settings`.
+
+---
+
+## Layer 4: Server State
+
+**When to use:** Any data fetched from the server — user profiles, preferences, API responses.
+Use `queryOptions()` factory functions, never raw `useQuery` calls with inline `queryFn`.
+
+**Primitive:** TanStack Query `useSuspenseQuery` + `queryOptions` factory
+
+```typescript filename="apps/web/src/queries/preferences.queries.ts"
+import { queryOptions } from "@tanstack/react-query";
+import { getApi } from "~/lib/api";
+
+// Always a factory function () => queryOptions(...)
+// This ensures queryKey stability and makes loader preloading easy.
+export const userPreferencesQuery = () =>
+  queryOptions({
+    queryKey: ["user", "preferences"],
+    queryFn: async () => {
+      const { data, error } = await getApi().user.preferences.get();
+      if (error) throw error.value;
+      return data!;
+    },
+  });
+```
+
+```tsx
+// In a component (must be inside a Suspense boundary):
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { userPreferencesQuery } from "~/queries/preferences.queries";
+
+function SettingsForm() {
+  const { data: prefs } = useSuspenseQuery(userPreferencesQuery());
+  // prefs is fully typed — never undefined, Suspense handles loading state
+}
+```
+
+<Admonition type="warning" title="SSR caveat with auth-gated queries">
+  The isomorphic `getApi()` client uses in-process Hono calls during SSR — but this path does not
+  forward request cookies. Auth-gated queries must not run in route loaders; use `useSuspenseQuery`
+  in client components where `credentials: 'include'` sends the cookie.
+</Admonition>
+
+---
+
+## Layer 5: Forms
+
+**When to use:** User input that needs validation before submission. Use `useAppForm` +
+`zodFormValidator` — never `useState` for individual form fields.
+
+**Primitive:** TanStack Form `useAppForm` + Zod validator adapter
+
+```typescript filename="apps/web/src/lib/validation.ts"
+export function zodFormValidator<T extends ZodTypeAny>(schema: T) {
+  return ({ value }: { value: unknown }) => {
+    const result = schema.safeParse(value ?? {});
+    if (result.success) return undefined;
+    const fields = result.error.issues.reduce<Record<string, string>>((acc, issue) => {
+      const field = issue.path.join(".") || "root";
+      if (!acc[field]) acc[field] = issue.message;
+      return acc;
+    }, {});
+    return { fields };
+  };
+}
+```
+
+```tsx
+const form = useAppForm({
+  defaultValues: { name: '', email: '' },
+  validators: { onChange: zodFormValidator(MySchema) },
+  onSubmit: async ({ value }) => { /* submit */ },
+})
+
+// Blueprint fields wired to form state via render prop:
+<form.AppField name="email">
+  {field => <field.TextField label="Email" type="email" />}
+</form.AppField>
+```
+
+TanStack Form is signals-based under the hood — components only re-render when their
+subscribed slice of form state changes. This is React Compiler-safe by design.
+
+---
+
+## What NOT to Use
+
+| Library                                  | Why not here                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------------- |
+| **Zustand**                              | Global store; less granular than atoms; not tree-shakeable at field level |
+| **Redux**                                | Boilerplate overhead; overkill for a single-user dashboard                |
+| **MobX**                                 | Mutable observables conflict with React Compiler's immutability model     |
+| **React Context**                        | Fine for narrow cases (theme, auth); not a state store replacement        |
+| **`useState` for cross-component state** | Causes prop drilling; use Jotai atoms instead                             |
+| **`atomFamily`**                         | Banned — causes infinite re-renders with React Compiler                   |
+
+<Admonition type="warning" title="atomFamily is banned">
+  `atomFamily` from `jotai/utils` causes an infinite re-render loop with React Compiler. ESLint
+  enforces the ban. Use static atoms with typed parameters instead.
+</Admonition>

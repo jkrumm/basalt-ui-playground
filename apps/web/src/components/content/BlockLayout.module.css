@@ -1,0 +1,33 @@
+.page {
+  min-height: 100vh;
+  padding-bottom: 64px;
+}
+
+.layout {
+  display: flex;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+  gap: 3rem;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.toc {
+  width: 220px;
+  flex-shrink: 0;
+  padding-top: 2rem;
+}
+
+@media (width <= 1100px) {
+  .toc {
+    display: none;
+  }
+}
+
+.navLink {
+  text-decoration: none;
+}

@@ -1,0 +1,254 @@
+---
+title: "Content Types"
+description: "The four content types, their frontmatter schemas, when to use each, and how they differ in navigation, SEO, and structure."
+order: 5
+section: "Reference"
+---
+
+## Overview
+
+The site has four content types, each modelled by a Zod schema in `content-collections.ts`.
+They share a common base and differ in the fields they require, how they are navigated,
+and what structured data they emit.
+
+---
+
+## Shared base
+
+Every content type extends a shared `base` object in `content-collections.ts`:
+
+```ts
+const base = {
+  title: z.string(),
+  draft: z.boolean().optional(),
+  noindex: z.boolean().optional(),
+};
+
+// Each collection uses: schema: z.object({ ...base, content: z.string(), ...fields })
+```
+
+- **`draft`** — content exists but is excluded from listings and the search index.
+- **`noindex`** — page is live and accessible, but suppressed from search engines via
+  `<meta name="robots" content="noindex">`. Use for preview links, stub pages, or content
+  that is live but not ready for discovery.
+
+---
+
+## Blog
+
+**Use for:** authored articles, analysis, opinions, release announcements, deep dives.
+Has an author, a publish date, optional series grouping. Can age — the date signals recency.
+
+```
+src/content/blog/*.mdx        (flat, sorted by publishedAt desc)
+```
+
+**Full frontmatter:**
+
+```yaml
+---
+title: "My Post"
+description: "Meta description (150–160 chars). Also used in listing cards."
+publishedAt: "2026-03-20"
+updatedAt: "2026-03-22" # optional — update when revising
+author: "Johannes Krumm"
+tags: ["react", "tanstack"]
+
+# Optional SEO overrides
+image: "/images/hero.jpg" # general in-content hero / share fallback
+ogImage: "/images/og-1200.jpg" # explicit 1200×630 OG override (takes precedence over image)
+canonicalUrl: "https://dev.to/jkrumm/my-post" # set when cross-posting
+excerpt: "Short blurb for listing cards." # falls back to description if absent
+authorUrl: "https://github.com/jkrumm" # maps to article:author OG + JSON-LD author.url
+noindex: true # suppress from search without hiding the page
+
+# Series grouping
+series: "TanStack Deep Dives"
+seriesOrder: 1
+
+# Computed at build time by content-collections — do not set manually
+readingTime: "5 min read"
+---
+```
+
+**Key behaviours:**
+
+- `ogImage` takes precedence over `image` for `og:image`, `twitter:image`, and JSON-LD `image`.
+- `canonicalUrl` overrides the generated canonical — required when cross-posting to avoid
+  duplicate content penalties.
+- `excerpt` is available on listing cards as a richer blurb; falls back to `description`.
+- `authorUrl` populates `article:author` OG meta and JSON-LD `author.url`.
+- `series` + `seriesOrder` group posts into ordered series with prev/next navigation.
+- Related posts are computed by tag overlap scoring.
+
+**Emits:** `BlogPosting` JSON-LD, `article:*` OG namespace, full twitter:card set.
+
+---
+
+## Guides
+
+**Use for:** step-by-step procedural content. The reader wants to _do_ something and reach a
+defined outcome. Has difficulty, prerequisites, estimated time. Dates signal maintenance
+currency, not recency.
+
+```
+src/content/guides/*.mdx        (flat, sorted by publishedAt desc)
+```
+
+**Full frontmatter:**
+
+```yaml
+---
+title: "Set Up TanStack Router"
+description: "Required. Shown in meta and listing cards."
+publishedAt: "2026-01-10"
+updatedAt: "2026-03-01"
+category: "TanStack"
+difficulty: "beginner" # beginner | intermediate | advanced
+estimatedTime: "20 min"
+tags: ["routing", "tanstack"]
+prerequisites: ["Install Bun", "Create a React project"]
+
+# Optional
+author: "Johannes Krumm" # omit for org-authored guides
+ogImage: "/images/guide-og.jpg"
+noindex: true
+
+# Computed at build time by content-collections — do not set manually
+readingTime: "8 min read"
+---
+```
+
+**Key behaviours:**
+
+- `difficulty` and `estimatedTime` render in the guide header for audience signalling.
+- `prerequisites` render as a checklist before the guide content.
+- `author` is optional — omit for guides that are effectively org-authored.
+- Prev/next navigation is chronological (same as Blog).
+- No series grouping — use `category` to cluster related guides in listings.
+
+**Emits:** `Article` JSON-LD, `article:*` OG namespace, twitter:card.
+
+---
+
+## Docs
+
+**Use for:** structural reference, architecture explanation, API documentation.
+The reader wants to _understand_ the system, not follow steps. No dates, no authorship.
+Organised by sections with explicit ordering for sidebar navigation.
+
+```
+src/content/docs/**/*.mdx       (nested subdirectories supported, ordered by section + order)
+```
+
+**Full frontmatter:**
+
+```yaml
+---
+title: "Collection System"
+description: "Optional but recommended — used in meta and search."
+section: "Reference" # sidebar section heading
+order: 3 # position within the section
+noindex: true # useful for stub/in-progress pages
+---
+```
+
+**Key behaviours:**
+
+- `section` + `order` drive the sidebar. Pages without a section fall under "General".
+  Within a section, pages sort by `order` then alphabetically by title.
+- `description` is optional (many reference pages have no natural summary) but Google
+  requires it for rich results — add it wherever possible.
+- `getNextDocPage()` provides sequential "next page" navigation through the full sidebar.
+- Subdirectory nesting is supported: `docs/getting-started/installation.mdx` →
+  `/docs/getting-started/installation`.
+
+**Emits:** basic OG tags. No JSON-LD (structured data adds little value for reference content).
+
+---
+
+## Blocks
+
+**Use for:** copy-paste UI component examples, design patterns, component showcases.
+No dates, no authorship, no narrative arc. The reader wants to _copy_ a pattern.
+
+```
+src/content/blocks/*.mdx        (flat, no inherent sort order)
+```
+
+**Full frontmatter:**
+
+```yaml
+---
+title: "Data Table with Sorting"
+description: "Required. Shown in listing cards and meta."
+category: "Tables"
+tags: ["table", "sorting", "blueprint"]
+component: "DataTable" # the React component being demonstrated
+previewUrl: "https://..." # live demo URL for iframe embed (optional)
+dependencies: ["@tanstack/react-table", "blueprint-ui"] # required packages/blocks
+noindex: true # useful for WIP blocks
+---
+```
+
+**Key behaviours:**
+
+- `component` links the MDX file to its React source for tooling lookups.
+- `previewUrl` is available for layout components to render a live iframe demo alongside
+  the code example.
+- `dependencies` is surfaced in the block header to tell readers what to install.
+- No prev/next, no series, no related content — blocks are standalone.
+
+**Emits:** basic OG tags only.
+
+---
+
+## Comparison table
+
+|                        | Blog                | Guides         | Docs                 | Blocks   |
+| ---------------------- | ------------------- | -------------- | -------------------- | -------- |
+| `publishedAt`          | required            | required       | —                    | —        |
+| `updatedAt`            | optional            | optional       | —                    | —        |
+| `author`               | required            | optional       | —                    | —        |
+| `tags`                 | required            | required       | —                    | required |
+| `category`             | —                   | required       | —                    | required |
+| `section`/`order`      | —                   | —              | optional             | —        |
+| `difficulty`           | —                   | required       | —                    | —        |
+| `prerequisites`        | —                   | optional       | —                    | —        |
+| `series`/`seriesOrder` | optional            | —              | —                    | —        |
+| `image`/`ogImage`      | both optional       | `ogImage` only | —                    | —        |
+| `canonicalUrl`         | optional            | —              | —                    | —        |
+| `excerpt`              | optional            | —              | —                    | —        |
+| `authorUrl`            | optional            | —              | —                    | —        |
+| `component`            | —                   | —              | —                    | optional |
+| `previewUrl`           | —                   | —              | —                    | optional |
+| `dependencies`         | —                   | —              | —                    | optional |
+| `noindex`              | optional            | optional       | optional             | optional |
+| `draft`                | optional            | optional       | optional             | optional |
+| Navigation             | prev/next + related | prev/next      | sidebar + sequential | none     |
+| File nesting           | flat                | flat           | recursive            | flat     |
+| JSON-LD type           | `BlogPosting`       | `Article`      | —                    | —        |
+| twitter:card           | yes                 | yes            | —                    | —        |
+
+---
+
+## Decision guide
+
+```
+Has an author and publish date, may age?         → Blog
+Step-by-step, defined outcome, difficulty?       → Guide
+Reference/architecture, no date, sidebar nav?    → Docs
+Copy-paste component, no narrative?              → Block
+```
+
+---
+
+## Adding a new content type
+
+1. Add a `defineCollection` in `content-collections.ts` with a Zod schema and async transform
+2. Export it from `defineConfig({ content: [...] })`
+3. Add derived type and helper functions to `src/lib/content.ts`
+4. Add `get*SitemapEntries()` and wire into `collectSitemapEntries()` in `src/lib/sitemap.ts`
+5. Add the new section to `buildLlmsTxt()` in `src/lib/sitemap.ts`
+6. Add the route under `src/routes/_content/<type>/`
+7. Update this doc and `collection-system.mdx`

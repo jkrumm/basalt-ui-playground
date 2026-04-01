@@ -1,0 +1,211 @@
+---
+title: Understanding the CBBI Score
+description: A deep dive into how CBBI combines on-chain metrics to produce a single composite Bitcoin market cycle indicator.
+publishedAt: "2026-03-01"
+category: indicators
+difficulty: beginner
+estimatedTime: "12 min"
+tags: ["cbbi", "bitcoin", "indicators", "on-chain"]
+prerequisites: []
+---
+
+## What Is the CBBI Score?
+
+The CBBI (Colin Talks Crypto Bitcoin Bull Run Index) score is a composite indicator that aggregates multiple independent on-chain and market metrics into a single value between **0 and 100**. A score near 0 suggests Bitcoin is deeply undervalued — likely near a cycle bottom. A score approaching 100 signals extreme overheating and a statistically high probability of an imminent market top.
+
+<Admonition type="note" title="Not financial advice">
+  The CBBI score is a probabilistic indicator, not a trading signal. No composite metric can predict
+  tops or bottoms with certainty. Use it as one input among many when forming your own analysis.
+</Admonition>
+
+## Why a Composite Indicator?
+
+Individual on-chain metrics each capture one dimension of market behavior. MVRV Z-Score measures whether holders are in profit relative to the cost basis. The Pi Cycle Top Indicator looks at moving average crossovers. NUPL (Net Unrealized Profit/Loss) reflects the aggregate emotional state of the entire network.
+
+Each signal has blind spots. A single indicator can give a false reading during unusual market conditions — for example, MVRV can spike temporarily without a sustained bull top if long-term holders rapidly redistribute and re-accumulate. By blending **nine independent signals**, CBBI reduces noise and increases confidence in its readings.
+
+## The Nine Constituent Metrics
+
+CBBI currently aggregates the following signals. Each is normalized to a 0–100 scale before combination:
+
+| Metric               | What it measures                | Typical top reading |
+| -------------------- | ------------------------------- | ------------------- |
+| Pi Cycle Top         | MA crossover geometry           | ~90                 |
+| NUPL                 | Aggregate unrealized profit     | >75                 |
+| MVRV Z-Score         | Market vs realized value        | >85                 |
+| Puell Multiple       | Miner revenue vs annual average | >80                 |
+| 2-Year MA Multiplier | Price vs 2Y MA × 5              | >90                 |
+| Bitcoin Trolololo    | Log regression channel          | >90                 |
+| RHODL Ratio          | HODLer age distribution         | >85                 |
+| Reserve Risk         | Conviction vs opportunity cost  | >75                 |
+| Woobull NVT          | Network value vs transactions   | >70                 |
+
+<Admonition type="tip" title="Reading the table">
+  "Typical top reading" indicates the approximate normalized value each metric has historically
+  reached during confirmed cycle tops. These are averages across prior cycles — individual cycles
+  vary.
+</Admonition>
+
+## How Scores Are Combined
+
+The combination is a **simple arithmetic mean** of the nine normalized sub-scores. This equal-weighting approach is intentional:
+
+```typescript
+function computeComposite(subScores: number[]): number {
+  const sum = subScores.reduce((acc, score) => acc + score, 0);
+  return sum / subScores.length;
+}
+```
+
+No metric receives a higher weight than another. This prevents any single indicator from dominating the composite — which would re-introduce the single-metric failure mode the composite is designed to avoid.
+
+<Admonition type="warning" title="Confidence intervals matter">
+  CBBI displays a confidence band alongside the composite line. When constituent metrics disagree
+  strongly, the band widens — signaling lower conviction in the reading. A narrow band at 85+ is
+  more meaningful than a wide band at the same level.
+</Admonition>
+
+## Interpreting Score Ranges
+
+<Steps>
+  <Step title="0–20: Extreme Fear / Cycle Bottom Zone">
+    At these levels, most metrics signal deeply undervalued conditions. Historically, sustained
+    readings in this range have corresponded to accumulation zones following bear market
+    capitulation events. Long-term holders tend to be absorbing supply from distressed short-term
+    sellers.
+  </Step>
+  <Step title="20–50: Neutral / Early Bull">
+    The market is recovering. Metrics like NUPL transition from "Hope/Fear" into "Optimism." Puell
+    Multiple begins to normalize as block reward economics improve with rising prices. This range
+    typically spans the longest duration in any given cycle.
+  </Step>
+  <Step title="50–75: Elevated / Mid Bull">
+    Increasing speculative activity. MVRV Z-Score climbs above historical median. New participants
+    enter the market. Media attention picks up. Some metrics (e.g., Pi Cycle moving averages) begin
+    converging. Risk management becomes more important in this range.
+  </Step>
+  <Step title="75–90: High / Late Bull Warning">
+    Multiple metrics simultaneously signal danger. The composite entering this range has
+    historically preceded major corrections or the final parabolic blowoff top within weeks to
+    months. This is where CBBI becomes most actionable as a risk-off signal.
+  </Step>
+  <Step title="90–100: Extreme Greed / Probable Top Zone">
+    Rare. Historically reached only within the final few weeks before confirmed cycle tops. The
+    2013, 2017, and 2021 peaks all saw composite readings in this range for brief windows. A
+    sustained reading above 90 is a strong signal the cycle is in its terminal phase.
+  </Step>
+</Steps>
+
+## The Pi Cycle Top in Detail
+
+The Pi Cycle Top is one of the most well-known constituents. It fires when the 111-day moving average crosses above twice the 350-day moving average:
+
+```typescript
+// Pseudocode — actual implementation uses daily OHLCV data
+const ma111 = simpleMovingAverage(closes, 111);
+const ma350x2 = simpleMovingAverage(closes, 350).map((v) => v * 2);
+
+const piCycleFired = ma111[today] >= ma350x2[today];
+```
+
+The name references the ratio 350/111 ≈ π. This metric has called the 2013, 2017, and 2021 cycle tops to within a few days — but it is a lagging indicator by design. It fires at or after the top, not before.
+
+<Admonition type="danger" title="The Pi Cycle is not predictive — it is confirmatory">
+  Waiting for the Pi Cycle to fire before taking action is waiting too late. Use it in context of
+  other metrics that provide earlier warning — NUPL moving into "Euphoria" territory or Reserve Risk
+  spiking are typically earlier signals.
+</Admonition>
+
+## MVRV Z-Score Deep Dive
+
+Market Value to Realized Value Z-Score is one of the highest-signal constituents:
+
+```
+MVRV Z-Score = (Market Cap - Realized Cap) / std_dev(Market Cap)
+```
+
+- **Market Cap**: current price × circulating supply
+- **Realized Cap**: each UTXO valued at the price when it last moved
+- **Z-Score**: standard deviation normalization across the full history
+
+When MVRV Z-Score is strongly positive, the average coin is sitting on large unrealized profits. This typically precedes distribution events. When negative, the average coin is underwater — historically a buy signal.
+
+## NUPL: The Sentiment Gauge
+
+Net Unrealized Profit/Loss (NUPL) maps to named sentiment zones:
+
+| NUPL Range | Zone               | Typical CBBI Sub-Score |
+| ---------- | ------------------ | ---------------------- |
+| < 0        | Capitulation       | 0–15                   |
+| 0–0.25     | Hope / Fear        | 15–35                  |
+| 0.25–0.50  | Optimism / Anxiety | 35–55                  |
+| 0.50–0.75  | Belief / Denial    | 55–75                  |
+| > 0.75     | Euphoria / Greed   | 75–100                 |
+
+The transition from "Belief/Denial" into "Euphoria/Greed" (NUPL crossing 0.75) has historically aligned with the final 10–20% of upside in a cycle before a major reversal.
+
+## Puell Multiple and Miner Dynamics
+
+The Puell Multiple measures miner revenue relative to its 365-day moving average:
+
+```
+Puell Multiple = Daily Issuance USD / 365d MA(Daily Issuance USD)
+```
+
+Miners are forced sellers — they must cover operational costs in fiat. When the Puell Multiple spikes (miners earning far above their annual average), it signals peak miner profitability. Historically, miners tend to sell into this strength, creating consistent sell pressure that contributes to cycle tops.
+
+<Admonition type="note" title="Post-halving dynamics">
+  Each halving cuts miner issuance in half overnight. The Puell Multiple resets dramatically at
+  halving events, which is part of why halvings historically precede bull markets — miner sell
+  pressure drops by 50% instantly.
+</Admonition>
+
+## Practical Usage Patterns
+
+### Using CBBI for Position Sizing
+
+Rather than treating CBBI as a binary buy/sell trigger, consider using it to adjust position size along a gradient:
+
+```typescript
+function positionScaleFactor(cbbiScore: number): number {
+  // Linear scale: full size at 0, zero at 85+
+  if (cbbiScore >= 85) return 0;
+  return 1 - cbbiScore / 85;
+}
+```
+
+This is a simplified illustration. In practice, you would combine CBBI with your own cost basis, time horizon, and risk tolerance.
+
+### Reading the Confidence Band
+
+The confidence band in CBBI Blueprint visualizes the spread between constituent sub-scores:
+
+```
+band_width = max(subScores) - min(subScores)
+```
+
+A wide band (e.g., 40+ points between the highest and lowest sub-score) means the nine metrics are telling conflicting stories. High composite + wide band = lower confidence. High composite + narrow band = higher conviction.
+
+## Common Misinterpretations
+
+<Admonition type="warning" title="CBBI is not a market timer">
+  A CBBI score of 85 does not mean "sell immediately." It means the market has historically shown
+  elevated risk at these levels. Bull markets can stay overheated for months. The 2021 cycle saw
+  readings above 80 from October 2021 through the November top — six weeks of false peaks before the
+  actual top.
+</Admonition>
+
+**Misinterpretation 1: "CBBI hit 95, the top is in."**
+Past cycles show tops occurred within days to weeks of peak CBBI readings — but the exact day is unknowable. CBBI narrows the window of risk; it does not pinpoint the day.
+
+**Misinterpretation 2: "CBBI is low, so Bitcoin is safe to buy."**
+A low CBBI score eliminates the overheating risk but does not protect against macro-driven drawdowns, exchange failures, regulatory shocks, or other non-cycle-driven events.
+
+**Misinterpretation 3: "This cycle is different — CBBI is broken."**
+Every cycle has structural differences. New entrants always believe the current cycle has invalidated prior patterns. Historically, the on-chain fundamentals captured by CBBI metrics have remained consistent across cycles despite changing market narratives.
+
+## Conclusion
+
+The CBBI score provides a high-confidence, multi-metric view of where Bitcoin sits in its market cycle. Its power comes not from any single constituent but from the agreement (or disagreement) across nine independent signals derived from on-chain behavior. A score above 80 with a narrow confidence band — where MVRV, NUPL, Puell, and Pi Cycle all agree — is a qualitatively different signal than a wide-band reading at the same level.
+
+Use CBBI as one input in a broader framework, understand the individual constituents it aggregates, and always account for your own time horizon and risk tolerance.

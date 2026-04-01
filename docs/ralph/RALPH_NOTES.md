@@ -386,3 +386,65 @@ None.
   If Eden doesn't handle empty-string domains, switching to `window.location.origin` would fix it.
 - Add TanStack Query `queryClient.prefetchQuery` in root `beforeLoad` for session caching to avoid
   duplicate session fetches (protected route + nav on first load).
+
+---
+
+## Group 8: Content Collections + MDX
+
+### What was implemented
+
+Ported the full content pipeline from the original codebase: `content-collections.ts` with 4
+collections (blog/docs/guides/blocks), MDX compilation with Shiki syntax highlighting (Blueprint
+dark theme, diff/focus/highlight transformers), heading extraction, reading time. Ported 10 MDX
+components (CodeBlock, Admonition, Steps, Mermaid, PackageManagerTabs, Tabs, stubs), 7 content
+layout components (BlogLayout, DocsLayout, GuideLayout, BlockLayout, TableOfContents,
+DocsSidebar, SearchModal), 11 route files with full SEO/JSON-LD, and all 22 MDX content files.
+Added Fuse.js search (modal + full-page route) and wired SearchModal into root layout with
+`searchOpenAtom` + `open-search` event bridge for DocsSidebar.
+
+### Deviations from prompt
+
+- **No SSG prerender config**: TanStack Start v1.167's `tanstackStart()` plugin prerender API
+  uses a `filter` function, not a `routes` array. Omitted for now — prerendering can be
+  configured once the full route tree is stable.
+- **`noPropertyAccessFromIndexSignature: false` in web tsconfig**: CSS modules return
+  `Record<string, string>` which triggers TS4111 on every `styles.foo` access. Overriding this
+  strict check in the web tsconfig is cleaner than converting 100+ dot accesses to bracket notation.
+- **`PageLayout` simplified**: The original used `useScrollDepth` for analytics. Ported as-is but
+  the analytics module uses `window.umami` which is optional (the Umami script isn't installed yet).
+  Analytics tracking degrades gracefully to no-ops.
+- **No sitemap.xml / llms.txt generation**: The helpers (`getBlogSitemapEntries`, etc.) are ported
+  in `content.ts` but no route or build-time generation wired yet. These are trivial to add.
+- **`@content-collections/vite` uses default import**: The original likely also did this but the
+  prompt suggested named import. Fixed via `import contentCollections from "@content-collections/vite"`.
+
+### Gotchas & surprises
+
+- `content-collections` compiles the config file into an mjs file and runs it. The `zod` import
+  in `content-collections.ts` failed because zod wasn't a direct dependency of `@cbbi/web` — it
+  was only available transitively via `@cbbi/schemas`. Had to add `zod` as a direct dependency.
+- `content-collections` generates types at `.content-collections/generated/index.d.ts`. TypeScript
+  needs a path mapping (`"content-collections": ["./.content-collections/generated"]`) in
+  tsconfig to resolve the virtual `import from "content-collections"` module.
+- Content-collections built 4 collections and 22 documents in ~9 seconds on first run.
+- The `@content-collections/mdx` package provides `<MDXContent code={...} components={...} />`
+  from `@content-collections/mdx/react` — this is the runtime renderer for serialized MDX bodies.
+
+### Security notes
+
+- `dangerouslySetInnerHTML` used in `MermaidDiagram.tsx` for Mermaid SVG output. Mermaid sanitizes
+  its output internally (no user-controlled input reaches it).
+- No user input flows into MDX compilation (build-time only from committed files).
+
+### Tests added
+
+None.
+
+### Future improvements
+
+- SSG prerendering for content pages once TanStack Start prerender API is understood.
+- Sitemap.xml and llms.txt build-time generation using the existing helper functions.
+- Typed CSS modules (e.g. `typed-css-modules` or `vite-plugin-css-modules-dts`) to restore
+  `noPropertyAccessFromIndexSignature` in the web tsconfig.
+- HyperDX browser RUM integration for content page analytics.
+- Cmd+K keyboard shortcut for search (currently only wired via DocsSidebar click).
