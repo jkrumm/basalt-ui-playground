@@ -1,0 +1,201 @@
+---
+title: "Design Decisions"
+description: "Architectural choices, trade-offs, and the rationale behind every major technology selection in this stack."
+section: "Architecture"
+order: 5
+---
+
+This document explains **why** the stack is built the way it is. Every choice here was made
+deliberately — understanding the rationale makes it easier to extend the boilerplate or
+adapt it for specific app requirements.
+
+---
+
+## Runtime: Bun over Node
+
+Single tool for install, run, test, and build. No pnpm/npm split, no separate test
+runner, no dotenv package. Bun loads `.env` files automatically.
+
+Native APIs worth knowing:
+
+- `Bun.password.hash/verify` — Argon2id hashing without a native module dependency
+- `Bun.serve` — the production SSR server; supports `duplex` streaming for API proxying
+- `Bun.file` — static file serving with `exists()` for the asset fallback path
+- `bun --watch` — native watch mode for the API dev server
+
+**Trade-off:** Bun's Node.js compatibility layer covers most packages but a few
+OpenTelemetry auto-instrumentations that require Node internals don't work. The
+`@elysiajs/opentelemetry` plugin handles this cleanly.
+
+---
+
+## API Framework: Elysia over Hono
+
+| Concern       | Elysia                                | Hono                                 |
+| ------------- | ------------------------------------- | ------------------------------------ |
+| Runtime       | Bun-native (static analysis perf)     | Multi-runtime                        |
+| Type safety   | End-to-end via EdenTreaty             | Via hono/client (less ergonomic)     |
+| OpenTelemetry | First-party plugin                    | Manual setup                         |
+| OpenAPI       | Built-in Scalar via @elysiajs/openapi | Separate adapter                     |
+| Auth mount    | `.all("/auth/*")` pattern             | `.on(["GET","POST"], "/api/auth/*")` |
+
+The decisive factor is **EdenTreaty**: Elysia's type system propagates full route
+definitions — including body, query, params, and return types — to the frontend client.
+Changing an API response type is immediately visible in frontend code without codegen.
+
+**`.mount()` vs `.all()` for BetterAuth:** Elysia's `.mount()` ignores the parent
+prefix. The correct pattern is `.all("/auth/*", ({ request }) => auth.handler(request))`
+on a prefixed app — this resolves to `/api/auth/*` as expected.
+
+---
+
+## ORM: Drizzle v1 Beta
+
+Drizzle's SQL-like API keeps queries readable without a heavyweight abstraction. The v1
+beta was chosen deliberately — it's the stable future and starting with it avoids a
+migration later.
+
+**Critical v1 API difference:** Object form only.
+
+```typescript
+// Correct — v1 beta
+export const db = drizzle({ client, schema });
+
+// Wrong — silently ignores the client in v1
+export const db = drizzle(client, { schema });
+```
+
+`pgSchema("basalt_ui_playground")` isolates all tables in a named PostgreSQL schema,
+preventing conflicts when sharing a database with other applications.
+
+`db.query.table` requires `defineRelations()`. For this project's simple queries,
+`db.select().from(table).where(...)` is used directly — less ceremony, same type safety.
+
+---
+
+## Auth: BetterAuth
+
+Full-featured session auth that integrates cleanly with both Elysia and Drizzle. The
+`emailAndPassword.password` override uses `Bun.password` for Argon2id hashing — faster
+than bcrypt npm packages and with no native compilation step.
+
+Rate limiting is handled inside BetterAuth's `rateLimit` config, not as separate
+middleware. The Drizzle adapter creates and manages the auth schema tables.
+
+The `openAPI()` plugin exposes auth endpoints in the Scalar UI automatically — no
+manual documentation of sign-in/sign-out/session endpoints needed.
+
+---
+
+## Frontend: TanStack Start
+
+SSR-first React meta-framework built on Vite 8 (not Vinxi/Nitro). Key capabilities:
+
+- `createServerFn` — RPC-style server functions that run server-side, callable from
+  client code. Used for session resolution and data loading at the SSR boundary.
+- `beforeLoad` — runs before the component renders. Auth redirects happen here,
+  not in `useEffect`, eliminating the render-then-redirect flash.
+- `loader` — pre-fetches route data server-side. Returned data is available
+  synchronously in the component via `Route.useLoaderData()`.
+
+The `getRouter()` export (not `createRouter`) is required by TanStack Start 1.167+.
+`StartClient` takes no props — it resolves the router internally via a virtual module.
+
+---
+
+## State: Jotai over Zustand
+
+Atomic state model fits React's composition model. Atoms compose naturally; no
+boilerplate store setup. `atomWithStorage` provides localStorage/cookie persistence.
+
+**React Compiler compatibility:** `atomFamily` is incompatible with the React Compiler
+due to referential instability. Use static atoms instead — one atom per distinct UI state.
+
+**Shared store instance:** A single `createStore()` in `src/lib/jotai-store.ts` is
+passed explicitly to all `useAtom` calls. Without this, atoms created outside the
+Jotai `Provider` use a different store instance and don't communicate.
+
+ESLint `no-restricted-imports` enforces that atoms are only created in `src/atoms/` —
+prevents scattering state definitions across component files.
+
+---
+
+## CSS: Blueprint v6 + Tailwind v4
+
+Blueprint handles component styling (buttons, tables, dialogs, intent colors). Tailwind
+handles layout, spacing, and utility classes. They coexist cleanly with one rule: **import
+Blueprint before Tailwind** so Tailwind utilities can override Blueprint defaults.
+
+```css
+@import "@blueprintjs/core/lib/css/blueprint.css";
+@import "tailwindcss";
+```
+
+Blueprint's Intent system (`Intent.PRIMARY`, `Intent.DANGER`, etc.) maps naturally to
+financial data visualization — colors carry semantic meaning, not just style.
+
+---
+
+## Linting: OxLint + ESLint
+
+Two-tier approach for speed and coverage:
+
+**OxLint** (~20ms): structural rules, correctness, React hooks. Runs first as a gate.
+Written in Rust, 50-100x faster than ESLint for the same rules.
+
+**ESLint** (slower): framework-specific rules that need type information or custom
+plugins — React Compiler violations, Blueprint deprecated component detection, TanStack
+Router config ordering, Jotai atom placement.
+
+`eslint-plugin-oxlint` disables ESLint rules already covered by OxLint to prevent
+double-reporting.
+
+---
+
+## Formatting: oxfmt
+
+VoidZero's Ox formatter — Prettier-compatible output, ~30x faster. The `.oxfmtrc.json`
+mirrors Prettier defaults (printWidth 100, double quotes, trailing commas). Handles JS/TS/JSON/TOML/MD.
+
+---
+
+## Env Validation: Zod v4 (raw)
+
+No `@t3-oss/env-core` wrapper. Zod is already a dependency; parsing `process.env` directly
+is two lines. Bun auto-loads `.env` files so no `dotenv` package is needed.
+
+Zod v4 standalone functions: `z.url()` and `z.email()` — not `z.string().url()` as in v3.
+
+---
+
+## Observability: OTEL + HyperDX
+
+OTEL is the open standard — exporters, SDKs, and collectors are all replaceable. HyperDX
+is the self-hosted backend (ClickHouse storage, open-source MIT).
+
+The trace chain runs browser → SSR → API with W3C `traceparent` propagation at each hop:
+
+1. `@hyperdx/browser` injects `traceparent` on fetch calls matching `tracePropagationTargets`
+2. `getSessionFn` forwards the active trace context to the API via `propagation.inject()`
+3. `@elysiajs/opentelemetry` picks up the incoming `traceparent` and continues the span
+
+Result: a single trace visible in HyperDX UI that spans the browser session, SSR render,
+and API handler — with correlated session replay.
+
+**Self-hosted ClickStack config:** No API key validation for standard OTEL SDKs.
+The browser SDK requires an explicit `url` option pointing at the ClickStack endpoint
+(defaults to HyperDX cloud if omitted). Use `VITE_HYPERDX_ENDPOINT` to configure.
+
+---
+
+## Docker: Multi-Stage, Two Targets
+
+One Dockerfile builds both `web` and `api` targets from the same monorepo context.
+The `deps` stage installs everything once; `web-build` and the production stages copy
+from it. This avoids reinstalling packages per target.
+
+Production web server (`server.ts`) runs TypeScript source directly via Bun — no
+compilation step needed. The SSR handler is imported from the pre-built `dist/server/`.
+
+The web container proxies `/api/*` internally to the API container using `API_INTERNAL_URL`
+(Docker service DNS). Browsers always talk to port 7712 only.

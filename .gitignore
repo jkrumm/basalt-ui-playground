@@ -23,6 +23,9 @@ apps/api/.env.local
 .ralph-tasks.json
 .ralph-logs/
 
+# Bun creates a literal "~" directory in the project root for its install cache symlinks
+~/
+
 # OS / Editor
 .DS_Store
 *.swp

@@ -282,5 +282,19 @@ make docker-down    # Stop stack
 
 ## Documentation Convention
 
-Learnings and patterns go into MDX docs under `apps/web/src/content/docs/` (once web app exists).
-Rendered at `/docs`.
+Learnings and patterns go into MDX docs under `apps/web/src/content/docs/`. Rendered at `/docs`.
+
+### Keeping docs current
+
+When a library API, pattern, or architectural decision changes, update the relevant MDX doc
+in the same commit as the code change. Key docs to keep current:
+
+| File                                     | Update when                                                                      |
+| ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `docs/design-decisions.mdx`              | A major technology is swapped, a pattern is reconsidered, or a trade-off changes |
+| `docs/api-architecture.mdx`              | Elysia app structure, route modules, or auth middleware pattern changes          |
+| `docs/auth-and-data-flow.mdx`            | Auth flow, session resolution, or EdenTreaty client usage changes                |
+| `docs/observability.mdx`                 | OTel config, HyperDX SDK setup, or trace propagation pattern changes             |
+| `docs/stack-overview.mdx`                | Package versions or tech stack choices change                                    |
+| `docs/getting-started/installation.mdx`  | Prerequisites, setup steps, or available commands change                         |
+| `docs/getting-started/configuration.mdx` | New env vars added, secrets strategy changes                                     |

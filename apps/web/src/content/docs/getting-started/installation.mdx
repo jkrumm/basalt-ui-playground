@@ -1,60 +1,96 @@
 ---
 title: "Installation"
-description: "Detailed installation and configuration guide."
+description: "Prerequisites, project setup, database provisioning, and first run."
 order: 2
 section: "Getting Started"
 ---
 
 ## Requirements
 
-| Tool    | Minimum version |
-| ------- | --------------- |
-| Node.js | 24.0.0          |
-| pnpm    | 10.0.0          |
+| Tool       | Minimum version | Notes                                 |
+| ---------- | --------------- | ------------------------------------- |
+| Bun        | 1.2             | Runtime, package manager, test runner |
+| PostgreSQL | 15              | Local install or Docker               |
 
-## Environment
+No Node.js, no pnpm, no npm. Bun handles everything.
 
-The project requires no environment variables for local development.
-The CBBI API data is fetched from a public endpoint at runtime.
+## Clone and install
 
-## Project structure
-
-```
-apps/
-  web/           # TanStack Start frontend
-    content-collections.ts   # MDX pipeline config (Zod schemas, compileMDX)
-    src/
-      components/   # Blueprint + MDX components
-      content/      # MDX blog posts, docs, guides, blocks
-      lib/          # Shared utilities (content.ts, sitemap.ts, ...)
-      routes/       # TanStack Router file-based routes
-      styles/       # Global CSS
-  api/           # Hono API server
-
-packages/
-  schemas/       # Shared Zod schemas (workspace package)
+```bash
+git clone https://github.com/jkrumm/basalt-ui-playground.git
+cd basalt-ui-playground
+bun install
 ```
 
-## Available scripts
+Bun resolves all workspace packages (`apps/*`, `packages/*`) in a single pass. No
+separate `bun install` in each workspace.
 
-Run from `apps/web/`:
+## Database setup
 
-| Script               | Description                        |
-| -------------------- | ---------------------------------- |
-| `pnpm run dev`       | Start Vite dev server on port 3000 |
-| `pnpm run build`     | Production build to `dist/`        |
-| `pnpm run start`     | Start the production server        |
-| `pnpm run typecheck` | TypeScript type checking           |
+Create the database user and schema (run once as a Postgres superuser):
 
-Run from the workspace root:
+```bash
+make db-setup
+# equivalent: psql -h localhost -U postgres -f scripts/setup-cbbi-db.sql
+```
 
-| Script     | Description                         |
-| ---------- | ----------------------------------- |
-| `vp lint`  | ESLint across all packages          |
-| `vp fmt`   | Format all files with Oxc formatter |
-| `vp build` | Build all apps                      |
+Run the Drizzle migrations:
 
-<Admonition type="note">
-  `vp` is the `vite-plus` unified toolchain CLI — it wraps lint, format, build, and dev server in a
-  single command. Run `vp --help` to see all options.
-</Admonition>
+```bash
+make db-migrate
+```
+
+Seed the demo user (`demo@example.com` / `demo1234`):
+
+```bash
+make db-seed
+```
+
+## Environment variables
+
+Create `.env.local` in the project root:
+
+```bash
+DATABASE_URL=postgresql://cbbi:cbbi@localhost:5432/cbbi
+BETTER_AUTH_SECRET=<at-least-32-random-characters>
+```
+
+All other variables have defaults in the committed `.env` file. See
+[Configuration](/docs/getting-started/configuration) for the full reference.
+
+## Start development
+
+```bash
+make dev
+```
+
+This kills any processes on ports 7712/7713 then starts both apps concurrently.
+
+| App                  | URL                              |
+| -------------------- | -------------------------------- |
+| Web (TanStack Start) | http://localhost:7712            |
+| API (Elysia)         | http://localhost:7713            |
+| API docs (Scalar)    | http://localhost:7713/api/scalar |
+
+## Available commands
+
+All commands run from the workspace root via `make` or `bun run`:
+
+| Command             | Purpose                                        |
+| ------------------- | ---------------------------------------------- |
+| `make dev`          | Kill ports, start web + api in watch mode      |
+| `make build`        | Build all workspaces                           |
+| `make start`        | Start production server (after build)          |
+| `make check`        | fmt + lint + lint:style + typecheck            |
+| `make fmt`          | Check formatting (oxfmt)                       |
+| `make fmt-fix`      | Auto-fix formatting                            |
+| `make lint`         | oxlint + ESLint                                |
+| `make typecheck`    | tsc --noEmit across all workspaces             |
+| `make kill`         | Kill processes on 7712 and 7713                |
+| `make db-generate`  | Generate Drizzle migration from schema changes |
+| `make db-migrate`   | Run pending migrations                         |
+| `make db-seed`      | Seed demo user                                 |
+| `make db-studio`    | Open Drizzle Studio                            |
+| `make docker-build` | Build Docker images                            |
+| `make docker-up`    | Start Docker Compose stack                     |
+| `make docker-down`  | Stop Docker Compose stack                      |

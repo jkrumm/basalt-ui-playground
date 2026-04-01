@@ -10,22 +10,15 @@ order: 0
 The CBBI Blueprint is a Bun monorepo with three packages:
 
 ```
-┌──────────────────────────────────────────────┐
-│                   Browser                     │
-│  TanStack Start · Blueprint v6 · Jotai        │
-│  HyperDX RUM · Umami Analytics                │
-│         ↓ EdenTreaty (typed HTTP)             │
-├──────────────────────────────────────────────┤
-│              Vite Dev Proxy /api              │
-│      (Production: Bun.serve reverse proxy)    │
-├──────────────────────────────────────────────┤
-│               Elysia API (:7713)              │
-│  BetterAuth · Drizzle v1 · OTEL              │
-│         ↓ postgres.js                         │
-├──────────────────────────────────────────────┤
-│             PostgreSQL (pgSchema)              │
-│         basalt_ui_playground.*                 │
-└──────────────────────────────────────────────┘
+  Browser
+  TanStack Start · Blueprint v6 · Jotai · HyperDX RUM
+    |  EdenTreaty (typed HTTP, same-origin)
+  Vite dev proxy /api  (prod: Bun.serve reverse proxy)
+    |
+  Elysia API :7713
+  BetterAuth · Drizzle v1 · OTEL -> HyperDX ClickStack
+    |  postgres.js
+  PostgreSQL — basalt_ui_playground schema
 ```
 
 ## Tech Stack

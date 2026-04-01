@@ -1,100 +1,130 @@
 ---
 title: "Configuration"
-description: "Environment variables, Umami analytics setup, and runtime configuration for CBBI Blueprint."
+description: "Environment variables, secrets strategy, and runtime configuration for CBBI Blueprint."
 order: 3
 section: "Getting Started"
 ---
 
-## Environment variables
+## Environment strategy
 
-Create a `.env.local` file in the project root. All VITE\_ prefixed variables are exposed to the
-client bundle; non-prefixed variables are server-only.
+| File           | Committed       | Purpose                                                |
+| -------------- | --------------- | ------------------------------------------------------ |
+| `.env`         | Yes             | Non-secret defaults (ports, local URLs, service names) |
+| `.env.local`   | No (gitignored) | Real secrets — DATABASE_URL, BETTER_AUTH_SECRET        |
+| `.env.example` | Yes             | Full reference with placeholder values                 |
 
-```bash filename=".env.local"
-# Analytics — Umami (optional; analytics are disabled if these are absent)
-VITE_UMAMI_SCRIPT_URL=https://analytics.example.com/script.js
-VITE_UMAMI_WEBSITE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+Bun auto-loads `.env` and `.env.local` — no `dotenv` package needed.
 
-# Production domain — used to build absolute URLs in sitemap and canonical tags
-VITE_BASE_URL=https://cbbi.jkrumm.com
+---
+
+## Required secrets
+
+Create `.env.local` in the project root:
+
+```bash
+DATABASE_URL=postgresql://cbbi:cbbi@localhost:5432/cbbi
+BETTER_AUTH_SECRET=<generate-32-char-random-string>
 ```
 
-<Admonition type="note" title="Secrets in Doppler">
-  Actual values live in Doppler, not in `.env.local`. The `.env.local` file is gitignored. Run
-  `doppler run -- bun dev` to inject secrets automatically in development.
-</Admonition>
+Everything else defaults to values in `.env`.
+
+---
+
+## Full variable reference
+
+| Variable                      | App          | Default                    | Secret                       |
+| ----------------------------- | ------------ | -------------------------- | ---------------------------- |
+| `DATABASE_URL`                | API          | —                          | Yes                          |
+| `BETTER_AUTH_SECRET`          | API          | —                          | Yes                          |
+| `BETTER_AUTH_URL`             | API          | `http://localhost:7713`    | No                           |
+| `ALLOWED_ORIGIN`              | API          | `http://localhost:7712`    | No                           |
+| `PORT`                        | API          | `7713`                     | No                           |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | API          | `http://localhost:4318`    | No                           |
+| `OTEL_SERVICE_NAME`           | API          | `basalt-ui-playground-api` | No                           |
+| `API_INTERNAL_URL`            | Web (server) | `http://localhost:7713`    | No                           |
+| `WEB_PORT`                    | Web          | `7712`                     | No                           |
+| `VITE_HYPERDX_API_KEY`        | Web          | `dev`                      | No (self-hosted ignores key) |
+| `VITE_HYPERDX_SERVICE_NAME`   | Web          | `basalt-ui-playground-web` | No                           |
+| `VITE_HYPERDX_ENDPOINT`       | Web          | `http://localhost:8080`    | No                           |
+| `VITE_UMAMI_SCRIPT_URL`       | Web          | — (disabled if empty)      | No                           |
+| `VITE_UMAMI_WEBSITE_ID`       | Web          | — (disabled if empty)      | No                           |
+
+`VITE_*` variables are exposed to the client bundle. All others are server-only.
 
 ---
 
 ## Analytics (Umami)
 
-Umami is injected conditionally in `__root.tsx`:
+Umami is injected in `__root.tsx` only when both vars are set:
 
-```tsx
-{
-  import.meta.env.VITE_UMAMI_SCRIPT_URL && import.meta.env.VITE_UMAMI_WEBSITE_ID && (
-    <script
-      defer
-      src={import.meta.env.VITE_UMAMI_SCRIPT_URL}
-      data-website-id={import.meta.env.VITE_UMAMI_WEBSITE_ID}
-      data-auto-track="false"
-    />
-  );
+```typescript
+function umamiScript() {
+  const url = import.meta.env.VITE_UMAMI_SCRIPT_URL;
+  const id = import.meta.env.VITE_UMAMI_WEBSITE_ID;
+  if (!url || !id) return [];
+  return [{ src: url, async: true, "data-website-id": id, "data-auto-track": "false" }];
 }
 ```
 
-`data-auto-track="false"` disables Umami's default pageview tracking. Pageviews are tracked
-manually via `RouteTracker` in `src/components/analytics/RouteTracker.tsx` — this gives precise
-control over what counts as a pageview and allows filtering internal navigation.
+`data-auto-track="false"` disables Umami's default pageview tracking. Pageviews are
+tracked manually via `RouteTracker` in `src/components/analytics/RouteTracker.tsx` —
+this gives precise control and allows filtering internal navigation.
 
-Custom events are tracked programmatically via the `track()` utility:
+Custom events are tracked via the typed `track()` utility:
 
 ```typescript
-import { track, EVENTS } from "../lib/analytics";
+import { track, EVENTS } from "~/lib/analytics.ts";
 
 track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "table" });
 ```
 
-See `src/lib/analytics.ts` for the full event registry and `CLAUDE.md` for the event naming
-convention.
+See `src/lib/analytics.ts` for the full event registry and `CLAUDE.md` (web app) for
+the event naming convention.
+
+---
+
+## Observability (HyperDX)
+
+For self-hosted ClickStack, set the API endpoint:
+
+```bash
+# .env (committed default for local dev)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # backend SDK
+VITE_HYPERDX_ENDPOINT=http://localhost:8080          # browser SDK UI port
+VITE_HYPERDX_API_KEY=dev                             # any non-empty string (self-hosted ignores key)
+```
+
+For Docker, set `OTEL_EXPORTER_OTLP_ENDPOINT=http://clickstack:4318` in the api service
+environment and `VITE_HYPERDX_ENDPOINT=http://localhost:8080` for browser access.
 
 ---
 
 ## Theme cookie
 
-The selected theme (`light`, `dark`, or `system`) is persisted in a cookie read by the root loader:
+The selected theme (`light` or `dark`) is persisted in a plain cookie so SSR can read
+it before rendering — eliminating the flash-of-wrong-theme that localStorage-based
+systems cause:
 
 ```typescript
-// src/lib/theme.ts
-export const getThemeFn = createServerFn().handler(async () => {
-  const cookie = getCookie("theme");
-  return (VALID_THEMES.includes(cookie) ? cookie : "system") as Theme;
+export const getThemeFn = createServerFn({ method: "GET" }).handler(async () => {
+  const theme = getCookie("theme");
+  if (theme === "light" || theme === "dark") return theme;
+  return "dark" as const;
 });
 ```
-
-The cookie approach eliminates the flash-of-wrong-theme that occurs with `localStorage`-based
-theme systems, because the value is available during SSR before the HTML is sent to the browser.
 
 ---
 
 ## Production server
 
-The production server is `server.ts` — a plain Bun HTTP server that:
+`apps/web/server.ts` is a Bun.serve HTTP server that:
 
-1. Preloads static assets from `dist/client/` into memory (configurable size limit)
-2. Serves `/sitemap.xml` and `/llms.txt` directly (no TanStack SSR involvement)
-3. Delegates all other requests to the TanStack Start SSR handler at `dist/server/server.js`
+1. Proxies `/api/*` to `API_INTERNAL_URL` (API container or localhost)
+2. Serves hashed static files from `dist/client/assets/` with immutable cache headers
+3. Falls back to the TanStack Start SSR handler for all other routes
 
-Key environment variables for the server:
-
-| Variable                        | Default          | Description                         |
-| ------------------------------- | ---------------- | ----------------------------------- |
-| `PORT`                          | `3000`           | HTTP port                           |
-| `ASSET_PRELOAD_MAX_SIZE`        | `5242880` (5 MB) | Max bytes to preload into memory    |
-| `ASSET_PRELOAD_VERBOSE_LOGGING` | `false`          | Log loaded/skipped files on startup |
-
-Start the production server after building:
+Start after building:
 
 ```bash
-bun run build && bun run server.ts
+bun run build && make start
 ```
