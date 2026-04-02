@@ -50,24 +50,37 @@ export async function tracedFetch(url: string | URL, init?: RequestInit): Promis
 }
 
 /**
- * In-memory TTL cache with stale-on-error fallback.
+ * In-memory TTL cache with stale-on-error fallback and inflight deduplication.
+ *
+ * Inflight deduplication: concurrent cache-miss requests share one upstream call
+ * instead of each firing independently. Without this, a cold start (e.g. process
+ * restart in dev) with simultaneous SSR + client hydration requests would trigger
+ * multiple concurrent upstream calls, exhausting rate limits immediately.
+ *
  * On success: refreshes cache. On failure: returns stale data if available,
- * otherwise propagates the error. Prevents 429s from rate-limited APIs
- * from crashing the page when stale data is acceptable.
+ * otherwise propagates the error.
  */
 export function cached<T>(ttlMs: number, fn: () => Promise<T>): () => Promise<T> {
   let entry: { data: T; expiresAt: number } | null = null;
+  let inflight: Promise<T> | null = null;
 
   return async () => {
     if (entry && Date.now() < entry.expiresAt) return entry.data;
-    try {
-      const data = await fn();
-      entry = { data, expiresAt: Date.now() + ttlMs };
-      return data;
-    } catch (error) {
-      // Stale-on-error: return expired cache rather than crashing
-      if (entry) return entry.data;
-      throw error;
-    }
+    if (inflight) return inflight;
+
+    inflight = (async () => {
+      try {
+        const data = await fn();
+        entry = { data, expiresAt: Date.now() + ttlMs };
+        return data;
+      } catch (error) {
+        if (entry) return entry.data;
+        throw error;
+      } finally {
+        inflight = null;
+      }
+    })();
+
+    return inflight;
   };
 }

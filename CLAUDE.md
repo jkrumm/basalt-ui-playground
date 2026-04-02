@@ -228,6 +228,7 @@ The type assertions bridge `@tanstack/react-query` (`readonly unknown[]` keys) v
 (`readonly {}[]` keys) — a version mismatch, runtime types are fully compatible.
 
 **Rules for route loaders:**
+
 - **Always `await` every `prefetchQuery` / `ensureQueryData`** — never fire-and-forget.
   Fire-and-forget causes query state to be `"pending"` at dehydration time, which can result in
   hydration mismatches (React error #418) and empty client-side queries.

@@ -211,7 +211,7 @@ function DataUnavailable({ label }: { label: string }) {
 function BitcoinPriceTicker() {
   const { data: bitcoin } = useQuery({
     ...bitcoinPriceQuery(),
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
   });
 
   if (!bitcoin) return <DataUnavailable label="Bitcoin price" />;
@@ -226,11 +226,7 @@ function BitcoinPriceTicker() {
           </Tag>
         </Flex>
         <Flex gap={2} flexWrap="wrap">
-          <Tag minimal>7d: {fmtChange(bitcoin.usd7dChange)}</Tag>
-          <Tag minimal>30d: {fmtChange(bitcoin.usd30dChange)}</Tag>
           <Tag minimal>Vol: {fmtVolume(bitcoin.usd24hVolume)}</Tag>
-          <Tag minimal>MCap: {fmtVolume(bitcoin.marketCap)}</Tag>
-          <Tag minimal>ATH: ${fmtPrice(bitcoin.ath)}</Tag>
         </Flex>
       </Flex>
     </Card>
@@ -295,7 +291,7 @@ function CBBIDashboard() {
             {" · "}
             <a href="https://github.com/Zaczero/CBBI">CBBI algorithm</a>
             {" · "}
-            <a href="https://www.coingecko.com/">CoinGecko</a>
+            <a href="https://www.binance.com/">Binance</a>
             {" · "}
             <a href="https://alternative.me/crypto/fear-and-greed-index/">Alternative.me</a>
           </p>

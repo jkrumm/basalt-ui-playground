@@ -60,6 +60,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     >
       <Box className={styles.inputWrapper}>
         <InputGroup
+          id="search-input"
           inputRef={inputRef}
           large
           leftIcon={<Search />}

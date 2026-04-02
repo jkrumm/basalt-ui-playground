@@ -75,6 +75,7 @@ export function DocsSidebar({ sections }: DocsSidebarProps) {
         className={styles.searchTrigger}
       >
         <InputGroup
+          id="docs-search-trigger"
           leftIcon={<Search />}
           placeholder="Search..."
           readOnly

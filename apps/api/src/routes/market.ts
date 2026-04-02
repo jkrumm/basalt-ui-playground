@@ -14,7 +14,7 @@
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import { Elysia } from "elysia";
 import { getCBBIDashboard, getCBBIIndicators } from "../adapters/cbbi.ts";
-import { getBitcoinPrice } from "../adapters/coingecko.ts";
+import { getBitcoinPrice } from "../adapters/bitcoin.ts";
 import { getFearGreedIndex } from "../adapters/fear-greed.ts";
 
 /** Record OTEL span exception and log — call before returning a 502. */
