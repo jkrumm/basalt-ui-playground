@@ -1,10 +1,29 @@
 import HyperDX from "@hyperdx/browser";
 
 // Self-initializing side-effect module — patches window.fetch and XMLHttpRequest
-// on import. Must be imported BEFORE any library that captures fetch (BetterAuth, etc).
+// on import. Must be the FIRST import in client.tsx so the fetch patch is in place
+// before any library captures it: BetterAuth's createAuthClient() and EdenTreaty's
+// treaty() both wrap the current fetch at initialization time.
 if (typeof window !== "undefined") {
   const apiKey = import.meta.env.VITE_HYPERDX_API_KEY;
   if (apiKey) {
+    // Dev-only: filter Vite HMR client errors before HyperDX's unhandledrejection
+    // listener sees them. @vite/client fires "send was called before connect" during
+    // dep-optimizer rebuilds (WebSocket not yet open), generating thousands of false
+    // error spans. Capture phase runs before HyperDX's bubble-phase listener, so
+    // stopImmediatePropagation() fully blocks it.
+    if (import.meta.env.DEV) {
+      window.addEventListener(
+        "unhandledrejection",
+        (e) => {
+          if ((e.reason as Error | undefined)?.stack?.includes("/@vite/")) {
+            e.stopImmediatePropagation();
+          }
+        },
+        { capture: true },
+      );
+    }
+
     HyperDX.init({
       apiKey,
       service: import.meta.env.VITE_HYPERDX_SERVICE_NAME ?? "basalt-ui-playground-web",
