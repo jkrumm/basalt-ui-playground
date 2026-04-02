@@ -1,4 +1,3 @@
-import { context, propagation } from "@opentelemetry/api";
 import { createServerFn } from "@tanstack/react-start";
 import { getCookie, getRequestHeader } from "@tanstack/react-start/server";
 
@@ -9,15 +8,15 @@ type SessionResponse = {
 
 // Resolves the BetterAuth session server-side by forwarding the session cookie.
 // Used in protected route beforeLoad for SSR-safe auth checks.
+// Trace propagation is handled automatically by the EdenTreaty client (api.ts headers())
+// and tracedFetch — no manual propagation.inject() needed.
 export const getSessionFn = createServerFn({ method: "GET" }).handler(async () => {
   const cookie = getRequestHeader("cookie") ?? "";
   const apiUrl = process.env["API_INTERNAL_URL"] ?? "http://localhost:7713";
+  const { tracedFetch } = await import("./traced-fetch.ts");
 
-  const traceHeaders: Record<string, string> = {};
-  propagation.inject(context.active(), traceHeaders);
-
-  const response = await fetch(`${apiUrl}/api/auth/get-session`, {
-    headers: { cookie, ...traceHeaders },
+  const response = await tracedFetch(`${apiUrl}/api/auth/get-session`, {
+    headers: { cookie },
   });
   if (!response.ok) return null;
   return response.json() as Promise<SessionResponse | null>;

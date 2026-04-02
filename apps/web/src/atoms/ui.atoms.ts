@@ -6,6 +6,9 @@ import { atomWithStorage } from "jotai/utils";
 export const searchOpenAtom = atom<boolean>(false);
 
 // Persistent atoms — survive page refresh via localStorage
-export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>("basalt-view-mode", "grid");
+export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>(
+  "basalt-view-mode",
+  "grid",
+);
 
 export const sortByAtom = atomWithStorage<UserPreferences["sortBy"]>("basalt-sort-by", "default");

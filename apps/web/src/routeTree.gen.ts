@@ -14,6 +14,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ProtectedRouteImport } from './routes/_protected'
 import { Route as ContentRouteImport } from './routes/_content'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
 import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
@@ -48,6 +49,11 @@ const ProtectedRoute = ProtectedRouteImport.update({
 } as any)
 const ContentRoute = ContentRouteImport.update({
   id: '/_content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -113,6 +119,7 @@ const ContentBlocksSlugRoute = ContentBlocksSlugRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/table': typeof TableRoute
@@ -148,6 +156,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
   '/_content': typeof ContentRouteWithChildren
   '/_protected': typeof ProtectedRouteWithChildren
   '/sign-in': typeof SignInRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/$'
     | '/sign-in'
     | '/sign-up'
     | '/table'
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/$'
     | '/sign-in'
     | '/sign-up'
     | '/table'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/$'
     | '/_content'
     | '/_protected'
     | '/sign-in'
@@ -223,6 +235,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
   ContentRoute: typeof ContentRouteWithChildren
   ProtectedRoute: typeof ProtectedRouteWithChildren
   SignInRoute: typeof SignInRoute
@@ -265,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof ContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -397,6 +417,7 @@ const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
   ContentRoute: ContentRouteWithChildren,
   ProtectedRoute: ProtectedRouteWithChildren,
   SignInRoute: SignInRoute,

@@ -17,7 +17,7 @@ export function BlueprintTableSection({ data }: { data: IndicatorRow[] }) {
   );
 
   const descRenderer = (rowIndex: number) => (
-    <Cell style={{ fontSize: 12, color: "#8f99a8" }}>{data[rowIndex]?.desc}</Cell>
+    <Cell style={{ fontSize: 12, color: "#8f99a8" }}>{data[rowIndex]?.description}</Cell>
   );
 
   const valueRenderer = (rowIndex: number) => {

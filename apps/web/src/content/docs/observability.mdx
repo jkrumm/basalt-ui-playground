@@ -1,129 +1,376 @@
 ---
 title: "Observability"
-description: "OTEL backend setup, HyperDX browser SDK, trace linking, and ClickStack self-hosted setup."
+description: "Full-stack distributed tracing: Browser → SSR → API → DB with ClickStack."
 section: "Architecture"
 order: 4
 ---
 
 ## Architecture
 
-Observability spans three layers:
+Four-layer distributed tracing with W3C `traceparent` propagation at every hop:
 
 ```
-Browser (HyperDX)  →  SSR (OTEL propagation)  →  API (@elysiajs/opentelemetry)
-     ↓                        ↓                          ↓
-     └────────── traceparent header ──────────────────────┘
-                          ↓
-              HyperDX ClickStack (self-hosted)
-              OTLP HTTP on :4318
+Browser (HyperDX SDK)
+  ├─ /api/* direct calls       → traceparent → API → Drizzle DB spans
+  ├─ /_serverFn/* calls        → traceparent → SSR → API → DB spans
+  └─ Page navigations          → traceparent → SSR → API → DB spans
+
+SSR (server.ts + NodeSDK)
+  ├─ Extracts traceparent from browser requests
+  ├─ Creates SSR/ServerFn spans with semantic conventions
+  └─ EdenTreaty auto-injects traceparent on all server-side API calls
+
+API (Elysia + @elysiajs/opentelemetry)
+  ├─ Auto-instruments all routes (extracts incoming traceparent)
+  ├─ Auth flows traced at HTTP level (/api/auth/*)
+  └─ Errors recorded with recordException() on spans
+
+DB (@kubiks/otel-drizzle)
+  └─ drizzle.select/insert/update/delete spans with query text
 ```
 
-## Backend: Elysia OTEL
+All traces exported via OTLP HTTP to ClickStack (self-hosted HyperDX).
 
-`@elysiajs/opentelemetry` instruments all Elysia routes automatically:
+## Layer 1: Browser — HyperDX SDK
+
+`@hyperdx/browser` patches `window.fetch` and `XMLHttpRequest` on import to capture all
+network requests as spans. It also provides session replay, console capture, and error tracking.
+
+```typescript
+// apps/web/src/lib/hyperdx.ts — self-initializing side-effect module
+HyperDX.init({
+  apiKey,
+  service: "basalt-ui-playground-web",
+  url: window.location.origin, // OTLP proxy via web server (avoids CORS)
+  tracePropagationTargets: [/\/api\//, /\/_serverFn\//],
+  consoleCapture: true,
+  advancedNetworkCapture: true, // captures request/response bodies
+});
+```
+
+**Import order matters:** `hyperdx.ts` must be imported BEFORE any library that captures
+`window.fetch` (e.g., BetterAuth). In `client.tsx`, it's the first import.
+
+### Trace Propagation Targets
+
+`tracePropagationTargets` controls which fetch requests get a `traceparent` header injected:
+
+- `/\/api\//` — direct browser→API calls (EdenTreaty queries/mutations)
+- `/\/_serverFn\//` — browser→SSR server function calls (TanStack Start)
+
+This creates parent-child trace links across service boundaries.
+
+### OTLP Proxy
+
+The browser SDK sends traces to `window.location.origin` (same-origin). The web server
+proxies `/v1/traces` and `/v1/logs` to the OTLP collector on `:4318`. This avoids CORS
+issues (Safari blocks cross-origin OTLP requests).
+
+### User Identification
+
+Authenticated users are identified in `_protected.tsx`:
+
+```typescript
+HyperDX.setGlobalAttributes({ userId, userEmail, userName });
+```
+
+All subsequent spans and session replays are tagged with user context.
+
+## Layer 2: SSR — Production Web Server
+
+The production server (`server.ts`) uses `@opentelemetry/sdk-node` for trace creation and
+export. The SDK is initialized in `telemetry.ts` before any other imports.
+
+### SSR Spans
+
+Every SSR page render and server function call gets a traced span:
+
+```
+SSR GET /dashboard          — page render with full OTEL HTTP semantic conventions
+ServerFn getCBBIData        — server function with resolved name from build manifest
+ServerFn getSessionFn       — auth session check during SSR
+```
+
+**Server function name resolution:** TanStack Start uses `/_serverFn/{hash}` URLs. The server
+parses the build manifest (`dist/server/server.js`) to map hashes to readable function names.
+
+### Trace Context Chain
+
+1. Browser request arrives with `traceparent` header (injected by HyperDX)
+2. `propagation.extract()` reads the browser's trace context
+3. SSR span is created as a child of the browser span
+4. Any outgoing API calls inherit the trace context automatically
+
+### EdenTreaty Server-Side Propagation
+
+The EdenTreaty client auto-injects `traceparent` headers on all server-side API calls:
+
+```typescript
+// apps/web/src/lib/api.ts
+export const api = treaty<App>(getBaseUrl(), {
+  fetch: { credentials: "include" },
+  headers() {
+    if (typeof window !== "undefined") return {};
+    const headers: Record<string, string> = {};
+    propagation.inject(context.active(), headers);
+    return headers;
+  },
+});
+```
+
+This means ANY SSR code using `api.api.user.preferences.get()` (or similar) automatically
+continues the trace chain to the API — no manual header injection needed.
+
+### Traced Fetch for External APIs
+
+Server functions that call external APIs (not our Elysia API) should use `tracedFetch()`
+instead of bare `fetch()`. This creates a CLIENT span and injects `traceparent`:
+
+```typescript
+// apps/web/src/routes/index.tsx
+const getCBBIData = createServerFn({ method: "GET" }).handler(async () => {
+  const { tracedFetch } = await import("../lib/traced-fetch.ts");
+  const res = await tracedFetch("https://colintalkscrypto.com/cbbi/data/latest.json");
+  // ...
+});
+```
+
+The resulting trace waterfall shows the external call as a child span:
+
+```
+ServerFn getCBBIData                              (12s)
+  └─ GET colintalkscrypto.com/cbbi/data/latest.json (11.8s)
+```
+
+### Graceful Shutdown
+
+`SIGTERM` handler flushes the `BatchSpanProcessor` so the last batch of traces isn't lost:
+
+```typescript
+process.on("SIGTERM", async () => {
+  await sdk.shutdown();
+  process.exit(0);
+});
+```
+
+## Layer 3: API — Elysia OpenTelemetry
+
+`@elysiajs/opentelemetry` auto-instruments all routes. It creates a `NodeSDK` internally,
+extracts incoming `traceparent` headers, and wraps each request lifecycle in spans.
 
 ```typescript
 // apps/api/src/app.ts
 app.use(
   opentelemetry({
-    serviceName: env.OTEL_SERVICE_NAME,
-    traceExporter: new OTLPTraceExporter({
-      url: `${env.OTEL_EXPORTER_OTLP_ENDPOINT}/v1/traces`,
-    }),
+    serviceName: "basalt-ui-playground-api",
+    traceExporter,
     checkIfShouldTrace: (req) => !req.url.includes("/health"),
   }),
 );
 ```
 
-The `serviceName` is passed directly to the plugin — NodeSDK handles `Resource` creation
-internally. No need to import `@opentelemetry/resources` or `@opentelemetry/semantic-conventions`.
+### Auth Header for OTLP Export
 
-A manual `tracer` is also exported from `telemetry.ts` for custom spans in route handlers.
+The `OTLPTraceExporter` reads `OTEL_EXPORTER_OTLP_HEADERS` from the environment automatically.
+No manual header parsing needed — just set the env var:
 
-<Admonition type="tip" title="Connection errors are safe">
-  If ClickStack isn't running, the `BatchSpanProcessor` swallows export errors silently. The API
-  starts and runs normally — traces are just dropped.
-</Admonition>
+```bash
+OTEL_EXPORTER_OTLP_HEADERS=authorization=<ingestion-key>
+```
 
-## Frontend: HyperDX Browser SDK
+### Error Recording
 
-`@hyperdx/browser` provides session replay, console capture, and network capture:
+The Elysia OTEL plugin sets HTTP status codes on spans but doesn't call `recordException()`
+in its `onError` path. We add this manually so errors appear as span events in ClickStack:
 
 ```typescript
-// apps/web/src/lib/hyperdx.ts
-HyperDX.init({
-  apiKey: import.meta.env.VITE_HYPERDX_API_KEY,
-  service: import.meta.env.VITE_HYPERDX_SERVICE_NAME ?? "basalt-ui-playground-web",
-  tracePropagationTargets: [/\/api\//],
-  consoleCapture: true,
-  advancedNetworkCapture: true,
+.onError(({ code, error }) => {
+  const span = trace.getActiveSpan();
+  if (span) {
+    span.recordException(error);
+    span.setStatus({ code: SpanStatusCode.ERROR, message: String(error) });
+  }
 });
 ```
 
-### Trace Propagation
+### Manual Tracer
 
-`tracePropagationTargets: [/\/api\//]` tells HyperDX to inject a `traceparent` header on
-any fetch to `/api/*`. This links browser spans to API spans in ClickStack, creating
-end-to-end traces across the full request lifecycle.
-
-### User Identification
-
-Authenticated users are identified in the `_protected.tsx` layout:
+`telemetry.ts` exports a `tracer` for creating custom spans in route handlers:
 
 ```typescript
-HyperDX.setGlobalAttributes({
-  userId: user.id,
-  userEmail: user.email,
-  userName: user.name,
+import { tracer } from "../telemetry.ts";
+
+tracer.startActiveSpan("custom-operation", async (span) => {
+  // ... work
+  span.end();
 });
 ```
 
-This attaches user context to all subsequent spans and session replay recordings.
+## Layer 4: Database — Drizzle ORM Instrumentation
 
-## SSR Trace Context
-
-Server functions can propagate trace context from the browser to API calls using
-`@opentelemetry/api`:
+`@kubiks/otel-drizzle` wraps the Drizzle client to create spans for every DB operation:
 
 ```typescript
-import { propagation, context } from "@opentelemetry/api";
+// apps/api/src/db.ts
+import { instrumentDrizzleClient } from "@kubiks/otel-drizzle";
 
-// Inject traceparent into outgoing headers
-const headers: Record<string, string> = {};
-propagation.inject(context.active(), headers);
+const rawDb = drizzle({ client, schema });
+export const db = instrumentDrizzleClient(rawDb, {
+  dbSystem: "postgresql",
+  dbName: "basalt_ui_playground",
+  captureQueryText: true,
+});
 ```
 
-This is a no-op if no OTEL SDK is registered on the SSR side — safe to call unconditionally.
+### Span Examples
+
+| Span name        | Attributes                                                      |
+| ---------------- | --------------------------------------------------------------- |
+| `drizzle.select` | `db.statement`, `db.operation: SELECT`, `db.system: postgresql` |
+| `drizzle.insert` | `db.statement`, `db.operation: INSERT`, `db.system: postgresql` |
+| `drizzle.update` | `db.statement`, `db.operation: UPDATE`, `db.system: postgresql` |
+| `drizzle.delete` | `db.statement`, `db.operation: DELETE`, `db.system: postgresql` |
+
+Spans follow OTEL DB semantic conventions and appear as children of the API route span.
+
+### Auth Route Span Names
+
+Elysia's `.all("/auth/*")` would trace as a wildcard pattern. The handler overrides the span
+name with the actual endpoint path so traces show `POST /api/auth/sign-in/email` instead
+of `POST /api/auth/*`.
+
+## Example Trace Waterfalls
+
+A server function calling an external API:
+
+```
+Browser: fetch /_serverFn/getCBBIData                        (12s)
+  └─ SSR: ServerFn getCBBIData                               (12s)
+      └─ GET colintalkscrypto.com/cbbi/data/latest.json      (11.8s)
+```
+
+A server function calling our API (e.g., auth check):
+
+```
+Browser: fetch /_serverFn/getSessionFn                       (50ms)
+  └─ SSR: ServerFn getSessionFn                              (45ms)
+      └─ GET localhost/api/auth/get-session                  (40ms)
+          └─ drizzle.select                                  (3ms)
+```
+
+A direct browser→API call (TanStack Query via EdenTreaty):
+
+```
+Browser: fetch /api/user/preferences                         (60ms)
+  └─ API: GET /api/user/preferences                          (45ms)
+      ├─ auth.api.getSession (derive)                        (12ms)
+      │   └─ drizzle.select                                  (3ms)
+      └─ drizzle.select                                      (8ms)
+```
+
+## Adding New Traced Code
+
+### New server function (SSR)
+
+Server functions are traced automatically by `server.ts`. The hash→name mapping is resolved
+from the build manifest. No manual instrumentation needed — just create the server function
+and it appears in traces.
+
+### New API route
+
+Elysia OTEL plugin traces all routes automatically. DB queries via the instrumented `db`
+client create child spans. Just write the route — traces appear.
+
+### New EdenTreaty API call (SSR-side)
+
+The `api` client auto-injects `traceparent` on server-side calls. Just use `api.api.*.get()` etc.
+in any server function or loader — trace chain is maintained automatically.
+
+### New EdenTreaty API call (browser-side)
+
+HyperDX patches `fetch` and injects `traceparent` on `/api/*` requests. Just use the `api`
+client in React components — traces appear with browser→API linking.
+
+### New external API call (server function)
+
+Use `tracedFetch()` instead of bare `fetch()` for external API calls in server functions:
+
+```typescript
+const { tracedFetch } = await import("../lib/traced-fetch.ts");
+const res = await tracedFetch("https://api.example.com/data");
+```
+
+This creates a CLIENT span with `http.request.method`, `url.full`, `server.address`,
+`http.response.status_code` and injects `traceparent` for downstream trace linking.
+
+### What is NOT traced automatically
+
+- **SPA navigations** — Client-side route changes (clicking links) don't trigger server
+  requests for pages without server function loaders. These appear in HyperDX session replay
+  but not as SSR spans. Only hard-refreshes or pages with `loader: () => serverFn()` create
+  SSR traces.
+- **Static content pages** (blog, docs, guides) — If accessed via SPA navigation, no server
+  span is created. Content is bundled in the client and loaded by TanStack Router.
 
 ## ClickStack Setup
 
-HyperDX ClickStack is self-hosted. **No passwords or tokens are validated** — the API key
-can be any non-empty string.
+HyperDX ClickStack is self-hosted. The **Ingestion API Key** (found in ClickStack UI → Team
+Settings) must be used by both the browser SDK and backend OTLP exporter.
+
+### First-Time Setup
+
+1. Start ClickStack: `docker compose -f ~/SourceRoot/vps/compose.dev.yml up clickstack -d`
+2. Open `http://localhost:7707` and create an admin account
+3. Go to Team Settings → copy the **Ingestion API Key**
+4. Paste it into `apps/web/.env` (`VITE_HYPERDX_API_KEY`) and `apps/api/.env` (`OTEL_EXPORTER_OTLP_HEADERS`)
 
 ### Environment Variables
 
 ```bash
 # API (backend traces)
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318   # dev
-OTEL_EXPORTER_OTLP_ENDPOINT=http://clickstack:4318  # docker
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_HEADERS=authorization=<ingestion-key>
 OTEL_SERVICE_NAME=basalt-ui-playground-api
 
-# Web (browser RUM)
-VITE_HYPERDX_API_KEY=dev                              # any non-empty string
+# Web — SSR traces (same collector + key as API)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_HEADERS=authorization=<ingestion-key>
+
+# Web — Browser RUM (proxied through web server to avoid CORS)
+VITE_HYPERDX_API_KEY=<ingestion-key>
+VITE_HYPERDX_ENDPOINT=                                     # empty = window.location.origin
 VITE_HYPERDX_SERVICE_NAME=basalt-ui-playground-web
 ```
 
+<Admonition type="warning" title="VITE_HYPERDX_ENDPOINT must be empty for same-origin proxy">
+  Leave `VITE_HYPERDX_ENDPOINT` empty in dev. The SDK falls back to `window.location.origin`, which
+  routes through the web server's OTLP proxy (`/v1/traces`, `/v1/logs` → `:4318`). Setting it to
+  `http://localhost:4318` directly causes CORS failures in Safari.
+</Admonition>
+
+### Validating Traces
+
+1. Start ClickStack and run `make start`
+2. Open `http://localhost:7712` and navigate to a page
+3. In ClickStack (`http://localhost:7707`):
+   - **Search → Traces**: filter by `service.name = basalt-ui-playground-web` for SSR spans
+   - **Search → Traces**: filter by `service.name = basalt-ui-playground-api` for API spans
+   - **Search → Traces**: look for `ServerFn getCBBIData` or `SSR GET /dashboard` span names
+   - **Click a trace**: verify the waterfall shows Browser → SSR → API → DB spans linked
+4. Sign in with demo user → verify `auth` spans appear under `/api/auth/sign-in/email`
+
 ### Docker Compose
 
-ClickStack is included in `compose.yml` but commented out (managed separately):
+ClickStack is managed separately via `vps/compose.dev.yml`. A reference config is included
+in `compose.yml` (commented out):
 
 ```yaml
 # clickstack:
-#   image: docker.hyperdx.io/hyperdx/hyperdx-all-in-one
+#   image: clickhouse/clickstack-all-in-one:latest
 #   ports:
-#     - "8080:8080"   # HyperDX UI
+#     - "7707:8080"   # HyperDX UI
 #     - "4317:4317"   # OTLP gRPC
-#     - "4318:4318"   # OTLP HTTP
+#     - "4318:4318"   # OTLP HTTP (browser SDK + API traces)
 ```
 
 ## Umami Analytics

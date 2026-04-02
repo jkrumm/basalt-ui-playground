@@ -46,6 +46,38 @@ Route conventions:
 `router.tsx` exports `getRouter(): Awaitable<AnyRouter>` — resolved via `#tanstack-router-entry`
 virtual module. `StartClient` takes zero props (router resolved internally).
 
+## Data Fetching Pattern
+
+**Prefer Elysia API routes + EdenTreaty over TanStack Start server functions.**
+
+Server functions (`createServerFn`) are only for SSR-specific tasks that need the request
+context (cookies, headers): `getSessionFn` (auth), `getThemeFn` (theme cookie).
+
+All other data fetching goes through Elysia API routes, consumed via EdenTreaty:
+
+```ts
+// Route loader — SSR pre-fetch
+export const Route = createFileRoute("/")({
+  loader: async () => {
+    const { data, error } = await api.api.market.cbbi.dashboard.get();
+    if (error) throw new Error(String(error));
+    return data;
+  },
+});
+
+// Component — TanStack Query with SSR initial data + optional polling
+function Dashboard() {
+  const loaderData = Route.useLoaderData();
+  const { data } = useQuery({
+    ...cbbiDashboardQuery(),
+    initialData: loaderData,
+    refetchInterval: 10_000, // for polling (e.g., Bitcoin price)
+  });
+}
+```
+
+Query definitions live in `src/queries/`. They wrap EdenTreaty calls in `queryOptions()`.
+
 ## Auth Client
 
 - `src/lib/auth-client.ts` — BetterAuth React client (`createAuthClient`)
@@ -57,13 +89,22 @@ virtual module. `StartClient` takes zero props (router resolved internally).
 
 ```ts
 import { treaty } from "@elysiajs/eden";
+import { context, propagation } from "@opentelemetry/api";
 import type { App } from "@basalt-ui-playground/api";
 
-const api = treaty<App>(typeof window === "undefined" ? "http://localhost:7713" : "");
+const api = treaty<App>(getBaseUrl(), {
+  fetch: { credentials: "include" },
+  headers() {
+    if (typeof window !== "undefined") return {};
+    const headers: Record<string, string> = {};
+    propagation.inject(context.active(), headers);
+    return headers;
+  },
+});
 ```
 
-Server-side uses full API URL; client-side uses empty string (same-origin via Vite proxy or
-production reverse proxy).
+Server-side uses full API URL + auto-injects `traceparent` for trace propagation.
+Client-side uses empty string (same-origin) — HyperDX handles `traceparent` injection.
 
 ## Jotai Patterns
 
@@ -78,12 +119,30 @@ const [value, setValue] = useAtom(myAtom, { store });
 Atoms live in `src/atoms/`. ESLint rule restricts `jotai` imports to `**/atoms/**` directory
 to enforce this convention.
 
-## HyperDX Browser SDK
+## Observability
 
-- `src/lib/hyperdx.ts` — `initHyperDX()` (module-level, guarded by `typeof window`)
+### Browser — HyperDX SDK
+
+- `src/lib/hyperdx.ts` — self-initializing side-effect module (guarded by `typeof window`)
+- Must be first import in `client.tsx` (before BetterAuth captures fetch)
 - `identifyUser()` — called in `_protected.tsx` layout for authenticated users
-- `tracePropagationTargets: [/\/api\//]` — injects `traceparent` on API calls
+- `tracePropagationTargets: [/\/api\//, /\/_serverFn\//]` — injects `traceparent` on API and
+  server function calls
 - `advancedNetworkCapture: true` — captures request/response bodies
+- Sends to same-origin (web server proxies `/v1/traces` + `/v1/logs` to OTLP collector)
+
+### SSR — Production Server Tracing
+
+- `telemetry.ts` — NodeSDK with BatchSpanProcessor + OTLPTraceExporter (init before all imports)
+- `server.ts` — creates SSR/ServerFn spans with OTEL HTTP semantic conventions
+- Server function names resolved from build manifest (`/_serverFn/{hash}` → `getCBBIData`)
+- Graceful shutdown via `SIGTERM` handler flushes pending spans
+- OTLP auth header read automatically from `OTEL_EXPORTER_OTLP_HEADERS` env var
+
+### EdenTreaty Trace Propagation
+
+`api.ts` `headers()` auto-injects `traceparent` on all server-side calls. No manual
+`propagation.inject()` needed per server function — just use the `api` client.
 
 ## Content Pipeline
 

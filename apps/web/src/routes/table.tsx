@@ -14,8 +14,8 @@ import {
 } from "@blueprintjs/core";
 import { Box, Flex } from "@blueprintjs/labs";
 import { IconArrowDown, IconArrowsUpDown, IconArrowUp } from "@tabler/icons-react";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import {
   flexRender,
   getCoreRowModel,
@@ -23,6 +23,8 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { lazy, Suspense, useEffect, useState } from "react";
+import { DefaultError } from "../components/DefaultError.tsx";
+import { cbbiIndicatorsQuery } from "../queries/market.queries.ts";
 import styles from "./table.module.css";
 
 // Blueprint Table — lazy so it never runs on the server
@@ -33,13 +35,13 @@ const BPTableSection = lazy(() =>
 );
 
 // ---------------------------------------------------------------------------
-// Data
+// Types
 // ---------------------------------------------------------------------------
 
 export interface IndicatorRow {
   key: string;
   name: string;
-  desc: string;
+  description: string;
   value: number | null;
   zone: string;
 }
@@ -53,16 +55,6 @@ const ZONE_LABELS = [
   "Market Top",
 ];
 
-function zoneOf(v: number | null): string {
-  if (v === null) return "—";
-  if (v < 0.2) return "Deep Accumulation";
-  if (v < 0.4) return "Accumulation";
-  if (v < 0.6) return "Neutral";
-  if (v < 0.75) return "Caution";
-  if (v < 0.9) return "Distribution";
-  return "Market Top";
-}
-
 function intentOf(v: number | null): Intent {
   if (v === null) return Intent.NONE;
   if (v < 0.33) return Intent.SUCCESS;
@@ -70,36 +62,15 @@ function intentOf(v: number | null): Intent {
   return Intent.DANGER;
 }
 
-const getTableData = createServerFn({ method: "GET" }).handler(
-  async (): Promise<IndicatorRow[]> => {
-    const res = await fetch("https://colintalkscrypto.com/cbbi/data/latest.json");
-    const raw = await res.json();
-    const timestamps = Object.keys(raw.Price).toSorted();
-    const ts = timestamps.at(-1);
-    if (!ts) throw new Error("No timestamps in CBBI data");
-
-    const META: Record<string, { name: string; desc: string }> = {
-      PiCycle: { name: "Pi Cycle Top", desc: "Detects cycle tops via 111d / 350d MA crossover" },
-      RUPL: { name: "RUPL", desc: "Relative Unrealized Profit/Loss" },
-      RHODL: { name: "RHODL Ratio", desc: "Wealth distribution: old vs new coins" },
-      Puell: { name: "Puell Multiple", desc: "Miner revenue vs 365-day average" },
-      "2YMA": { name: "2Y MA Multiplier", desc: "Price relative to 2-year moving average" },
-      Trolololo: { name: "Trolololo", desc: "Bitcoin Rainbow Chart log regression" },
-      MVRV: { name: "MVRV Z-Score", desc: "Market cap vs Realized cap" },
-      ReserveRisk: { name: "Reserve Risk", desc: "Long-term holder conviction vs price" },
-      Woobull: { name: "Woobull Top Cap", desc: "Price vs Willy Woo's Top Cap model" },
-      Confidence: { name: "CBBI Confidence", desc: "Composite of all 9 indicators" },
-    };
-
-    return Object.entries(META).map(([key, { name, desc }]) => {
-      const v = raw[key]?.[ts] ?? null;
-      return { key, name, desc, value: v, zone: zoneOf(v) };
-    });
-  },
-);
+// ---------------------------------------------------------------------------
+// Route — SSR pre-fetch via EdenTreaty
+// ---------------------------------------------------------------------------
 
 export const Route = createFileRoute("/table")({
-  loader: () => getTableData(),
+  loader: async ({ context: { queryClient } }) => {
+    await queryClient.ensureQueryData(cbbiIndicatorsQuery());
+  },
+  errorComponent: ({ error, reset }) => <DefaultError error={error} reset={reset} />,
   component: TableComparison,
 });
 
@@ -114,7 +85,7 @@ const COLUMNS: ColumnDef<IndicatorRow>[] = [
     cell: (info) => <strong>{info.getValue<string>()}</strong>,
   },
   {
-    accessorKey: "desc",
+    accessorKey: "description",
     header: "Description",
     enableSorting: false,
     cell: (info) => (
@@ -229,9 +200,11 @@ function TanStackSection({ data }: { data: IndicatorRow[] }) {
 // Page
 // ---------------------------------------------------------------------------
 function TableComparison() {
-  const data = Route.useLoaderData();
+  const { data } = useSuspenseQuery(cbbiIndicatorsQuery());
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
+
+  const rows: IndicatorRow[] = (data ?? []) as IndicatorRow[];
 
   return (
     <Box className={styles.page}>
@@ -246,7 +219,7 @@ function TableComparison() {
           handles styling.
         </Callout>
 
-        <TanStackSection data={data} />
+        <TanStackSection data={rows} />
 
         {/* Blueprint Table — client-only */}
         <H3 style={{ marginTop: 40 }}>@blueprintjs/table</H3>
@@ -267,7 +240,7 @@ function TableComparison() {
               </Card>
             }
           >
-            <BPTableSection data={data} />
+            <BPTableSection data={rows} />
           </Suspense>
         ) : (
           <Card elevation={Elevation.ONE}>

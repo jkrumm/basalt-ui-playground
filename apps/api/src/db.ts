@@ -1,3 +1,4 @@
+import { instrumentDrizzleClient } from "@kubiks/otel-drizzle";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { env } from "./env.ts";
@@ -9,4 +10,12 @@ const dbUrl = env.DATABASE_URL.replace(/([?&])schema=[^&]*/g, "$1").replace(/[?&
 const client = postgres(dbUrl);
 
 // v1 beta: object form with named client key — NOT positional drizzle(client, {schema})
-export const db = drizzle({ client, schema });
+const rawDb = drizzle({ client, schema });
+
+// Wraps all Drizzle operations (select/insert/update/delete) with OTEL spans.
+// Spans include db.statement, db.operation, db.system per OTEL DB semantic conventions.
+export const db = instrumentDrizzleClient(rawDb, {
+  dbSystem: "postgresql",
+  dbName: "basalt_ui_playground",
+  captureQueryText: true,
+});

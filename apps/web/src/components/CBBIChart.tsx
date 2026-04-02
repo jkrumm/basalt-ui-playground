@@ -1,4 +1,4 @@
-import { Button, ButtonGroup } from "@blueprintjs/core";
+import { Button, ButtonGroup, NonIdealState } from "@blueprintjs/core";
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -129,6 +129,10 @@ function ChartTooltip({
 
 export function CBBIChart({ data }: { data: HistoryPoint[] }) {
   const [zoom, setZoom] = useState<ZoomKey>("ALL");
+
+  if (data.length === 0) {
+    return <NonIdealState icon="timeline-area-chart" title="No chart data" />;
+  }
 
   const filteredData = useMemo(() => {
     if (zoom === "ALL") return data;

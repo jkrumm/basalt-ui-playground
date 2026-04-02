@@ -1,25 +1,21 @@
 import HyperDX from "@hyperdx/browser";
 
-let initialized = false;
-
-export function initHyperDX() {
-  if (typeof window === "undefined" || initialized) return;
-
+// Self-initializing side-effect module — patches window.fetch and XMLHttpRequest
+// on import. Must be imported BEFORE any library that captures fetch (BetterAuth, etc).
+if (typeof window !== "undefined") {
   const apiKey = import.meta.env.VITE_HYPERDX_API_KEY;
-  if (!apiKey) return;
-
-  HyperDX.init({
-    apiKey,
-    service: import.meta.env.VITE_HYPERDX_SERVICE_NAME ?? "basalt-ui-playground-web",
-    // For self-hosted ClickStack: point at your collector HTTP endpoint.
-    // VPS dev.compose.yml maps 7707:8080 — the SDK defaults to HyperDX cloud if url is omitted.
-    url: import.meta.env.VITE_HYPERDX_ENDPOINT ?? "http://localhost:7707",
-    tracePropagationTargets: [/\/api\//],
-    consoleCapture: true,
-    advancedNetworkCapture: true,
-  });
-
-  initialized = true;
+  if (apiKey) {
+    HyperDX.init({
+      apiKey,
+      service: import.meta.env.VITE_HYPERDX_SERVICE_NAME ?? "basalt-ui-playground-web",
+      // SDK appends /v1/logs and /v1/traces — web server proxies to OTEL collector.
+      // Must be an absolute URL (OTLP exporter falls back to localhost:4318 for relative paths).
+      url: import.meta.env.VITE_HYPERDX_ENDPOINT || window.location.origin,
+      tracePropagationTargets: [/\/api\//, /\/_serverFn\//],
+      consoleCapture: true,
+      advancedNetworkCapture: true,
+    });
+  }
 }
 
 export function identifyUser(user: { id: string; email: string; name: string }) {

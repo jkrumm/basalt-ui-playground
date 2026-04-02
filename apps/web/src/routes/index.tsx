@@ -1,5 +1,6 @@
-import type { UserPreferences } from "@cbbi/schemas";
+import type { UserPreferences } from "@basalt-ui-playground/schemas";
 import type { HistoryPoint } from "../components/CBBIChart.tsx";
+import type { CBBIDashboardData } from "../queries/market.queries.ts";
 import {
   Button,
   ButtonGroup,
@@ -26,14 +27,19 @@ import {
   IconLayoutGrid,
   IconLayoutList,
 } from "@tabler/icons-react";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { useAtom } from "jotai";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { sortByAtom, viewModeAtom } from "../atoms/index.ts";
+import { DefaultError } from "../components/DefaultError.tsx";
 import { PageLayout } from "../components/layout/PageLayout.tsx";
 import { EVENTS, track } from "../lib/analytics.ts";
-import { formatDateLong } from "../lib/date.ts";
+import {
+  bitcoinPriceQuery,
+  cbbiDashboardQuery,
+  fearGreedQuery,
+} from "../queries/market.queries.ts";
 import styles from "./index.module.css";
 
 const CBBIChart = lazy(() =>
@@ -41,102 +47,30 @@ const CBBIChart = lazy(() =>
 );
 
 // ---------------------------------------------------------------------------
-// Data model
-// ---------------------------------------------------------------------------
-
-const INDICATORS = {
-  PiCycle: {
-    name: "Pi Cycle Top",
-    desc: "Detects cycle tops via 111d / 350d moving-average crossover",
-  },
-  RUPL: {
-    name: "RUPL",
-    desc: "Relative Unrealized Profit/Loss — overall market sentiment",
-  },
-  RHODL: {
-    name: "RHODL Ratio",
-    desc: "Wealth distribution between short-term and long-term holders",
-  },
-  Puell: {
-    name: "Puell Multiple",
-    desc: "Daily miner revenue vs 365-day average — miner profitability cycle",
-  },
-  "2YMA": {
-    name: "2Y MA Multiplier",
-    desc: "Bitcoin price relative to its 2-year moving average",
-  },
-  Trolololo: {
-    name: "Trolololo",
-    desc: "Bitcoin Rainbow Chart — logarithmic regression of long-run price",
-  },
-  MVRV: {
-    name: "MVRV Z-Score",
-    desc: "Market cap vs Realized cap — detects statistical over/undervaluation",
-  },
-  ReserveRisk: {
-    name: "Reserve Risk",
-    desc: "Long-term holder conviction relative to current price level",
-  },
-  Woobull: {
-    name: "Woobull Top Cap",
-    desc: "Bitcoin price relative to Willy Woo's Top Cap model",
-  },
-} as const;
-
-type IndicatorKey = keyof typeof INDICATORS;
-
-type CBBIRaw = {
-  Price: Record<string, number>;
-  Confidence: Record<string, number>;
-} & Record<IndicatorKey, Record<string, number | null>>;
-
-interface LatestSnapshot {
-  date: string;
-  price: number;
-  confidence: number;
-  indicators: Record<IndicatorKey, number | null>;
-  history: HistoryPoint[];
-}
-
-// ---------------------------------------------------------------------------
-// Server function
-// ---------------------------------------------------------------------------
-
-const getCBBIData = createServerFn({ method: "GET" }).handler(async (): Promise<LatestSnapshot> => {
-  const res = await fetch("https://colintalkscrypto.com/cbbi/data/latest.json");
-  if (!res.ok) throw new Error(`CBBI API returned ${res.status}`);
-
-  const raw: CBBIRaw = await res.json();
-  const timestamps = Object.keys(raw.Price).toSorted();
-  const ts = timestamps.at(-1);
-  if (!ts) throw new Error("No timestamps in CBBI data");
-
-  const history: HistoryPoint[] = timestamps
-    .filter((_, i) => i % 7 === 0)
-    .flatMap((t) => {
-      const price = raw.Price[t];
-      const conf = raw.Confidence[t];
-      if (price == null || conf == null) return [];
-      return [{ ts: Number.parseInt(t), price, confidence: Math.round(conf * 1000) / 10 }];
-    });
-
-  return {
-    date: formatDateLong(Number.parseInt(ts)),
-    price: raw.Price[ts]!,
-    confidence: raw.Confidence[ts]!,
-    indicators: Object.fromEntries(
-      (Object.keys(INDICATORS) as IndicatorKey[]).map((k) => [k, raw[k]?.[ts] ?? null]),
-    ) as Record<IndicatorKey, number | null>,
-    history,
-  };
-});
-
-// ---------------------------------------------------------------------------
-// Route
+// Route — ensureQueryData for critical CBBI, prefetchQuery for optional data
 // ---------------------------------------------------------------------------
 
 export const Route = createFileRoute("/")({
-  loader: () => getCBBIData(),
+  loader: async ({ context: { queryClient } }) => {
+    // All three must be awaited so their data lands in the SSR HTML.
+    // If prefetchQuery data were streamed-only (fire-and-forget), the inline script
+    // chunks would update the QueryClient BEFORE React hydrates, causing a mismatch
+    // between the SSR HTML (DataUnavailable) and what React would render (component
+    // with data) → React error #418.
+    // prefetchQuery swallows errors so bitcoin/fear-greed failures don't throw.
+    await Promise.all([
+      queryClient.ensureQueryData(cbbiDashboardQuery()), // throws on failure → errorComponent
+      queryClient.prefetchQuery(bitcoinPriceQuery()), // no-throw if unavailable
+      queryClient.prefetchQuery(fearGreedQuery()), // no-throw if unavailable
+    ]);
+  },
+  errorComponent: ({ error, reset }) => (
+    <PageLayout>
+      <Box style={{ padding: "40px 0" }}>
+        <DefaultError error={error} reset={reset} />
+      </Box>
+    </PageLayout>
+  ),
   component: CBBIDashboard,
 });
 
@@ -165,6 +99,25 @@ function fmtPct(v: number | null): string {
 
 function fmtPrice(v: number): string {
   return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
+}
+
+function fmtChange(v: number): string {
+  const sign = v >= 0 ? "+" : "";
+  return `${sign}${v.toFixed(2)}%`;
+}
+
+function fmtVolume(v: number): string {
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  return `$${(v / 1e6).toFixed(0)}M`;
+}
+
+function fearGreedIntent(value: number): Intent {
+  if (value <= 25) return Intent.DANGER;
+  if (value <= 45) return Intent.WARNING;
+  if (value <= 55) return Intent.NONE;
+  if (value <= 75) return Intent.PRIMARY;
+  return Intent.SUCCESS;
 }
 
 function getCalloutConfig(confidence: number): {
@@ -227,235 +180,332 @@ function getCalloutConfig(confidence: number): {
   };
 }
 
-function getSortedKeys(
-  indicators: Record<IndicatorKey, number | null>,
-  sortBy: string,
-): IndicatorKey[] {
-  const keys = Object.keys(INDICATORS) as IndicatorKey[];
+interface Indicator {
+  key: string;
+  name: string;
+  description: string;
+  value: number | null;
+  zone: string;
+}
+
+function getSortedIndicators(indicators: Indicator[], sortBy: string): Indicator[] {
   if (sortBy === "value-asc")
-    return keys.toSorted((a, b) => (indicators[a] ?? -1) - (indicators[b] ?? -1));
+    return [...indicators].sort((a, b) => (a.value ?? -1) - (b.value ?? -1));
   if (sortBy === "value-desc")
-    return keys.toSorted((a, b) => (indicators[b] ?? -1) - (indicators[a] ?? -1));
-  return keys;
+    return [...indicators].sort((a, b) => (b.value ?? -1) - (a.value ?? -1));
+  return indicators;
 }
 
 // ---------------------------------------------------------------------------
-// Component
+// Bitcoin Price Ticker — polls every 10 seconds
+// ---------------------------------------------------------------------------
+
+function DataUnavailable({ label }: { label: string }) {
+  return (
+    <Callout intent={Intent.WARNING} icon="warning-sign" style={{ marginBottom: 16 }}>
+      {label} data is temporarily unavailable. It will retry automatically.
+    </Callout>
+  );
+}
+
+function BitcoinPriceTicker() {
+  const { data: bitcoin } = useQuery({
+    ...bitcoinPriceQuery(),
+    refetchInterval: 10_000,
+  });
+
+  if (!bitcoin) return <DataUnavailable label="Bitcoin price" />;
+
+  return (
+    <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
+      <Flex justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+        <Flex alignItems="baseline" gap={2}>
+          <H2 style={{ margin: 0 }}>BTC ${fmtPrice(bitcoin.usd)}</H2>
+          <Tag large intent={bitcoin.usd24hChange >= 0 ? Intent.SUCCESS : Intent.DANGER} minimal>
+            {fmtChange(bitcoin.usd24hChange)} 24h
+          </Tag>
+        </Flex>
+        <Flex gap={2} flexWrap="wrap">
+          <Tag minimal>7d: {fmtChange(bitcoin.usd7dChange)}</Tag>
+          <Tag minimal>30d: {fmtChange(bitcoin.usd30dChange)}</Tag>
+          <Tag minimal>Vol: {fmtVolume(bitcoin.usd24hVolume)}</Tag>
+          <Tag minimal>MCap: {fmtVolume(bitcoin.marketCap)}</Tag>
+          <Tag minimal>ATH: ${fmtPrice(bitcoin.ath)}</Tag>
+        </Flex>
+      </Flex>
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Fear & Greed Widget
+// ---------------------------------------------------------------------------
+
+function FearGreedWidget() {
+  const { data: fearGreed } = useQuery(fearGreedQuery());
+
+  if (!fearGreed) return <DataUnavailable label="Fear & Greed" />;
+  const { current } = fearGreed;
+
+  return (
+    <Card elevation={Elevation.ONE} style={{ marginBottom: 16 }}>
+      <Flex justifyContent="space-between" alignItems="center">
+        <Flex alignItems="center" gap={2}>
+          <H5 style={{ margin: 0 }}>Fear & Greed Index</H5>
+          <Tag large intent={fearGreedIntent(current.value)}>
+            {current.value} — {current.classification}
+          </Tag>
+        </Flex>
+        <Tag minimal>{current.date}</Tag>
+      </Flex>
+      <ProgressBar
+        value={current.value / 100}
+        intent={fearGreedIntent(current.value)}
+        animate={false}
+        stripes={false}
+        style={{ height: 8, marginTop: 8 }}
+      />
+    </Card>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Component
 // ---------------------------------------------------------------------------
 
 function CBBIDashboard() {
-  const { price, confidence, indicators, history } = Route.useLoaderData();
-  const [viewMode, setViewMode] = useAtom(viewModeAtom);
-  const [sortBy, setSortBy] = useAtom(sortByAtom);
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => setIsMounted(true), []);
-
-  const callout = getCalloutConfig(confidence);
-  const sortedKeys = getSortedKeys(indicators, sortBy);
+  const { data: cbbiData } = useQuery(cbbiDashboardQuery());
 
   return (
     <PageLayout>
       <Box className={styles.page}>
         <Box className={styles.container}>
-          {/* Confidence card */}
-          <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
-            <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
-              <H2 style={{ margin: 0 }}>Confidence Score</H2>
-              <Flex gap={2} alignItems="center">
-                <Tag large>BTC ${fmtPrice(price)}</Tag>
-                <Tag large intent={getIntent(confidence)}>
-                  {getZoneLabel(confidence)}
-                </Tag>
-                <Tag large minimal>
-                  {fmtPct(confidence)}
-                </Tag>
-              </Flex>
-            </Flex>
-            <ProgressBar
-              value={confidence}
-              intent={getIntent(confidence)}
-              animate={false}
-              stripes={false}
-              style={{ height: 12 }}
-            />
-            <p className="cbbi-meta" style={{ marginTop: 10 }}>
-              Composite of 9 on-chain indicators. Low = accumulation zone &mdash; High =
-              distribution / approaching cycle top.
-            </p>
-          </Card>
+          {/* Bitcoin price ticker — polls every 10s */}
+          <BitcoinPriceTicker />
 
-          {/* Callout */}
-          <Callout
-            intent={callout.intent}
-            icon={callout.icon}
-            title={callout.title}
-            style={{ marginBottom: 24 }}
-          >
-            {callout.message}
-          </Callout>
+          {/* Fear & Greed Index */}
+          <FearGreedWidget />
 
-          {/* Controls */}
-          <Flex
-            justifyContent="space-between"
-            alignItems="center"
-            marginBottom={4}
-            gap={2}
-            flexWrap="wrap"
-          >
-            <ButtonGroup>
-              <Button
-                icon={<IconLayoutGrid size={16} />}
-                text="Grid"
-                active={viewMode === "grid"}
-                onClick={() => {
-                  setViewMode("grid");
-                  track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "grid" });
-                }}
-              />
-              <Button
-                icon={<IconLayoutList size={16} />}
-                text="Table"
-                active={viewMode === "table"}
-                onClick={() => {
-                  setViewMode("table");
-                  track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "table" });
-                }}
-              />
-            </ButtonGroup>
-
-            <HTMLSelect
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value as UserPreferences["sortBy"]);
-                track(EVENTS.SELECT_CHANGED, {
-                  component: "indicator-grid",
-                  field: "sort",
-                  value: e.target.value,
-                });
-              }}
-              options={[
-                { label: "Default order", value: "default" },
-                { label: "Value: Low → High", value: "value-asc" },
-                { label: "Value: High → Low", value: "value-desc" },
-              ]}
-            />
-          </Flex>
-
-          {/* Grid view */}
-          {viewMode === "grid" && (
-            <div className={styles.grid}>
-              {sortedKeys.map((key) => {
-                const { name, desc } = INDICATORS[key];
-                const value = indicators[key];
-                return (
-                  <Card key={key} elevation={Elevation.ONE}>
-                    <Flex flexDirection="column" gap={2}>
-                      <Flex justifyContent="space-between" alignItems="start">
-                        <Tooltip content={desc} placement="top" compact>
-                          <H5 style={{ margin: 0, cursor: "help" }}>{name}</H5>
-                        </Tooltip>
-                        <Tag minimal intent={value !== null ? getIntent(value) : Intent.NONE}>
-                          {fmtPct(value)}
-                        </Tag>
-                      </Flex>
-                      <ProgressBar
-                        value={value ?? 0}
-                        intent={value !== null ? getIntent(value) : Intent.NONE}
-                        animate={false}
-                        stripes={false}
-                      />
-                    </Flex>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Table view */}
-          {viewMode === "table" && (
-            <Card elevation={Elevation.ONE} style={{ padding: 0, overflow: "hidden" }}>
-              <HTMLTable striped interactive style={{ width: "100%", margin: 0 }}>
-                <thead>
-                  <tr>
-                    <th>Indicator</th>
-                    <th>Description</th>
-                    <th style={{ textAlign: "right" }}>Value</th>
-                    <th>Zone</th>
-                    <th style={{ width: 140 }}>Score</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedKeys.map((key) => {
-                    const { name, desc } = INDICATORS[key];
-                    const value = indicators[key];
-                    return (
-                      <tr key={key}>
-                        <td>
-                          <strong>{name}</strong>
-                        </td>
-                        <td className="cbbi-meta" style={{ maxWidth: 280 }}>
-                          {desc}
-                        </td>
-                        <td style={{ textAlign: "right" }}>
-                          <Tag minimal intent={value !== null ? getIntent(value) : Intent.NONE}>
-                            {fmtPct(value)}
-                          </Tag>
-                        </td>
-                        <td style={{ color: "#8f99a8", fontSize: 13 }}>
-                          {value !== null ? getZoneLabel(value) : "—"}
-                        </td>
-                        <td>
-                          <ProgressBar
-                            value={value ?? 0}
-                            intent={value !== null ? getIntent(value) : Intent.NONE}
-                            animate={false}
-                            stripes={false}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </HTMLTable>
-            </Card>
-          )}
-
-          {/* Historical chart — client-only */}
-          <Card elevation={Elevation.TWO} style={{ marginTop: 24, marginBottom: 24 }}>
-            <H2 style={{ margin: "0 0 4px" }}>Historical Chart</H2>
-            <p className="cbbi-meta" style={{ marginBottom: 16 }}>
-              Weekly Bitcoin price (right axis, log scale) with CBBI confidence dots colored by
-              cycle position.
-            </p>
-            {isMounted ? (
-              <Suspense
-                fallback={
-                  <Flex
-                    alignItems="center"
-                    justifyContent="center"
-                    className={styles.spinnerContainer}
-                  >
-                    <Spinner size={40} />
-                  </Flex>
-                }
-              >
-                <CBBIChart data={history} />
-              </Suspense>
-            ) : (
-              <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
-                <Spinner size={40} />
-              </Flex>
-            )}
-          </Card>
+          {/* CBBI section — ensureQueryData guarantees data after loader; DataUnavailable is a safety net */}
+          {!cbbiData ? <DataUnavailable label="CBBI dashboard" /> : <CBBISection data={cbbiData} />}
 
           {/* Source */}
           <p className="cbbi-source">
             Data: <a href="https://colintalkscrypto.com/cbbi">colintalkscrypto.com/cbbi</a>
             {" · "}
             <a href="https://github.com/Zaczero/CBBI">CBBI algorithm</a>
+            {" · "}
+            <a href="https://www.coingecko.com/">CoinGecko</a>
+            {" · "}
+            <a href="https://alternative.me/crypto/fear-and-greed-index/">Alternative.me</a>
           </p>
         </Box>
       </Box>
     </PageLayout>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// CBBI Section — extracted for clean null-guard in parent
+// ---------------------------------------------------------------------------
+
+function CBBISection({ data: cbbiData }: { data: CBBIDashboardData }) {
+  const [viewMode, setViewMode] = useAtom(viewModeAtom);
+  const [sortBy, setSortBy] = useAtom(sortByAtom);
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => setIsMounted(true), []);
+
+  const { price, confidence, indicators, history } = cbbiData;
+  const callout = getCalloutConfig(confidence);
+  const sortedIndicators = getSortedIndicators(indicators as Indicator[], sortBy);
+  const chartData: HistoryPoint[] = history.map(
+    (p: { timestamp: number; price: number; confidence: number }) => ({
+      ts: p.timestamp,
+      price: p.price,
+      confidence: p.confidence,
+    }),
+  );
+
+  return (
+    <>
+      {/* CBBI Confidence card */}
+      <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
+        <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
+          <H2 style={{ margin: 0 }}>CBBI Confidence</H2>
+          <Flex gap={2} alignItems="center">
+            <Tag large>BTC ${fmtPrice(price)}</Tag>
+            <Tag large intent={getIntent(confidence)}>
+              {getZoneLabel(confidence)}
+            </Tag>
+            <Tag large minimal>
+              {fmtPct(confidence)}
+            </Tag>
+          </Flex>
+        </Flex>
+        <ProgressBar
+          value={confidence}
+          intent={getIntent(confidence)}
+          animate={false}
+          stripes={false}
+          style={{ height: 12 }}
+        />
+        <p className="cbbi-meta" style={{ marginTop: 10 }}>
+          Composite of 9 on-chain indicators. Low = accumulation zone &mdash; High = distribution /
+          approaching cycle top.
+        </p>
+      </Card>
+
+      {/* Callout */}
+      <Callout
+        intent={callout.intent}
+        icon={callout.icon}
+        title={callout.title}
+        style={{ marginBottom: 24 }}
+      >
+        {callout.message}
+      </Callout>
+
+      {/* Controls */}
+      <Flex
+        justifyContent="space-between"
+        alignItems="center"
+        marginBottom={4}
+        gap={2}
+        flexWrap="wrap"
+      >
+        <ButtonGroup>
+          <Button
+            icon={<IconLayoutGrid size={16} />}
+            text="Grid"
+            active={viewMode === "grid"}
+            onClick={() => {
+              setViewMode("grid");
+              track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "grid" });
+            }}
+          />
+          <Button
+            icon={<IconLayoutList size={16} />}
+            text="Table"
+            active={viewMode === "table"}
+            onClick={() => {
+              setViewMode("table");
+              track(EVENTS.VIEW_TOGGLED, { component: "indicator-grid", view: "table" });
+            }}
+          />
+        </ButtonGroup>
+
+        <HTMLSelect
+          value={sortBy}
+          onChange={(e) => {
+            setSortBy(e.target.value as UserPreferences["sortBy"]);
+            track(EVENTS.SELECT_CHANGED, {
+              component: "indicator-grid",
+              field: "sort",
+              value: e.target.value,
+            });
+          }}
+          options={[
+            { label: "Default order", value: "default" },
+            { label: "Value: Low → High", value: "value-asc" },
+            { label: "Value: High → Low", value: "value-desc" },
+          ]}
+        />
+      </Flex>
+
+      {/* Grid view */}
+      {viewMode === "grid" && (
+        <div className={styles.grid}>
+          {sortedIndicators.map((ind) => (
+            <Card key={ind.key} elevation={Elevation.ONE}>
+              <Flex flexDirection="column" gap={2}>
+                <Flex justifyContent="space-between" alignItems="start">
+                  <Tooltip content={ind.description} placement="top" compact>
+                    <H5 style={{ margin: 0, cursor: "help" }}>{ind.name}</H5>
+                  </Tooltip>
+                  <Tag minimal intent={ind.value !== null ? getIntent(ind.value) : Intent.NONE}>
+                    {fmtPct(ind.value)}
+                  </Tag>
+                </Flex>
+                <ProgressBar
+                  value={ind.value ?? 0}
+                  intent={ind.value !== null ? getIntent(ind.value) : Intent.NONE}
+                  animate={false}
+                  stripes={false}
+                />
+              </Flex>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Table view */}
+      {viewMode === "table" && (
+        <Card elevation={Elevation.ONE} style={{ padding: 0, overflow: "hidden" }}>
+          <HTMLTable striped interactive style={{ width: "100%", margin: 0 }}>
+            <thead>
+              <tr>
+                <th>Indicator</th>
+                <th>Description</th>
+                <th style={{ textAlign: "right" }}>Value</th>
+                <th>Zone</th>
+                <th style={{ width: 140 }}>Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedIndicators.map((ind) => (
+                <tr key={ind.key}>
+                  <td>
+                    <strong>{ind.name}</strong>
+                  </td>
+                  <td className="cbbi-meta" style={{ maxWidth: 280 }}>
+                    {ind.description}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    <Tag minimal intent={ind.value !== null ? getIntent(ind.value) : Intent.NONE}>
+                      {fmtPct(ind.value)}
+                    </Tag>
+                  </td>
+                  <td style={{ color: "#8f99a8", fontSize: 13 }}>
+                    {ind.value !== null ? getZoneLabel(ind.value) : "—"}
+                  </td>
+                  <td>
+                    <ProgressBar
+                      value={ind.value ?? 0}
+                      intent={ind.value !== null ? getIntent(ind.value) : Intent.NONE}
+                      animate={false}
+                      stripes={false}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </HTMLTable>
+        </Card>
+      )}
+
+      {/* Historical chart — client-only */}
+      <Card elevation={Elevation.TWO} style={{ marginTop: 24, marginBottom: 24 }}>
+        <H2 style={{ margin: "0 0 4px" }}>Historical Chart</H2>
+        <p className="cbbi-meta" style={{ marginBottom: 16 }}>
+          Weekly Bitcoin price (right axis, log scale) with CBBI confidence dots colored by cycle
+          position.
+        </p>
+        {isMounted ? (
+          <Suspense
+            fallback={
+              <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
+                <Spinner size={40} />
+              </Flex>
+            }
+          >
+            <CBBIChart data={chartData} />
+          </Suspense>
+        ) : (
+          <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
+            <Spinner size={40} />
+          </Flex>
+        )}
+      </Card>
+    </>
   );
 }

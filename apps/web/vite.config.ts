@@ -4,7 +4,6 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact, { reactCompilerPreset } from "@vitejs/plugin-react";
 import contentCollections from "@content-collections/vite";
 import { defineConfig } from "vite";
-import tsConfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   server: {
@@ -14,7 +13,20 @@ export default defineConfig({
         target: "http://localhost:7713",
         changeOrigin: true,
       },
+      // Proxy OTLP ingest so browser SDK stays same-origin (avoids CORS to :4318)
+      "/v1/traces": {
+        target: "http://localhost:4318",
+        changeOrigin: true,
+      },
+      "/v1/logs": {
+        target: "http://localhost:4318",
+        changeOrigin: true,
+      },
     },
+  },
+  resolve: {
+    // Vite 8 native tsconfig paths — replaces vite-tsconfig-paths plugin
+    tsconfigPaths: true,
   },
   ssr: {
     // Vite 8 SSR externalization incorrectly loads the CJS build of these
@@ -22,7 +34,6 @@ export default defineConfig({
     noExternal: ["@tanstack/router-core", "@tanstack/react-router"],
   },
   plugins: [
-    tsConfigPaths(),
     tanstackStart(),
     tailwindcss(),
     contentCollections(),

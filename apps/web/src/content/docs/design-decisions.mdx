@@ -171,20 +171,26 @@ Zod v4 standalone functions: `z.url()` and `z.email()` — not `z.string().url()
 ## Observability: OTEL + HyperDX
 
 OTEL is the open standard — exporters, SDKs, and collectors are all replaceable. HyperDX
-is the self-hosted backend (ClickHouse storage, open-source MIT).
+ClickStack is the self-hosted backend (ClickHouse storage, open-source MIT).
 
-The trace chain runs browser → SSR → API with W3C `traceparent` propagation at each hop:
+Four-layer distributed tracing with W3C `traceparent` propagation at every boundary:
 
-1. `@hyperdx/browser` injects `traceparent` on fetch calls matching `tracePropagationTargets`
-2. `getSessionFn` forwards the active trace context to the API via `propagation.inject()`
-3. `@elysiajs/opentelemetry` picks up the incoming `traceparent` and continues the span
+1. `@hyperdx/browser` injects `traceparent` on `/api/*` and `/_serverFn/*` fetch calls
+2. SSR `server.ts` extracts traceparent, creates SSR/ServerFn spans, resolves function names
+3. EdenTreaty client auto-injects `traceparent` on all server-side API calls (via `headers()`)
+4. `@elysiajs/opentelemetry` picks up incoming `traceparent` and auto-traces all routes
+5. `@kubiks/otel-drizzle` wraps Drizzle client for `drizzle.select/insert/update/delete` spans
 
-Result: a single trace visible in HyperDX UI that spans the browser session, SSR render,
-and API handler — with correlated session replay.
+Result: a single trace spanning Browser → SSR → API → DB — visible as a waterfall in
+ClickStack with correlated session replay. New routes and queries are traced automatically.
 
-**Self-hosted ClickStack config:** No API key validation for standard OTEL SDKs.
-The browser SDK requires an explicit `url` option pointing at the ClickStack endpoint
-(defaults to HyperDX cloud if omitted). Use `VITE_HYPERDX_ENDPOINT` to configure.
+**Key design decisions:**
+
+- Browser SDK sends to same-origin (OTLP proxy in web server) to avoid CORS issues
+- `OTLPTraceExporter` reads `OTEL_EXPORTER_OTLP_HEADERS` env var — no manual header parsing
+- Skipped `@kubiks/otel-better-auth` due to type inference bugs — auth flows are covered
+  by Elysia route-level tracing instead
+- Manual `recordException()` in `onError` compensates for Elysia OTEL plugin gap
 
 ---
 

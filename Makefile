@@ -5,13 +5,13 @@
 dev: kill
 	bun run dev
 
-start:
+start: build kill
 	bun run start
 
 build:
 	bun run build
 
-check: fmt lint typecheck test
+check: fmt lint typecheck test build
 
 fmt:
 	bun run fmt

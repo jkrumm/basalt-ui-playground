@@ -47,16 +47,16 @@ services:
     ports:
       - "5432:5432"
 
-  # Optional: HyperDX ClickStack for observability.
-  # The user manages this separately — included here for reference.
-  # Uncomment to run as part of the stack.
+  # Optional: HyperDX ClickStack for observability (see vps/compose.dev.yml for full config).
+  # Browser SDK and API both send OTLP to :4318. UI is on :8080 (mapped to 7707 locally).
+  # Managed separately via vps/compose.dev.yml — uncomment to run as part of this stack.
   #
   # clickstack:
-  #   image: docker.hyperdx.io/hyperdx/hyperdx-all-in-one
+  #   image: clickhouse/clickstack-all-in-one:latest
   #   ports:
-  #     - "8080:8080"   # HyperDX UI
+  #     - "7707:8080"   # HyperDX UI
   #     - "4317:4317"   # OTLP gRPC
-  #     - "4318:4318"   # OTLP HTTP
+  #     - "4318:4318"   # OTLP HTTP (browser SDK + API traces)
 
 volumes:
   pgdata:

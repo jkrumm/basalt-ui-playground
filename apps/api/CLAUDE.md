@@ -8,10 +8,18 @@ src/
 ├── app.ts          # Elysia instance with plugins and routes — NO .listen()
 ├── index.ts        # Entry: imports app, calls .listen()
 ├── auth.ts         # BetterAuth instance (email/password, Drizzle adapter, rate limiting)
-├── db.ts           # Drizzle v1 beta instance (pgSchema: basalt_ui_playground)
+├── db.ts           # Drizzle v1 beta instance + @kubiks/otel-drizzle instrumentation
 ├── telemetry.ts    # OpenTelemetry setup (OTLPTraceExporter + tracer)
+├── lib/
+│   └── traced-fetch.ts  # OTEL-instrumented fetch + TTL cache for external APIs
+├── adapters/       # External API integrations (CBBI, CoinGecko, Fear & Greed)
+│   ├── cbbi.ts          # colintalkscrypto.com — Bitcoin cycle indicators
+│   ├── coingecko.ts     # CoinGecko — Bitcoin price and market data
+│   └── fear-greed.ts    # Alternative.me — Fear & Greed Index
 ├── schema/         # Drizzle table definitions (auth tables + user_preferences)
-├── routes/         # Elysia route modules (user.ts)
+├── routes/         # Elysia route modules
+│   ├── user.ts          # User preferences (auth-guarded)
+│   └── market.ts        # Market data endpoints (CBBI, Bitcoin, FNG)
 ├── middleware/      # Auth middleware (derive + macro pattern)
 └── seed.ts         # Demo user seeding (argon2id hashed)
 ```
@@ -118,6 +126,8 @@ export const db = drizzle(client, { schema });
 - pgSchema: `basalt_ui_playground` (isolated from public schema)
 - Config files use `process.env["KEY"]` bracket notation (TS 6.0 strict, TS4111)
 - `db.select()` for queries (no `defineRelations()` needed)
+- Wrapped with `@kubiks/otel-drizzle` — all queries emit `drizzle.select/insert/update/delete`
+  spans with `db.statement`, `db.operation`, `db.system` attributes
 
 ### OpenTelemetry
 
@@ -127,10 +137,40 @@ from tracing via `checkIfShouldTrace`.
 
 `tracer` export available for manual spans in route handlers.
 
+**Error recording:** The Elysia OTEL plugin doesn't call `recordException()` in its `onError`
+path. The `onError` handler in `app.ts` adds this manually via `trace.getActiveSpan()` so
+errors appear as span events in ClickStack.
+
+**Auth header:** `OTLPTraceExporter` reads `OTEL_EXPORTER_OTLP_HEADERS` env var automatically.
+No manual header parsing needed — just set the env var.
+
+### External API Adapters
+
+Adapters in `src/adapters/` fetch from external APIs using `tracedFetch` (OTEL spans)
+and return typed domain objects. Each adapter has a `cached()` wrapper to avoid hammering
+upstream services:
+
+```ts
+// src/adapters/coingecko.ts
+import { cached, tracedFetch } from "../lib/traced-fetch.ts";
+
+export const getBitcoinPrice = cached(30_000, async () => {
+  const res = await tracedFetch("https://api.coingecko.com/api/v3/coins/bitcoin?...");
+  // ... transform and return typed BitcoinPrice
+});
+```
+
+Cache TTLs: CBBI (1h, daily data), Bitcoin price (30s, poll-friendly), Fear & Greed (1h, daily).
+
+### Auth Route Span Names
+
+`.all("/auth/*")` handler overrides the OTEL span name from the wildcard pattern to the
+actual endpoint path (e.g., `POST /api/auth/sign-in/email`) via `trace.getActiveSpan().updateName()`.
+
 ## Plugin Order in app.ts
 
 ```
-opentelemetry → cors → openapi → auth (.all) → health → routes → onError
+opentelemetry → cors → openapi → auth (.all) → health → userRoutes → marketRoutes → onError
 ```
 
 ## Scripts

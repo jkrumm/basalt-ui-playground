@@ -7,11 +7,11 @@ section: "Getting Started"
 
 ## Environment strategy
 
-| File              | Committed | Purpose                                                   |
-| ----------------- | --------- | ---------------------------------------------------------- |
-| `apps/api/.env`   | Yes       | API defaults + local dev credentials (no prod secrets)    |
-| `apps/web/.env`   | Yes       | Web defaults — `VITE_*` vars, port                        |
-| `.env.example`    | Yes       | Full reference with placeholder values                    |
+| File            | Committed | Purpose                                                |
+| --------------- | --------- | ------------------------------------------------------ |
+| `apps/api/.env` | Yes       | API defaults + local dev credentials (no prod secrets) |
+| `apps/web/.env` | Yes       | Web defaults — `VITE_*` vars, port                     |
+| `.env.example`  | Yes       | Full reference with placeholder values                 |
 
 Bun auto-loads `.env` from each app's directory — no `dotenv` package needed.
 Production injects variables via Doppler — no `.env` files at runtime.
@@ -34,22 +34,22 @@ The `basalt_ui_playground` Postgres user and schema are provisioned by the VPS
 
 ## Full variable reference
 
-| Variable                      | App          | Default                    | Secret                       |
-| ----------------------------- | ------------ | -------------------------- | ---------------------------- |
-| `DATABASE_URL`                | API          | —                          | Yes                          |
-| `BETTER_AUTH_SECRET`          | API          | —                          | Yes                          |
-| `BETTER_AUTH_URL`             | API          | `http://localhost:7713/api/auth` | No                      |
-| `ALLOWED_ORIGIN`              | API          | `http://localhost:7712`    | No                           |
-| `PORT`                        | API          | `7713`                     | No                           |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | API          | `http://localhost:4318`    | No                           |
-| `OTEL_SERVICE_NAME`           | API          | `basalt-ui-playground-api` | No                           |
-| `API_INTERNAL_URL`            | Web (server) | `http://localhost:7713`    | No                           |
-| `WEB_PORT`                    | Web          | `7712`                     | No                           |
-| `VITE_HYPERDX_API_KEY`        | Web          | `dev`                      | No (self-hosted ignores key) |
-| `VITE_HYPERDX_SERVICE_NAME`   | Web          | `basalt-ui-playground-web` | No                           |
-| `VITE_HYPERDX_ENDPOINT`       | Web          | `http://localhost:7707`    | No                           |
-| `VITE_UMAMI_SCRIPT_URL`       | Web          | — (disabled if empty)      | No                           |
-| `VITE_UMAMI_WEBSITE_ID`       | Web          | — (disabled if empty)      | No                           |
+| Variable                      | App          | Default                          | Secret                       |
+| ----------------------------- | ------------ | -------------------------------- | ---------------------------- |
+| `DATABASE_URL`                | API          | —                                | Yes                          |
+| `BETTER_AUTH_SECRET`          | API          | —                                | Yes                          |
+| `BETTER_AUTH_URL`             | API          | `http://localhost:7713/api/auth` | No                           |
+| `ALLOWED_ORIGIN`              | API          | `http://localhost:7712`          | No                           |
+| `PORT`                        | API          | `7713`                           | No                           |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | API          | `http://localhost:4318`          | No                           |
+| `OTEL_SERVICE_NAME`           | API          | `basalt-ui-playground-api`       | No                           |
+| `API_INTERNAL_URL`            | Web (server) | `http://localhost:7713`          | No                           |
+| `WEB_PORT`                    | Web          | `7712`                           | No                           |
+| `VITE_HYPERDX_API_KEY`        | Web          | `dev`                            | No (self-hosted ignores key) |
+| `VITE_HYPERDX_SERVICE_NAME`   | Web          | `basalt-ui-playground-web`       | No                           |
+| `VITE_HYPERDX_ENDPOINT`       | Web          | `http://localhost:7707`          | No                           |
+| `VITE_UMAMI_SCRIPT_URL`       | Web          | — (disabled if empty)            | No                           |
+| `VITE_UMAMI_WEBSITE_ID`       | Web          | — (disabled if empty)            | No                           |
 
 `VITE_*` variables are exposed to the client bundle. All others are server-only.
 

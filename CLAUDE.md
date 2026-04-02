@@ -127,9 +127,9 @@ Bun reads `.env` from each app's directory when running via `--filter`.
 
 ```bash
 make dev          # Kill ports, start web + api concurrently
-make start        # Start production server (after build)
+make start        # Kill ports, build, then start production server
 make build        # Build all workspaces
-make check        # fmt + lint + lint:style + typecheck + test
+make check        # fmt + lint + lint:style + typecheck + test + build
 make fmt          # oxfmt check (read-only)
 make fmt-fix      # oxfmt write
 make lint         # oxlint + eslint
@@ -209,27 +209,100 @@ z.url(); // Zod v4
 - `router.tsx` exports `getRouter()` (not `createRouter`) — resolved via virtual module
 - `StartClient` takes zero props (router resolved internally)
 - React Compiler via `@rolldown/plugin-babel` (separate pass from `@vitejs/plugin-react@6`)
+- **Server functions only for SSR request-context tasks** (cookies, headers): `getSessionFn`,
+  `getThemeFn`. All data fetching goes through Elysia API routes + EdenTreaty.
+
+### Query Dehydration/Hydration (manual — no `routerWithQueryClient`)
+
+`@tanstack/react-router-with-query` is NOT used. It used `router.serverSsr.isDehydrated()` which
+was removed in Router 1.168.x, causing all streamed queries to never hydrate client-side.
+
+Manual dehydration in `router.tsx` instead:
+
+```ts
+dehydrate: () => dehydrateQueryClient(queryClient) as unknown as { [key: string]: NonNullable<unknown> },
+hydrate: (d) => hydrateQueryClient(queryClient, d as unknown as ReturnType<typeof dehydrateQueryClient>),
+```
+
+The type assertions bridge `@tanstack/react-query` (`readonly unknown[]` keys) vs TanStack Start
+(`readonly {}[]` keys) — a version mismatch, runtime types are fully compatible.
+
+**Rules for route loaders:**
+- **Always `await` every `prefetchQuery` / `ensureQueryData`** — never fire-and-forget.
+  Fire-and-forget causes query state to be `"pending"` at dehydration time, which can result in
+  hydration mismatches (React error #418) and empty client-side queries.
+- `ensureQueryData` for critical data (throws on failure → `errorComponent`)
+- `prefetchQuery` for optional data (swallows errors → `DataUnavailable` fallback in component)
+
+**TanStack Start `$R` serializer caveat:**
+Strings matching `YYYY-MM-DD` format (ISO date strings) are automatically converted to `new Date()`
+objects in SSR streaming inline scripts. Avoid returning ISO date strings from API adapters —
+use `toLocaleDateString()` or other non-ISO formats instead.
+
+### Data Fetching Architecture
+
+```
+Browser/SSR → EdenTreaty → Elysia API → Adapters → External APIs
+                                      → Drizzle → Postgres
+```
+
+- **API adapters** (`api/src/adapters/`): fetch external APIs via `tracedFetch`, transform to
+  typed domain objects, cached with TTL to prevent upstream hammering
+- **API routes** (`api/src/routes/market.ts`): expose adapter data as typed Elysia endpoints
+- **Query definitions** (`web/src/queries/`): wrap EdenTreaty calls in TanStack Query `queryOptions()`
+- **Route loaders**: SSR pre-fetch via `ensureQueryData`/`prefetchQuery` — all awaited in `Promise.all`
+- **Polling**: `refetchInterval: 10_000` on Bitcoin price query — seamless SSR→client handoff
 
 ---
 
 ## Observability
 
-### Backend (API)
+Four-layer distributed tracing: Browser → SSR → API → DB. All traces exported via OTLP HTTP
+to ClickStack (self-hosted HyperDX). Trace context propagated via W3C `traceparent` at every hop.
 
-`@elysiajs/opentelemetry` sends traces to OTEL endpoint. `serviceName` passed directly to
-plugin config (NodeSDK handles resource creation). Health endpoint excluded from tracing.
+### Trace Chain
 
-### Frontend (Web)
+| Hop           | Mechanism                                            | Auto? |
+| ------------- | ---------------------------------------------------- | ----- |
+| Browser → API | HyperDX `tracePropagationTargets: [/\/api\//]`       | Yes   |
+| Browser → SSR | HyperDX `tracePropagationTargets: [/\/_serverFn\//]` | Yes   |
+| SSR → API     | EdenTreaty `headers()` with `propagation.inject()`   | Yes   |
+| API routes    | `@elysiajs/opentelemetry` auto-instrumentation       | Yes   |
+| API → DB      | `@kubiks/otel-drizzle` wraps Drizzle client          | Yes   |
 
-`@hyperdx/browser` for session replay, console capture, network capture. Trace context
-propagation via `tracePropagationTargets: [/\/api\//]` links browser → SSR → API spans.
+### Key Patterns
+
+- **Browser SDK**: `@hyperdx/browser` — self-initializing side-effect import in `client.tsx`
+  (must be first import, before BetterAuth captures fetch)
+- **SSR server**: `server.ts` extracts `traceparent`, creates SSR/ServerFn spans, resolves
+  `/_serverFn/{hash}` to readable names from build manifest
+- **EdenTreaty**: `api.ts` `headers()` auto-injects `traceparent` server-side — all SSR→API
+  calls are traced without manual `propagation.inject()` per call
+- **External fetches**: use `tracedFetch()` from `src/lib/traced-fetch.ts` instead of bare
+  `fetch()` in server functions — creates CLIENT span + injects `traceparent`
+- **Auth routes**: `.all("/auth/*")` handler overrides span name to actual path
+  (e.g., `POST /api/auth/sign-in/email` instead of wildcard)
+- **API errors**: manual `recordException()` in `onError` handler (Elysia plugin gap)
+- **OTLP auth**: `OTLPTraceExporter` reads `OTEL_EXPORTER_OTLP_HEADERS` env var automatically
+- **OTLP proxy**: browser SDK sends to same-origin, web server proxies `/v1/traces` + `/v1/logs`
+  to collector `:4318` (avoids CORS)
+- **Graceful shutdown**: both web and API flush pending spans on `SIGTERM`
+
+### Adding New Traced Code
+
+- API routes, DB queries, SSR server functions, EdenTreaty calls → **automatic**
+- External API calls in server functions → use `tracedFetch()` (not bare `fetch()`)
+- SPA navigations to static content pages → no SSR span (by design, client-side only)
 
 ### Self-Hosted ClickStack
 
+Managed via `vps/compose.dev.yml`. Ingestion API Key required (ClickStack UI → Team Settings).
+
 ```bash
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318  # dev
-OTEL_EXPORTER_OTLP_ENDPOINT=http://clickstack:4318 # docker
-HYPERDX_API_KEY=dev                                  # any non-empty string
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_EXPORTER_OTLP_HEADERS=authorization=<ingestion-api-key>
+VITE_HYPERDX_API_KEY=<ingestion-api-key>
+VITE_HYPERDX_ENDPOINT=                                          # empty = same-origin proxy
 ```
 
 ---
