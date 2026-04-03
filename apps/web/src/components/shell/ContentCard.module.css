@@ -1,9 +1,9 @@
 .contentCard {
   flex: 1;
+  overflow-y: auto;
   background-color: var(--bp-palette-white);
   border-radius: var(--bp-border-radius);
   box-shadow: var(--bp-elevation-shadow-1);
-  overflow: hidden;
 }
 
 :global(.bp6-dark) .contentCard {

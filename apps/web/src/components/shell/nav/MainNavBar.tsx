@@ -15,7 +15,7 @@ export function MainNavBar({ children }: Props) {
   const [, setSearchOpen] = useAtom(searchOpenAtom, { store });
 
   return (
-    <Navbar style={{ position: "sticky", top: 0, zIndex: 20 }}>
+    <Navbar style={{ position: "sticky", top: 0, zIndex: 20, boxShadow: "none" }}>
       <NavbarGroup align={Alignment.LEFT}>
         <Link to="/" style={{ textDecoration: "none", fontWeight: 600, marginRight: 8 }}>
           BasaltUI

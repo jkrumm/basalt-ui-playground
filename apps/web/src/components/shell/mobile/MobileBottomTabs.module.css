@@ -10,7 +10,7 @@
   align-items: center;
   background-color: var(--bp-surface-color);
   border-top: var(--bp-surface-border-width) solid var(--bp-divider-color);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .tab {

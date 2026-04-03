@@ -1,6 +1,6 @@
 import { atomWithStorage } from "jotai/utils";
 
-export type Theme = "light" | "dark";
+export type Theme = "light" | "dark" | "system";
 
 // Cookie-backed storage so theme preference survives hard refreshes and SSR reads.
 // Falls back to returning initialValue on server (document is undefined).
@@ -9,7 +9,7 @@ const cookieStorage = {
     if (typeof document === "undefined") return initialValue;
     const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${key}=([^;]*)`));
     const value = match?.[1];
-    return value === "light" || value === "dark" ? value : initialValue;
+    return value === "light" || value === "dark" || value === "system" ? value : initialValue;
   },
   setItem(key: string, value: Theme): void {
     if (typeof document === "undefined") return;
@@ -21,4 +21,4 @@ const cookieStorage = {
   },
 };
 
-export const themeAtom = atomWithStorage<Theme>("theme", "dark", cookieStorage);
+export const themeAtom = atomWithStorage<Theme>("theme", "system", cookieStorage);
