@@ -1,17 +1,14 @@
-import type { Doc, DocNavSection } from "../../../lib/content.ts";
+import type { Doc } from "../../../lib/content.ts";
 import { MDXContent } from "@content-collections/mdx/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { DocsLayout } from "../../../components/content/DocsLayout.tsx";
 import { mdxComponents } from "../../../components/mdx/MDXComponents.tsx";
-import { getDocsSidebar } from "../../../lib/content.ts";
 import { allDocs } from "content-collections";
 
 interface DocsPageData {
   doc: Doc;
-  sections: DocNavSection[];
 }
 
-export const Route = createFileRoute("/_content/docs/$")({
+export const Route = createFileRoute("/_docs/docs/$")({
   loader: ({ params }): DocsPageData => {
     const splat = params._splat ?? "";
     // Try direct slug, then /index fallback for directory index pages
@@ -19,7 +16,7 @@ export const Route = createFileRoute("/_content/docs/$")({
       allDocs.find((d) => d.slug === (splat || "index")) ??
       (splat ? allDocs.find((d) => d.slug === `${splat}/index`) : undefined);
     if (!doc) throw notFound();
-    return { doc, sections: getDocsSidebar() };
+    return { doc };
   },
   head: ({ loaderData: ld, params }) => {
     if (!ld) return {};
@@ -35,11 +32,11 @@ export const Route = createFileRoute("/_content/docs/$")({
 });
 
 function DocsPage() {
-  const { doc, sections } = Route.useLoaderData();
+  const { doc } = Route.useLoaderData();
 
   return (
-    <DocsLayout sections={sections} headings={doc.headings}>
+    <div style={{ padding: "1.5rem 2rem" }}>
       <MDXContent code={doc.body} components={mdxComponents} />
-    </DocsLayout>
+    </div>
   );
 }

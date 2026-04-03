@@ -1,23 +1,38 @@
-import type { SearchDocument } from "../../lib/content.ts";
+import type { SearchDocument } from "~/lib/content.ts";
 import { Card, Classes, Dialog, Elevation, InputGroup, Tag } from "@blueprintjs/core";
 import { Search } from "@blueprintjs/icons";
 import { Box, Flex } from "@blueprintjs/labs";
 import { Link } from "@tanstack/react-router";
 import Fuse from "fuse.js";
+import { useAtom } from "jotai";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getSearchIndex, INDEX_SUFFIX_RE } from "../../lib/content.ts";
-import styles from "./SearchModal.module.css";
+import { searchOpenAtom } from "~/atoms/ui.atoms.ts";
+import { getSearchIndex, INDEX_SUFFIX_RE } from "~/lib/content.ts";
+import { store } from "~/lib/jotai-store.ts";
+import styles from "./SearchPopover.module.css";
 
-interface SearchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function SearchModal({ isOpen, onClose }: SearchModalProps) {
+export function SearchPopover() {
+  const [isOpen, setIsOpen] = useAtom(searchOpenAtom, { store });
   const [query, setQuery] = useState("");
-  // Lazy initializer — getSearchIndex reads bundled glob data, safe to call on mount
   const [documents] = useState<SearchDocument[]>(() => getSearchIndex());
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Cmd+K / Ctrl+K shortcut + open-search custom event
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setIsOpen(true);
+      }
+    };
+    const handleOpenSearch = () => setIsOpen(true);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("open-search", handleOpenSearch);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("open-search", handleOpenSearch);
+    };
+  }, [setIsOpen]);
 
   // Reset query and refocus on each open
   useEffect(() => {
@@ -25,7 +40,6 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
       setQuery("");
       return;
     }
-    // Delay focus to let Blueprint's Dialog animation finish
     const timer = setTimeout(() => inputRef.current?.focus(), 50);
     return () => clearTimeout(timer);
   }, [isOpen]);
@@ -49,6 +63,8 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
     if (!query.trim()) return [];
     return fuse.search(query).slice(0, 8);
   }, [fuse, query]);
+
+  const onClose = () => setIsOpen(false);
 
   return (
     <Dialog
@@ -77,9 +93,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
             className={`${Classes.TEXT_MUTED} ${styles.resultDesc}`}
             style={{ padding: "0.5rem 0" }}
           >
-            No results for &ldquo;
-            {query}
-            &rdquo;
+            No results for &ldquo;{query}&rdquo;
           </p>
         )}
 

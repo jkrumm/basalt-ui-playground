@@ -1,4 +1,4 @@
-import type { IndicatorRow } from "../routes/table.tsx";
+import type { IndicatorRow } from "../routes/_app/table.tsx";
 import { Intent, ProgressBar, Tag } from "@blueprintjs/core";
 import { Cell, Column, Table2 } from "@blueprintjs/table";
 

@@ -9,277 +9,301 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TableRouteImport } from './routes/table'
-import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as ProtectedRouteImport } from './routes/_protected'
-import { Route as ContentRouteImport } from './routes/_content'
 import { Route as SplatRouteImport } from './routes/$'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProtectedSettingsRouteImport } from './routes/_protected/settings'
-import { Route as ProtectedAccountRouteImport } from './routes/_protected/account'
-import { Route as ContentSearchRouteImport } from './routes/_content/search'
+import { Route as LandingRouteRouteImport } from './routes/_landing/route'
+import { Route as DocsRouteRouteImport } from './routes/_docs/route'
+import { Route as ContentRouteRouteImport } from './routes/_content/route'
+import { Route as AppRouteRouteImport } from './routes/_app/route'
+import { Route as LandingIndexRouteImport } from './routes/_landing/index'
+import { Route as LandingSignUpRouteImport } from './routes/_landing/sign-up'
+import { Route as LandingSignInRouteImport } from './routes/_landing/sign-in'
+import { Route as AppTableRouteImport } from './routes/_app/table'
+import { Route as ContentGuidesRouteRouteImport } from './routes/_content/guides/route'
+import { Route as ContentBlogRouteRouteImport } from './routes/_content/blog/route'
+import { Route as ContentBlocksRouteRouteImport } from './routes/_content/blocks/route'
+import { Route as AppDashboardRouteRouteImport } from './routes/_app/dashboard/route'
+import { Route as AppProtectedRouteRouteImport } from './routes/_app/_protected/route'
+import { Route as DocsDocsIndexRouteImport } from './routes/_docs/docs/index'
 import { Route as ContentGuidesIndexRouteImport } from './routes/_content/guides/index'
-import { Route as ContentDocsIndexRouteImport } from './routes/_content/docs/index'
 import { Route as ContentBlogIndexRouteImport } from './routes/_content/blog/index'
 import { Route as ContentBlocksIndexRouteImport } from './routes/_content/blocks/index'
+import { Route as AppDashboardIndexRouteImport } from './routes/_app/dashboard/index'
+import { Route as DocsDocsSplatRouteImport } from './routes/_docs/docs/$'
 import { Route as ContentGuidesSlugRouteImport } from './routes/_content/guides/$slug'
-import { Route as ContentDocsSplatRouteImport } from './routes/_content/docs/$'
 import { Route as ContentBlogSlugRouteImport } from './routes/_content/blog/$slug'
 import { Route as ContentBlocksSlugRouteImport } from './routes/_content/blocks/$slug'
+import { Route as AppProtectedSettingsRouteImport } from './routes/_app/_protected/settings'
+import { Route as AppProtectedAccountRouteImport } from './routes/_app/_protected/account'
 
-const TableRoute = TableRouteImport.update({
-  id: '/table',
-  path: '/table',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignUpRoute = SignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProtectedRoute = ProtectedRouteImport.update({
-  id: '/_protected',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContentRoute = ContentRouteImport.update({
-  id: '/_content',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LandingRouteRoute = LandingRouteRouteImport.update({
+  id: '/_landing',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedSettingsRoute = ProtectedSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => ProtectedRoute,
+const DocsRouteRoute = DocsRouteRouteImport.update({
+  id: '/_docs',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ProtectedAccountRoute = ProtectedAccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => ProtectedRoute,
+const ContentRouteRoute = ContentRouteRouteImport.update({
+  id: '/_content',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ContentSearchRoute = ContentSearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => ContentRoute,
+const AppRouteRoute = AppRouteRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ContentGuidesIndexRoute = ContentGuidesIndexRouteImport.update({
-  id: '/guides/',
-  path: '/guides/',
-  getParentRoute: () => ContentRoute,
+const LandingIndexRoute = LandingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => LandingRouteRoute,
 } as any)
-const ContentDocsIndexRoute = ContentDocsIndexRouteImport.update({
+const LandingSignUpRoute = LandingSignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => LandingRouteRoute,
+} as any)
+const LandingSignInRoute = LandingSignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => LandingRouteRoute,
+} as any)
+const AppTableRoute = AppTableRouteImport.update({
+  id: '/table',
+  path: '/table',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const ContentGuidesRouteRoute = ContentGuidesRouteRouteImport.update({
+  id: '/guides',
+  path: '/guides',
+  getParentRoute: () => ContentRouteRoute,
+} as any)
+const ContentBlogRouteRoute = ContentBlogRouteRouteImport.update({
+  id: '/blog',
+  path: '/blog',
+  getParentRoute: () => ContentRouteRoute,
+} as any)
+const ContentBlocksRouteRoute = ContentBlocksRouteRouteImport.update({
+  id: '/blocks',
+  path: '/blocks',
+  getParentRoute: () => ContentRouteRoute,
+} as any)
+const AppDashboardRouteRoute = AppDashboardRouteRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppProtectedRouteRoute = AppProtectedRouteRouteImport.update({
+  id: '/_protected',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const DocsDocsIndexRoute = DocsDocsIndexRouteImport.update({
   id: '/docs/',
   path: '/docs/',
-  getParentRoute: () => ContentRoute,
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const ContentGuidesIndexRoute = ContentGuidesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ContentGuidesRouteRoute,
 } as any)
 const ContentBlogIndexRoute = ContentBlogIndexRouteImport.update({
-  id: '/blog/',
-  path: '/blog/',
-  getParentRoute: () => ContentRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => ContentBlogRouteRoute,
 } as any)
 const ContentBlocksIndexRoute = ContentBlocksIndexRouteImport.update({
-  id: '/blocks/',
-  path: '/blocks/',
-  getParentRoute: () => ContentRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => ContentBlocksRouteRoute,
 } as any)
-const ContentGuidesSlugRoute = ContentGuidesSlugRouteImport.update({
-  id: '/guides/$slug',
-  path: '/guides/$slug',
-  getParentRoute: () => ContentRoute,
+const AppDashboardIndexRoute = AppDashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppDashboardRouteRoute,
 } as any)
-const ContentDocsSplatRoute = ContentDocsSplatRouteImport.update({
+const DocsDocsSplatRoute = DocsDocsSplatRouteImport.update({
   id: '/docs/$',
   path: '/docs/$',
-  getParentRoute: () => ContentRoute,
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const ContentGuidesSlugRoute = ContentGuidesSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ContentGuidesRouteRoute,
 } as any)
 const ContentBlogSlugRoute = ContentBlogSlugRouteImport.update({
-  id: '/blog/$slug',
-  path: '/blog/$slug',
-  getParentRoute: () => ContentRoute,
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ContentBlogRouteRoute,
 } as any)
 const ContentBlocksSlugRoute = ContentBlocksSlugRouteImport.update({
-  id: '/blocks/$slug',
-  path: '/blocks/$slug',
-  getParentRoute: () => ContentRoute,
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => ContentBlocksRouteRoute,
+} as any)
+const AppProtectedSettingsRoute = AppProtectedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppProtectedRouteRoute,
+} as any)
+const AppProtectedAccountRoute = AppProtectedAccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => AppProtectedRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof LandingIndexRoute
   '/$': typeof SplatRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/table': typeof TableRoute
-  '/search': typeof ContentSearchRoute
-  '/account': typeof ProtectedAccountRoute
-  '/settings': typeof ProtectedSettingsRoute
+  '/dashboard': typeof AppDashboardRouteRouteWithChildren
+  '/blocks': typeof ContentBlocksRouteRouteWithChildren
+  '/blog': typeof ContentBlogRouteRouteWithChildren
+  '/guides': typeof ContentGuidesRouteRouteWithChildren
+  '/table': typeof AppTableRoute
+  '/sign-in': typeof LandingSignInRoute
+  '/sign-up': typeof LandingSignUpRoute
+  '/account': typeof AppProtectedAccountRoute
+  '/settings': typeof AppProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
-  '/docs/$': typeof ContentDocsSplatRoute
   '/guides/$slug': typeof ContentGuidesSlugRoute
+  '/docs/$': typeof DocsDocsSplatRoute
+  '/dashboard/': typeof AppDashboardIndexRoute
   '/blocks/': typeof ContentBlocksIndexRoute
   '/blog/': typeof ContentBlogIndexRoute
-  '/docs/': typeof ContentDocsIndexRoute
   '/guides/': typeof ContentGuidesIndexRoute
+  '/docs/': typeof DocsDocsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/': typeof LandingIndexRoute
   '/$': typeof SplatRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/table': typeof TableRoute
-  '/search': typeof ContentSearchRoute
-  '/account': typeof ProtectedAccountRoute
-  '/settings': typeof ProtectedSettingsRoute
+  '/table': typeof AppTableRoute
+  '/sign-in': typeof LandingSignInRoute
+  '/sign-up': typeof LandingSignUpRoute
+  '/account': typeof AppProtectedAccountRoute
+  '/settings': typeof AppProtectedSettingsRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
-  '/docs/$': typeof ContentDocsSplatRoute
   '/guides/$slug': typeof ContentGuidesSlugRoute
+  '/docs/$': typeof DocsDocsSplatRoute
+  '/dashboard': typeof AppDashboardIndexRoute
   '/blocks': typeof ContentBlocksIndexRoute
   '/blog': typeof ContentBlogIndexRoute
-  '/docs': typeof ContentDocsIndexRoute
   '/guides': typeof ContentGuidesIndexRoute
+  '/docs': typeof DocsDocsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_app': typeof AppRouteRouteWithChildren
+  '/_content': typeof ContentRouteRouteWithChildren
+  '/_docs': typeof DocsRouteRouteWithChildren
+  '/_landing': typeof LandingRouteRouteWithChildren
   '/$': typeof SplatRoute
-  '/_content': typeof ContentRouteWithChildren
-  '/_protected': typeof ProtectedRouteWithChildren
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/table': typeof TableRoute
-  '/_content/search': typeof ContentSearchRoute
-  '/_protected/account': typeof ProtectedAccountRoute
-  '/_protected/settings': typeof ProtectedSettingsRoute
+  '/_app/_protected': typeof AppProtectedRouteRouteWithChildren
+  '/_app/dashboard': typeof AppDashboardRouteRouteWithChildren
+  '/_content/blocks': typeof ContentBlocksRouteRouteWithChildren
+  '/_content/blog': typeof ContentBlogRouteRouteWithChildren
+  '/_content/guides': typeof ContentGuidesRouteRouteWithChildren
+  '/_app/table': typeof AppTableRoute
+  '/_landing/sign-in': typeof LandingSignInRoute
+  '/_landing/sign-up': typeof LandingSignUpRoute
+  '/_landing/': typeof LandingIndexRoute
+  '/_app/_protected/account': typeof AppProtectedAccountRoute
+  '/_app/_protected/settings': typeof AppProtectedSettingsRoute
   '/_content/blocks/$slug': typeof ContentBlocksSlugRoute
   '/_content/blog/$slug': typeof ContentBlogSlugRoute
-  '/_content/docs/$': typeof ContentDocsSplatRoute
   '/_content/guides/$slug': typeof ContentGuidesSlugRoute
+  '/_docs/docs/$': typeof DocsDocsSplatRoute
+  '/_app/dashboard/': typeof AppDashboardIndexRoute
   '/_content/blocks/': typeof ContentBlocksIndexRoute
   '/_content/blog/': typeof ContentBlogIndexRoute
-  '/_content/docs/': typeof ContentDocsIndexRoute
   '/_content/guides/': typeof ContentGuidesIndexRoute
+  '/_docs/docs/': typeof DocsDocsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/$'
+    | '/dashboard'
+    | '/blocks'
+    | '/blog'
+    | '/guides'
+    | '/table'
     | '/sign-in'
     | '/sign-up'
-    | '/table'
-    | '/search'
     | '/account'
     | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
-    | '/docs/$'
     | '/guides/$slug'
+    | '/docs/$'
+    | '/dashboard/'
     | '/blocks/'
     | '/blog/'
-    | '/docs/'
     | '/guides/'
+    | '/docs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$'
+    | '/table'
     | '/sign-in'
     | '/sign-up'
-    | '/table'
-    | '/search'
     | '/account'
     | '/settings'
     | '/blocks/$slug'
     | '/blog/$slug'
-    | '/docs/$'
     | '/guides/$slug'
+    | '/docs/$'
+    | '/dashboard'
     | '/blocks'
     | '/blog'
-    | '/docs'
     | '/guides'
+    | '/docs'
   id:
     | '__root__'
-    | '/'
-    | '/$'
+    | '/_app'
     | '/_content'
-    | '/_protected'
-    | '/sign-in'
-    | '/sign-up'
-    | '/table'
-    | '/_content/search'
-    | '/_protected/account'
-    | '/_protected/settings'
+    | '/_docs'
+    | '/_landing'
+    | '/$'
+    | '/_app/_protected'
+    | '/_app/dashboard'
+    | '/_content/blocks'
+    | '/_content/blog'
+    | '/_content/guides'
+    | '/_app/table'
+    | '/_landing/sign-in'
+    | '/_landing/sign-up'
+    | '/_landing/'
+    | '/_app/_protected/account'
+    | '/_app/_protected/settings'
     | '/_content/blocks/$slug'
     | '/_content/blog/$slug'
-    | '/_content/docs/$'
     | '/_content/guides/$slug'
+    | '/_docs/docs/$'
+    | '/_app/dashboard/'
     | '/_content/blocks/'
     | '/_content/blog/'
-    | '/_content/docs/'
     | '/_content/guides/'
+    | '/_docs/docs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRouteRoute: typeof AppRouteRouteWithChildren
+  ContentRouteRoute: typeof ContentRouteRouteWithChildren
+  DocsRouteRoute: typeof DocsRouteRouteWithChildren
+  LandingRouteRoute: typeof LandingRouteRouteWithChildren
   SplatRoute: typeof SplatRoute
-  ContentRoute: typeof ContentRouteWithChildren
-  ProtectedRoute: typeof ProtectedRouteWithChildren
-  SignInRoute: typeof SignInRoute
-  SignUpRoute: typeof SignUpRoute
-  TableRoute: typeof TableRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/table': {
-      id: '/table'
-      path: '/table'
-      fullPath: '/table'
-      preLoaderRoute: typeof TableRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-up': {
-      id: '/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected': {
-      id: '/_protected'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ProtectedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_content': {
-      id: '/_content'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ContentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/$': {
       id: '/$'
       path: '/$'
@@ -287,142 +311,308 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
+    '/_landing': {
+      id: '/_landing'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof LandingRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_protected/settings': {
-      id: '/_protected/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof ProtectedSettingsRouteImport
-      parentRoute: typeof ProtectedRoute
+    '/_docs': {
+      id: '/_docs'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof DocsRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_protected/account': {
-      id: '/_protected/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof ProtectedAccountRouteImport
-      parentRoute: typeof ProtectedRoute
+    '/_content': {
+      id: '/_content'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ContentRouteRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_content/search': {
-      id: '/_content/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof ContentSearchRouteImport
-      parentRoute: typeof ContentRoute
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_landing/': {
+      id: '/_landing/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof LandingIndexRouteImport
+      parentRoute: typeof LandingRouteRoute
+    }
+    '/_landing/sign-up': {
+      id: '/_landing/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof LandingSignUpRouteImport
+      parentRoute: typeof LandingRouteRoute
+    }
+    '/_landing/sign-in': {
+      id: '/_landing/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof LandingSignInRouteImport
+      parentRoute: typeof LandingRouteRoute
+    }
+    '/_app/table': {
+      id: '/_app/table'
+      path: '/table'
+      fullPath: '/table'
+      preLoaderRoute: typeof AppTableRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_content/guides': {
+      id: '/_content/guides'
+      path: '/guides'
+      fullPath: '/guides'
+      preLoaderRoute: typeof ContentGuidesRouteRouteImport
+      parentRoute: typeof ContentRouteRoute
+    }
+    '/_content/blog': {
+      id: '/_content/blog'
+      path: '/blog'
+      fullPath: '/blog'
+      preLoaderRoute: typeof ContentBlogRouteRouteImport
+      parentRoute: typeof ContentRouteRoute
+    }
+    '/_content/blocks': {
+      id: '/_content/blocks'
+      path: '/blocks'
+      fullPath: '/blocks'
+      preLoaderRoute: typeof ContentBlocksRouteRouteImport
+      parentRoute: typeof ContentRouteRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/_protected': {
+      id: '/_app/_protected'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppProtectedRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_docs/docs/': {
+      id: '/_docs/docs/'
+      path: '/docs'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsDocsIndexRouteImport
+      parentRoute: typeof DocsRouteRoute
     }
     '/_content/guides/': {
       id: '/_content/guides/'
-      path: '/guides'
+      path: '/'
       fullPath: '/guides/'
       preLoaderRoute: typeof ContentGuidesIndexRouteImport
-      parentRoute: typeof ContentRoute
-    }
-    '/_content/docs/': {
-      id: '/_content/docs/'
-      path: '/docs'
-      fullPath: '/docs/'
-      preLoaderRoute: typeof ContentDocsIndexRouteImport
-      parentRoute: typeof ContentRoute
+      parentRoute: typeof ContentGuidesRouteRoute
     }
     '/_content/blog/': {
       id: '/_content/blog/'
-      path: '/blog'
+      path: '/'
       fullPath: '/blog/'
       preLoaderRoute: typeof ContentBlogIndexRouteImport
-      parentRoute: typeof ContentRoute
+      parentRoute: typeof ContentBlogRouteRoute
     }
     '/_content/blocks/': {
       id: '/_content/blocks/'
-      path: '/blocks'
+      path: '/'
       fullPath: '/blocks/'
       preLoaderRoute: typeof ContentBlocksIndexRouteImport
-      parentRoute: typeof ContentRoute
+      parentRoute: typeof ContentBlocksRouteRoute
+    }
+    '/_app/dashboard/': {
+      id: '/_app/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AppDashboardIndexRouteImport
+      parentRoute: typeof AppDashboardRouteRoute
+    }
+    '/_docs/docs/$': {
+      id: '/_docs/docs/$'
+      path: '/docs/$'
+      fullPath: '/docs/$'
+      preLoaderRoute: typeof DocsDocsSplatRouteImport
+      parentRoute: typeof DocsRouteRoute
     }
     '/_content/guides/$slug': {
       id: '/_content/guides/$slug'
-      path: '/guides/$slug'
+      path: '/$slug'
       fullPath: '/guides/$slug'
       preLoaderRoute: typeof ContentGuidesSlugRouteImport
-      parentRoute: typeof ContentRoute
-    }
-    '/_content/docs/$': {
-      id: '/_content/docs/$'
-      path: '/docs/$'
-      fullPath: '/docs/$'
-      preLoaderRoute: typeof ContentDocsSplatRouteImport
-      parentRoute: typeof ContentRoute
+      parentRoute: typeof ContentGuidesRouteRoute
     }
     '/_content/blog/$slug': {
       id: '/_content/blog/$slug'
-      path: '/blog/$slug'
+      path: '/$slug'
       fullPath: '/blog/$slug'
       preLoaderRoute: typeof ContentBlogSlugRouteImport
-      parentRoute: typeof ContentRoute
+      parentRoute: typeof ContentBlogRouteRoute
     }
     '/_content/blocks/$slug': {
       id: '/_content/blocks/$slug'
-      path: '/blocks/$slug'
+      path: '/$slug'
       fullPath: '/blocks/$slug'
       preLoaderRoute: typeof ContentBlocksSlugRouteImport
-      parentRoute: typeof ContentRoute
+      parentRoute: typeof ContentBlocksRouteRoute
+    }
+    '/_app/_protected/settings': {
+      id: '/_app/_protected/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppProtectedSettingsRouteImport
+      parentRoute: typeof AppProtectedRouteRoute
+    }
+    '/_app/_protected/account': {
+      id: '/_app/_protected/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AppProtectedAccountRouteImport
+      parentRoute: typeof AppProtectedRouteRoute
     }
   }
 }
 
-interface ContentRouteChildren {
-  ContentSearchRoute: typeof ContentSearchRoute
+interface AppProtectedRouteRouteChildren {
+  AppProtectedAccountRoute: typeof AppProtectedAccountRoute
+  AppProtectedSettingsRoute: typeof AppProtectedSettingsRoute
+}
+
+const AppProtectedRouteRouteChildren: AppProtectedRouteRouteChildren = {
+  AppProtectedAccountRoute: AppProtectedAccountRoute,
+  AppProtectedSettingsRoute: AppProtectedSettingsRoute,
+}
+
+const AppProtectedRouteRouteWithChildren =
+  AppProtectedRouteRoute._addFileChildren(AppProtectedRouteRouteChildren)
+
+interface AppDashboardRouteRouteChildren {
+  AppDashboardIndexRoute: typeof AppDashboardIndexRoute
+}
+
+const AppDashboardRouteRouteChildren: AppDashboardRouteRouteChildren = {
+  AppDashboardIndexRoute: AppDashboardIndexRoute,
+}
+
+const AppDashboardRouteRouteWithChildren =
+  AppDashboardRouteRoute._addFileChildren(AppDashboardRouteRouteChildren)
+
+interface AppRouteRouteChildren {
+  AppProtectedRouteRoute: typeof AppProtectedRouteRouteWithChildren
+  AppDashboardRouteRoute: typeof AppDashboardRouteRouteWithChildren
+  AppTableRoute: typeof AppTableRoute
+}
+
+const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppProtectedRouteRoute: AppProtectedRouteRouteWithChildren,
+  AppDashboardRouteRoute: AppDashboardRouteRouteWithChildren,
+  AppTableRoute: AppTableRoute,
+}
+
+const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
+  AppRouteRouteChildren,
+)
+
+interface ContentBlocksRouteRouteChildren {
   ContentBlocksSlugRoute: typeof ContentBlocksSlugRoute
-  ContentBlogSlugRoute: typeof ContentBlogSlugRoute
-  ContentDocsSplatRoute: typeof ContentDocsSplatRoute
-  ContentGuidesSlugRoute: typeof ContentGuidesSlugRoute
   ContentBlocksIndexRoute: typeof ContentBlocksIndexRoute
+}
+
+const ContentBlocksRouteRouteChildren: ContentBlocksRouteRouteChildren = {
+  ContentBlocksSlugRoute: ContentBlocksSlugRoute,
+  ContentBlocksIndexRoute: ContentBlocksIndexRoute,
+}
+
+const ContentBlocksRouteRouteWithChildren =
+  ContentBlocksRouteRoute._addFileChildren(ContentBlocksRouteRouteChildren)
+
+interface ContentBlogRouteRouteChildren {
+  ContentBlogSlugRoute: typeof ContentBlogSlugRoute
   ContentBlogIndexRoute: typeof ContentBlogIndexRoute
-  ContentDocsIndexRoute: typeof ContentDocsIndexRoute
+}
+
+const ContentBlogRouteRouteChildren: ContentBlogRouteRouteChildren = {
+  ContentBlogSlugRoute: ContentBlogSlugRoute,
+  ContentBlogIndexRoute: ContentBlogIndexRoute,
+}
+
+const ContentBlogRouteRouteWithChildren =
+  ContentBlogRouteRoute._addFileChildren(ContentBlogRouteRouteChildren)
+
+interface ContentGuidesRouteRouteChildren {
+  ContentGuidesSlugRoute: typeof ContentGuidesSlugRoute
   ContentGuidesIndexRoute: typeof ContentGuidesIndexRoute
 }
 
-const ContentRouteChildren: ContentRouteChildren = {
-  ContentSearchRoute: ContentSearchRoute,
-  ContentBlocksSlugRoute: ContentBlocksSlugRoute,
-  ContentBlogSlugRoute: ContentBlogSlugRoute,
-  ContentDocsSplatRoute: ContentDocsSplatRoute,
+const ContentGuidesRouteRouteChildren: ContentGuidesRouteRouteChildren = {
   ContentGuidesSlugRoute: ContentGuidesSlugRoute,
-  ContentBlocksIndexRoute: ContentBlocksIndexRoute,
-  ContentBlogIndexRoute: ContentBlogIndexRoute,
-  ContentDocsIndexRoute: ContentDocsIndexRoute,
   ContentGuidesIndexRoute: ContentGuidesIndexRoute,
 }
 
-const ContentRouteWithChildren =
-  ContentRoute._addFileChildren(ContentRouteChildren)
+const ContentGuidesRouteRouteWithChildren =
+  ContentGuidesRouteRoute._addFileChildren(ContentGuidesRouteRouteChildren)
 
-interface ProtectedRouteChildren {
-  ProtectedAccountRoute: typeof ProtectedAccountRoute
-  ProtectedSettingsRoute: typeof ProtectedSettingsRoute
+interface ContentRouteRouteChildren {
+  ContentBlocksRouteRoute: typeof ContentBlocksRouteRouteWithChildren
+  ContentBlogRouteRoute: typeof ContentBlogRouteRouteWithChildren
+  ContentGuidesRouteRoute: typeof ContentGuidesRouteRouteWithChildren
 }
 
-const ProtectedRouteChildren: ProtectedRouteChildren = {
-  ProtectedAccountRoute: ProtectedAccountRoute,
-  ProtectedSettingsRoute: ProtectedSettingsRoute,
+const ContentRouteRouteChildren: ContentRouteRouteChildren = {
+  ContentBlocksRouteRoute: ContentBlocksRouteRouteWithChildren,
+  ContentBlogRouteRoute: ContentBlogRouteRouteWithChildren,
+  ContentGuidesRouteRoute: ContentGuidesRouteRouteWithChildren,
 }
 
-const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
-  ProtectedRouteChildren,
+const ContentRouteRouteWithChildren = ContentRouteRoute._addFileChildren(
+  ContentRouteRouteChildren,
+)
+
+interface DocsRouteRouteChildren {
+  DocsDocsSplatRoute: typeof DocsDocsSplatRoute
+  DocsDocsIndexRoute: typeof DocsDocsIndexRoute
+}
+
+const DocsRouteRouteChildren: DocsRouteRouteChildren = {
+  DocsDocsSplatRoute: DocsDocsSplatRoute,
+  DocsDocsIndexRoute: DocsDocsIndexRoute,
+}
+
+const DocsRouteRouteWithChildren = DocsRouteRoute._addFileChildren(
+  DocsRouteRouteChildren,
+)
+
+interface LandingRouteRouteChildren {
+  LandingSignInRoute: typeof LandingSignInRoute
+  LandingSignUpRoute: typeof LandingSignUpRoute
+  LandingIndexRoute: typeof LandingIndexRoute
+}
+
+const LandingRouteRouteChildren: LandingRouteRouteChildren = {
+  LandingSignInRoute: LandingSignInRoute,
+  LandingSignUpRoute: LandingSignUpRoute,
+  LandingIndexRoute: LandingIndexRoute,
+}
+
+const LandingRouteRouteWithChildren = LandingRouteRoute._addFileChildren(
+  LandingRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRouteRoute: AppRouteRouteWithChildren,
+  ContentRouteRoute: ContentRouteRouteWithChildren,
+  DocsRouteRoute: DocsRouteRouteWithChildren,
+  LandingRouteRoute: LandingRouteRouteWithChildren,
   SplatRoute: SplatRoute,
-  ContentRoute: ContentRouteWithChildren,
-  ProtectedRoute: ProtectedRouteWithChildren,
-  SignInRoute: SignInRoute,
-  SignUpRoute: SignUpRoute,
-  TableRoute: TableRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

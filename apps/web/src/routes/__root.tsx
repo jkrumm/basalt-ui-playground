@@ -12,9 +12,7 @@ import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanst
 import { Provider, useAtom } from "jotai";
 import { useEffect } from "react";
 import { RouteTracker } from "../components/analytics/RouteTracker.tsx";
-import { ContentNav } from "../components/layout/ContentNav.tsx";
-import { SearchModal } from "../components/content/SearchModal.tsx";
-import { searchOpenAtom, themeAtom } from "../atoms/index.ts";
+import { themeAtom } from "../atoms/index.ts";
 import { getThemeFn } from "../lib/auth.functions.ts";
 import { store as jotaiStore } from "../lib/jotai-store.ts";
 import appCss from "../styles/app.css?url";
@@ -56,11 +54,6 @@ function umamiScript(): Array<{ src: string; async: boolean; [key: string]: stri
   ];
 }
 
-function SearchModalWrapper() {
-  const [isOpen, setIsOpen] = useAtom(searchOpenAtom, { store: jotaiStore });
-  return <SearchModal isOpen={isOpen} onClose={() => setIsOpen(false)} />;
-}
-
 function RootComponent() {
   const { queryClient, theme: ssrTheme } = Route.useRouteContext();
   const [atomTheme] = useAtom(themeAtom, { store: jotaiStore });
@@ -80,9 +73,7 @@ function RootComponent() {
           </head>
           <body className={theme === "dark" ? Classes.DARK : ""}>
             <OverlaysProvider>
-              <ContentNav />
               <Outlet />
-              <SearchModalWrapper />
             </OverlaysProvider>
             <RouteTracker />
             <Scripts />

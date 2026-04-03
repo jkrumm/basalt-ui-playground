@@ -1,15 +1,13 @@
 import { MDXContent } from "@content-collections/mdx/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { DocsLayout } from "../../../components/content/DocsLayout.tsx";
 import { mdxComponents } from "../../../components/mdx/MDXComponents.tsx";
-import { getDocsSidebar } from "../../../lib/content.ts";
 import { allDocs } from "content-collections";
 
-export const Route = createFileRoute("/_content/docs/")({
+export const Route = createFileRoute("/_docs/docs/")({
   loader: () => {
     const doc = allDocs.find((d) => d.slug === "index");
     if (!doc) throw notFound();
-    return { doc, sections: getDocsSidebar() };
+    return { doc };
   },
   head: ({ loaderData: ld }) => {
     if (!ld) return {};
@@ -25,11 +23,11 @@ export const Route = createFileRoute("/_content/docs/")({
 });
 
 function DocsIndexPage() {
-  const { doc, sections } = Route.useLoaderData();
+  const { doc } = Route.useLoaderData();
 
   return (
-    <DocsLayout sections={sections} headings={doc.headings}>
+    <div style={{ padding: "1.5rem 2rem" }}>
       <MDXContent code={doc.body} components={mdxComponents} />
-    </DocsLayout>
+    </div>
   );
 }

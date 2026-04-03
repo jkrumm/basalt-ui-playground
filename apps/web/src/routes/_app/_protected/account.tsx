@@ -4,7 +4,7 @@ import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router"
 import { authClient } from "~/lib/auth-client.ts";
 import { PageLayout } from "~/components/layout/PageLayout.tsx";
 
-export const Route = createFileRoute("/_protected/account")({
+export const Route = createFileRoute("/_app/_protected/account")({
   component: AccountPage,
 });
 
