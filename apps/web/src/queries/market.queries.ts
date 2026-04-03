@@ -81,6 +81,27 @@ export function bitcoinPriceQuery() {
 }
 
 // ---------------------------------------------------------------------------
+// Per-indicator detail with historical time series
+// ---------------------------------------------------------------------------
+
+export function cbbiIndicatorDetailQuery(key: string) {
+  return queryOptions({
+    queryKey: ["market", "cbbi", "indicator", key] as const,
+    staleTime: 60 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await api.api.market.cbbi.indicator({ key }).get();
+      if (error) {
+        console.error("[cbbiIndicatorDetailQuery]", error);
+        throw new Error(`CBBI indicator "${key}" not found or unavailable`);
+      }
+      return data;
+    },
+  });
+}
+
+export type CBBIIndicatorDetailData = QueryData<ReturnType<typeof cbbiIndicatorDetailQuery>>;
+
+// ---------------------------------------------------------------------------
 // Fear & Greed Index
 // ---------------------------------------------------------------------------
 

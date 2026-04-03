@@ -15,6 +15,7 @@ export const l1MainRoutes = [
 
 export const l1SecondaryRoutes = [
   { to: "/changelog", label: "Changelog", icon: "history", order: 10 },
-  { to: "/feedback", label: "Feedback", icon: "comment", order: 11 },
-  { to: "/imprint", label: "Imprint", icon: "info-sign", order: 12 },
+  { to: "/status", label: "Status", icon: "pulse", order: 11 },
+  { to: "/feedback", label: "Feedback", icon: "comment", order: 12 },
+  { to: "/imprint", label: "Imprint", icon: "info-sign", order: 13 },
 ] as const satisfies NavItem[];

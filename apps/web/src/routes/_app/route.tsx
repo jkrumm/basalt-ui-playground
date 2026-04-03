@@ -19,6 +19,7 @@ export const Route = createFileRoute("/_app")({
 const APP_NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/table", label: "Table" },
+  { to: "/chart", label: "Chart" },
 ];
 
 function AppShell() {

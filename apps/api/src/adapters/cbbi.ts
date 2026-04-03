@@ -175,3 +175,72 @@ export async function getCBBIIndicators(): Promise<CBBIIndicator[]> {
   const dashboard = await getCBBIDashboard();
   return dashboard.indicators;
 }
+
+// ---------------------------------------------------------------------------
+// Per-indicator detail with historical time series
+// ---------------------------------------------------------------------------
+
+export interface CBBIIndicatorHistoryPoint {
+  timestamp: number;
+  price: number;
+  value: number | null;
+}
+
+export interface CBBIIndicatorStats {
+  min: number | null;
+  max: number | null;
+  avg: number | null;
+}
+
+export interface CBBIIndicatorDetail {
+  key: string;
+  name: string;
+  description: string;
+  value: number | null;
+  zone: string;
+  stats: CBBIIndicatorStats;
+  history: CBBIIndicatorHistoryPoint[];
+}
+
+const VALID_INDICATOR_KEYS = new Set<string>(INDICATOR_KEYS);
+
+export async function getCBBIIndicatorDetail(key: string): Promise<CBBIIndicatorDetail | null> {
+  if (!VALID_INDICATOR_KEYS.has(key)) return null;
+
+  const raw = await getCachedRaw();
+  const timestamps = Object.keys(raw.Price).toSorted();
+  const latest = timestamps.at(-1);
+  if (!latest) throw new Error("No timestamps in CBBI data");
+
+  const indicatorKey = key as IndicatorKey;
+  const meta = INDICATOR_META[indicatorKey];
+  const currentValue = raw[indicatorKey]?.[latest] ?? null;
+
+  const history: CBBIIndicatorHistoryPoint[] = timestamps
+    .filter((_, i) => i % 7 === 0)
+    .flatMap((t) => {
+      const price = raw.Price[t];
+      if (price == null) return [];
+      return [{ timestamp: Number.parseInt(t), price, value: raw[indicatorKey]?.[t] ?? null }];
+    });
+
+  const nonNullValues = history.map((h) => h.value).filter((v): v is number => v !== null);
+  const stats: CBBIIndicatorStats = {
+    min: nonNullValues.length > 0 ? Math.min(...nonNullValues) : null,
+    max: nonNullValues.length > 0 ? Math.max(...nonNullValues) : null,
+    avg:
+      nonNullValues.length > 0
+        ? nonNullValues.reduce((a, b) => a + b, 0) / nonNullValues.length
+        : null,
+  };
+
+  return {
+    key,
+    name: meta.name,
+    description: meta.description,
+    value: currentValue,
+    zone: zoneOf(currentValue),
+    stats,
+    history,
+  };
+}

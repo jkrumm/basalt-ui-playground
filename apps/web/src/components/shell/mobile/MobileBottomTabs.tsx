@@ -42,11 +42,7 @@ export function MobileBottomTabs() {
         <Search />
       </button>
 
-      <Link
-        to={session ? "/account" : "/sign-in"}
-        className={styles.tab}
-        aria-label="User"
-      >
+      <Link to={session ? "/account" : "/sign-in"} className={styles.tab} aria-label="User">
         <Person className={isUserActive ? styles.tabActive : ""} />
       </Link>
 

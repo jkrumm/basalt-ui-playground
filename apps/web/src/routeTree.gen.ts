@@ -15,9 +15,13 @@ import { Route as DocsRouteRouteImport } from './routes/_docs/route'
 import { Route as ContentRouteRouteImport } from './routes/_content/route'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as LandingIndexRouteImport } from './routes/_landing/index'
+import { Route as LandingStatusRouteImport } from './routes/_landing/status'
 import { Route as LandingSignUpRouteImport } from './routes/_landing/sign-up'
 import { Route as LandingSignInRouteImport } from './routes/_landing/sign-in'
+import { Route as LandingImprintRouteImport } from './routes/_landing/imprint'
+import { Route as LandingFeedbackRouteImport } from './routes/_landing/feedback'
 import { Route as AppTableRouteImport } from './routes/_app/table'
+import { Route as AppChartRouteImport } from './routes/_app/chart'
 import { Route as ContentGuidesRouteRouteImport } from './routes/_content/guides/route'
 import { Route as ContentBlogRouteRouteImport } from './routes/_content/blog/route'
 import { Route as ContentBlocksRouteRouteImport } from './routes/_content/blocks/route'
@@ -32,6 +36,7 @@ import { Route as DocsDocsSplatRouteImport } from './routes/_docs/docs/$'
 import { Route as ContentGuidesSlugRouteImport } from './routes/_content/guides/$slug'
 import { Route as ContentBlogSlugRouteImport } from './routes/_content/blog/$slug'
 import { Route as ContentBlocksSlugRouteImport } from './routes/_content/blocks/$slug'
+import { Route as AppDashboardKeyRouteImport } from './routes/_app/dashboard/$key'
 import { Route as AppProtectedSettingsRouteImport } from './routes/_app/_protected/settings'
 import { Route as AppProtectedAccountRouteImport } from './routes/_app/_protected/account'
 
@@ -61,6 +66,11 @@ const LandingIndexRoute = LandingIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LandingRouteRoute,
 } as any)
+const LandingStatusRoute = LandingStatusRouteImport.update({
+  id: '/status',
+  path: '/status',
+  getParentRoute: () => LandingRouteRoute,
+} as any)
 const LandingSignUpRoute = LandingSignUpRouteImport.update({
   id: '/sign-up',
   path: '/sign-up',
@@ -71,9 +81,24 @@ const LandingSignInRoute = LandingSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => LandingRouteRoute,
 } as any)
+const LandingImprintRoute = LandingImprintRouteImport.update({
+  id: '/imprint',
+  path: '/imprint',
+  getParentRoute: () => LandingRouteRoute,
+} as any)
+const LandingFeedbackRoute = LandingFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
+  getParentRoute: () => LandingRouteRoute,
+} as any)
 const AppTableRoute = AppTableRouteImport.update({
   id: '/table',
   path: '/table',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppChartRoute = AppChartRouteImport.update({
+  id: '/chart',
+  path: '/chart',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const ContentGuidesRouteRoute = ContentGuidesRouteRouteImport.update({
@@ -145,6 +170,11 @@ const ContentBlocksSlugRoute = ContentBlocksSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => ContentBlocksRouteRoute,
 } as any)
+const AppDashboardKeyRoute = AppDashboardKeyRouteImport.update({
+  id: '/$key',
+  path: '/$key',
+  getParentRoute: () => AppDashboardRouteRoute,
+} as any)
 const AppProtectedSettingsRoute = AppProtectedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -163,11 +193,16 @@ export interface FileRoutesByFullPath {
   '/blocks': typeof ContentBlocksRouteRouteWithChildren
   '/blog': typeof ContentBlogRouteRouteWithChildren
   '/guides': typeof ContentGuidesRouteRouteWithChildren
+  '/chart': typeof AppChartRoute
   '/table': typeof AppTableRoute
+  '/feedback': typeof LandingFeedbackRoute
+  '/imprint': typeof LandingImprintRoute
   '/sign-in': typeof LandingSignInRoute
   '/sign-up': typeof LandingSignUpRoute
+  '/status': typeof LandingStatusRoute
   '/account': typeof AppProtectedAccountRoute
   '/settings': typeof AppProtectedSettingsRoute
+  '/dashboard/$key': typeof AppDashboardKeyRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
   '/guides/$slug': typeof ContentGuidesSlugRoute
@@ -181,11 +216,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof LandingIndexRoute
   '/$': typeof SplatRoute
+  '/chart': typeof AppChartRoute
   '/table': typeof AppTableRoute
+  '/feedback': typeof LandingFeedbackRoute
+  '/imprint': typeof LandingImprintRoute
   '/sign-in': typeof LandingSignInRoute
   '/sign-up': typeof LandingSignUpRoute
+  '/status': typeof LandingStatusRoute
   '/account': typeof AppProtectedAccountRoute
   '/settings': typeof AppProtectedSettingsRoute
+  '/dashboard/$key': typeof AppDashboardKeyRoute
   '/blocks/$slug': typeof ContentBlocksSlugRoute
   '/blog/$slug': typeof ContentBlogSlugRoute
   '/guides/$slug': typeof ContentGuidesSlugRoute
@@ -208,12 +248,17 @@ export interface FileRoutesById {
   '/_content/blocks': typeof ContentBlocksRouteRouteWithChildren
   '/_content/blog': typeof ContentBlogRouteRouteWithChildren
   '/_content/guides': typeof ContentGuidesRouteRouteWithChildren
+  '/_app/chart': typeof AppChartRoute
   '/_app/table': typeof AppTableRoute
+  '/_landing/feedback': typeof LandingFeedbackRoute
+  '/_landing/imprint': typeof LandingImprintRoute
   '/_landing/sign-in': typeof LandingSignInRoute
   '/_landing/sign-up': typeof LandingSignUpRoute
+  '/_landing/status': typeof LandingStatusRoute
   '/_landing/': typeof LandingIndexRoute
   '/_app/_protected/account': typeof AppProtectedAccountRoute
   '/_app/_protected/settings': typeof AppProtectedSettingsRoute
+  '/_app/dashboard/$key': typeof AppDashboardKeyRoute
   '/_content/blocks/$slug': typeof ContentBlocksSlugRoute
   '/_content/blog/$slug': typeof ContentBlogSlugRoute
   '/_content/guides/$slug': typeof ContentGuidesSlugRoute
@@ -233,11 +278,16 @@ export interface FileRouteTypes {
     | '/blocks'
     | '/blog'
     | '/guides'
+    | '/chart'
     | '/table'
+    | '/feedback'
+    | '/imprint'
     | '/sign-in'
     | '/sign-up'
+    | '/status'
     | '/account'
     | '/settings'
+    | '/dashboard/$key'
     | '/blocks/$slug'
     | '/blog/$slug'
     | '/guides/$slug'
@@ -251,11 +301,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/chart'
     | '/table'
+    | '/feedback'
+    | '/imprint'
     | '/sign-in'
     | '/sign-up'
+    | '/status'
     | '/account'
     | '/settings'
+    | '/dashboard/$key'
     | '/blocks/$slug'
     | '/blog/$slug'
     | '/guides/$slug'
@@ -277,12 +332,17 @@ export interface FileRouteTypes {
     | '/_content/blocks'
     | '/_content/blog'
     | '/_content/guides'
+    | '/_app/chart'
     | '/_app/table'
+    | '/_landing/feedback'
+    | '/_landing/imprint'
     | '/_landing/sign-in'
     | '/_landing/sign-up'
+    | '/_landing/status'
     | '/_landing/'
     | '/_app/_protected/account'
     | '/_app/_protected/settings'
+    | '/_app/dashboard/$key'
     | '/_content/blocks/$slug'
     | '/_content/blog/$slug'
     | '/_content/guides/$slug'
@@ -346,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandingIndexRouteImport
       parentRoute: typeof LandingRouteRoute
     }
+    '/_landing/status': {
+      id: '/_landing/status'
+      path: '/status'
+      fullPath: '/status'
+      preLoaderRoute: typeof LandingStatusRouteImport
+      parentRoute: typeof LandingRouteRoute
+    }
     '/_landing/sign-up': {
       id: '/_landing/sign-up'
       path: '/sign-up'
@@ -360,11 +427,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LandingSignInRouteImport
       parentRoute: typeof LandingRouteRoute
     }
+    '/_landing/imprint': {
+      id: '/_landing/imprint'
+      path: '/imprint'
+      fullPath: '/imprint'
+      preLoaderRoute: typeof LandingImprintRouteImport
+      parentRoute: typeof LandingRouteRoute
+    }
+    '/_landing/feedback': {
+      id: '/_landing/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof LandingFeedbackRouteImport
+      parentRoute: typeof LandingRouteRoute
+    }
     '/_app/table': {
       id: '/_app/table'
       path: '/table'
       fullPath: '/table'
       preLoaderRoute: typeof AppTableRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/chart': {
+      id: '/_app/chart'
+      path: '/chart'
+      fullPath: '/chart'
+      preLoaderRoute: typeof AppChartRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_content/guides': {
@@ -465,6 +553,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentBlocksSlugRouteImport
       parentRoute: typeof ContentBlocksRouteRoute
     }
+    '/_app/dashboard/$key': {
+      id: '/_app/dashboard/$key'
+      path: '/$key'
+      fullPath: '/dashboard/$key'
+      preLoaderRoute: typeof AppDashboardKeyRouteImport
+      parentRoute: typeof AppDashboardRouteRoute
+    }
     '/_app/_protected/settings': {
       id: '/_app/_protected/settings'
       path: '/settings'
@@ -496,10 +591,12 @@ const AppProtectedRouteRouteWithChildren =
   AppProtectedRouteRoute._addFileChildren(AppProtectedRouteRouteChildren)
 
 interface AppDashboardRouteRouteChildren {
+  AppDashboardKeyRoute: typeof AppDashboardKeyRoute
   AppDashboardIndexRoute: typeof AppDashboardIndexRoute
 }
 
 const AppDashboardRouteRouteChildren: AppDashboardRouteRouteChildren = {
+  AppDashboardKeyRoute: AppDashboardKeyRoute,
   AppDashboardIndexRoute: AppDashboardIndexRoute,
 }
 
@@ -509,12 +606,14 @@ const AppDashboardRouteRouteWithChildren =
 interface AppRouteRouteChildren {
   AppProtectedRouteRoute: typeof AppProtectedRouteRouteWithChildren
   AppDashboardRouteRoute: typeof AppDashboardRouteRouteWithChildren
+  AppChartRoute: typeof AppChartRoute
   AppTableRoute: typeof AppTableRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppProtectedRouteRoute: AppProtectedRouteRouteWithChildren,
   AppDashboardRouteRoute: AppDashboardRouteRouteWithChildren,
+  AppChartRoute: AppChartRoute,
   AppTableRoute: AppTableRoute,
 }
 
@@ -592,14 +691,20 @@ const DocsRouteRouteWithChildren = DocsRouteRoute._addFileChildren(
 )
 
 interface LandingRouteRouteChildren {
+  LandingFeedbackRoute: typeof LandingFeedbackRoute
+  LandingImprintRoute: typeof LandingImprintRoute
   LandingSignInRoute: typeof LandingSignInRoute
   LandingSignUpRoute: typeof LandingSignUpRoute
+  LandingStatusRoute: typeof LandingStatusRoute
   LandingIndexRoute: typeof LandingIndexRoute
 }
 
 const LandingRouteRouteChildren: LandingRouteRouteChildren = {
+  LandingFeedbackRoute: LandingFeedbackRoute,
+  LandingImprintRoute: LandingImprintRoute,
   LandingSignInRoute: LandingSignInRoute,
   LandingSignUpRoute: LandingSignUpRoute,
+  LandingStatusRoute: LandingStatusRoute,
   LandingIndexRoute: LandingIndexRoute,
 }
 
