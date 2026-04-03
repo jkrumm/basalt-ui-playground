@@ -1,9 +1,12 @@
+import { Icon } from "@blueprintjs/core";
+import type { IconName } from "@blueprintjs/icons";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import styles from "./SideNav.module.css";
 
 interface SideNavItem {
   to: string;
   label: string;
+  icon?: IconName;
   search?: Record<string, string>;
 }
 
@@ -25,6 +28,7 @@ export function SideNav({ items }: Props) {
             search={item.search}
             className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
           >
+            {item.icon && <Icon icon={item.icon} className={styles.navItemIcon} />}
             {item.label}
           </Link>
         );

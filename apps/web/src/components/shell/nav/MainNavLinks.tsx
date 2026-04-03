@@ -8,11 +8,10 @@ export function MainNavLinks() {
   return (
     <>
       {l1MainRoutes.map((item) => {
-        const isDashboard = item.to === "/dashboard";
-        const isActive = !!matchRoute({ to: item.to, fuzzy: !isDashboard });
+        const isActive = !!matchRoute({ to: item.to, fuzzy: true });
         return (
           <Link key={item.to} to={item.to} style={{ textDecoration: "none" }}>
-            <Button variant="minimal" text={item.label} active={isActive} />
+            <Button variant="minimal" icon={item.icon} text={item.label} active={isActive} />
           </Link>
         );
       })}

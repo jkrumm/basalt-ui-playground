@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
+import type { IconName } from "@blueprintjs/icons";
 import { Person, Search } from "@blueprintjs/icons";
 import { ThemeToggle } from "~/components/ThemeToggle.tsx";
 import { ContentCard } from "~/components/shell/ContentCard.tsx";
@@ -17,10 +18,10 @@ export const Route = createFileRoute("/_app")({
 });
 
 const APP_NAV_ITEMS = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/table", label: "Table" },
-  { to: "/chart", label: "Chart" },
-];
+  { to: "/dashboard", label: "Dashboard", icon: "dashboard" },
+  { to: "/table", label: "Table", icon: "th" },
+  { to: "/chart", label: "Chart", icon: "timeline-bar-chart" },
+] satisfies Array<{ to: string; label: string; icon: IconName }>;
 
 function AppShell() {
   return (
