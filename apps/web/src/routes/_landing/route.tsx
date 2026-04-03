@@ -28,11 +28,7 @@ function LandingShell() {
       <MobileDrawer>
         <div style={{ padding: "1rem" }}>
           {l1MainRoutes.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              style={{ display: "block", padding: "0.5rem 0" }}
-            >
+            <Link key={item.to} to={item.to} style={{ display: "block", padding: "0.5rem 0" }}>
               {item.label}
             </Link>
           ))}

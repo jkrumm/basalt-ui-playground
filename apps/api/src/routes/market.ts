@@ -13,7 +13,7 @@
 
 import { SpanStatusCode, trace } from "@opentelemetry/api";
 import { Elysia } from "elysia";
-import { getCBBIDashboard, getCBBIIndicators } from "../adapters/cbbi.ts";
+import { getCBBIDashboard, getCBBIIndicatorDetail, getCBBIIndicators } from "../adapters/cbbi.ts";
 import { getBitcoinPrice } from "../adapters/bitcoin.ts";
 import { getFearGreedIndex } from "../adapters/fear-greed.ts";
 
@@ -45,6 +45,16 @@ export const marketRoutes = new Elysia({ prefix: "/market" })
     } catch (e) {
       recordUpstreamError("CBBI indicators", e);
       return status(502, { error: "CBBI indicators service unavailable", status: 502 });
+    }
+  })
+  .get("/cbbi/indicator/:key", async ({ params: { key }, status }) => {
+    try {
+      const detail = await getCBBIIndicatorDetail(key);
+      if (!detail) return status(404, { error: "Unknown indicator", status: 404 });
+      return detail;
+    } catch (e) {
+      recordUpstreamError(`CBBI indicator ${key}`, e);
+      return status(502, { error: "CBBI indicator service unavailable", status: 502 });
     }
   })
   .get("/bitcoin/price", async ({ status }) => {

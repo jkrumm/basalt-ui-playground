@@ -61,7 +61,7 @@ function umamiScript(): Array<{ src: string; async: boolean; [key: string]: stri
 const THEME_SCRIPT =
   `(function(){var t=document.cookie.match(/(?:^|;\\s*)theme=([^;]*)/)?.[1]||'system';` +
   `if(t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches)){` +
-  `document.body.classList.add('bp6-dark')}})();`;
+  `document.body.classList.add('${Classes.DARK}')}})();`;
 
 function resolveOsPreference(): "light" | "dark" {
   if (typeof window === "undefined") return "light";
