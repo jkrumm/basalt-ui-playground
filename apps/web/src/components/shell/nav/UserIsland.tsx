@@ -27,9 +27,13 @@ export function UserIsland() {
             text="Sign out"
             intent="danger"
             onClick={async () => {
-              await authClient.signOut();
-              await router.invalidate();
-              void navigate({ to: "/" });
+              try {
+                await authClient.signOut();
+                await router.invalidate();
+                void navigate({ to: "/" });
+              } catch {
+                // sign-out failure — session state preserved, user remains logged in
+              }
             }}
           />
         </Menu>

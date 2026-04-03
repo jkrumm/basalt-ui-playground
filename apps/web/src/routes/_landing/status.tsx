@@ -79,9 +79,13 @@ function StatusPage() {
   const [apiStatus, setApiStatus] = useState<ServiceStatus>("loading");
 
   useEffect(() => {
-    fetch("/api/health")
+    const controller = new AbortController();
+    fetch("/api/health", { signal: controller.signal })
       .then((r) => setApiStatus(r.ok ? "ok" : "error"))
-      .catch(() => setApiStatus("error"));
+      .catch((e: unknown) => {
+        if (e instanceof Error && e.name !== "AbortError") setApiStatus("error");
+      });
+    return () => controller.abort();
   }, []);
 
   const { status: cbbiStatus } = useQuery({ ...cbbiDashboardQuery(), retry: 0 });

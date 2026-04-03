@@ -216,13 +216,15 @@ export async function getCBBIIndicatorDetail(key: string): Promise<CBBIIndicator
   const meta = INDICATOR_META[indicatorKey];
   const currentValue = raw[indicatorKey]?.[latest] ?? null;
 
-  const history: CBBIIndicatorHistoryPoint[] = timestamps
-    .filter((_, i) => i % 7 === 0)
-    .flatMap((t) => {
-      const price = raw.Price[t];
-      if (price == null) return [];
-      return [{ timestamp: Number.parseInt(t), price, value: raw[indicatorKey]?.[t] ?? null }];
-    });
+  const sampled = timestamps.filter((_, i) => i % 7 === 0);
+  const latestTs = timestamps.at(-1);
+  if (latestTs && sampled.at(-1) !== latestTs) sampled.push(latestTs);
+
+  const history: CBBIIndicatorHistoryPoint[] = sampled.flatMap((t) => {
+    const price = raw.Price[t];
+    if (price == null) return [];
+    return [{ timestamp: Number.parseInt(t), price, value: raw[indicatorKey]?.[t] ?? null }];
+  });
 
   const nonNullValues = history.map((h) => h.value).filter((v): v is number => v !== null);
   const stats: CBBIIndicatorStats = {
