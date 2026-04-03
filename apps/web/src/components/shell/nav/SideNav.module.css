@@ -8,6 +8,16 @@
   padding: 8px 0;
 }
 
+.navItemIcon {
+  flex-shrink: 0;
+  opacity: 0.6;
+  margin-right: 8px;
+}
+
+.navItemActive .navItemIcon {
+  opacity: 1;
+}
+
 .navItem {
   display: flex;
   align-items: center;

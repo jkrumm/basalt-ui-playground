@@ -1,5 +1,6 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { Icon } from "@blueprintjs/core";
 import { Person } from "@blueprintjs/icons";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { ContentCard } from "~/components/shell/ContentCard.tsx";
 import { MobileBottomTabs } from "~/components/shell/mobile/MobileBottomTabs.tsx";
 import { MobileDrawer } from "~/components/shell/mobile/MobileDrawer.tsx";
@@ -28,7 +29,12 @@ function LandingShell() {
       <MobileDrawer>
         <div style={{ padding: "1rem" }}>
           {l1MainRoutes.map((item) => (
-            <Link key={item.to} to={item.to} style={{ display: "block", padding: "0.5rem 0" }}>
+            <Link
+              key={item.to}
+              to={item.to}
+              style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0" }}
+            >
+              <Icon icon={item.icon} />
               {item.label}
             </Link>
           ))}
