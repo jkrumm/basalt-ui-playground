@@ -1,0 +1,10 @@
+.shellContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bp-surface-background-color-default-rest);
+}
+
+:global(.bp6-dark) .shellContainer {
+  background-color: var(--bp-palette-dark-gray-2);
+}

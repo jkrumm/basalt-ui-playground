@@ -14,13 +14,16 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "~/lib/auth-client.ts";
 
-export const Route = createFileRoute("/sign-up")({
-  component: SignUpPage,
+export const Route = createFileRoute("/_landing/sign-in")({
+  validateSearch: (search: Record<string, unknown>): { redirect?: string } => ({
+    redirect: typeof search["redirect"] === "string" ? search["redirect"] : undefined,
+  }),
+  component: SignInPage,
 });
 
-function SignUpPage() {
+function SignInPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const { redirect } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -31,12 +34,12 @@ function SignUpPage() {
     setError(null);
     setPending(true);
     try {
-      const { error: authError } = await authClient.signUp.email({ name, email, password });
+      const { error: authError } = await authClient.signIn.email({ email, password });
       if (authError) {
-        setError(authError.message ?? "Sign up failed");
+        setError(authError.message ?? "Sign in failed");
         return;
       }
-      await router.navigate({ to: "/" });
+      await router.navigate({ to: redirect ?? "/" });
     } finally {
       setPending(false);
     }
@@ -45,31 +48,21 @@ function SignUpPage() {
   return (
     <div className="flex min-h-screen items-center justify-center p-8">
       <Card elevation={Elevation.TWO} style={{ maxWidth: 400, width: "100%" }}>
-        <H2>Create Account</H2>
-        <H5 className={Classes.TEXT_MUTED}>Get started with CBBI</H5>
+        <H2>Sign In</H2>
+        <H5 className={Classes.TEXT_MUTED}>Welcome back</H5>
         {error && (
           <Callout intent={Intent.DANGER} className="mb-4">
             {error}
           </Callout>
         )}
         <form onSubmit={handleSubmit} className="mt-4">
-          <FormGroup label="Name" labelFor="name">
-            <InputGroup
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
-              required
-            />
-          </FormGroup>
           <FormGroup label="Email" labelFor="email">
             <InputGroup
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              placeholder="demo@example.com"
               required
             />
           </FormGroup>
@@ -79,17 +72,16 @@ function SignUpPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Min. 8 characters"
-              minLength={8}
+              placeholder="••••••••"
               required
             />
           </FormGroup>
           <div className="mt-4 flex items-center justify-between">
             <Button type="submit" intent={Intent.PRIMARY} loading={pending}>
-              Create Account
+              Sign In
             </Button>
-            <Link to="/sign-in" className={`${Classes.TEXT_MUTED} text-sm`}>
-              Sign in instead
+            <Link to="/sign-up" className={`${Classes.TEXT_MUTED} text-sm`}>
+              Create account
             </Link>
           </div>
         </form>

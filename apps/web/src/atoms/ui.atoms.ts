@@ -4,6 +4,7 @@ import { atomWithStorage } from "jotai/utils";
 
 // Session-only atoms — cleared on page close
 export const searchOpenAtom = atom<boolean>(false);
+export const mobileDrawerOpenAtom = atom<boolean>(false);
 
 // Persistent atoms — survive page refresh via localStorage
 export const viewModeAtom = atomWithStorage<UserPreferences["viewMode"]>(

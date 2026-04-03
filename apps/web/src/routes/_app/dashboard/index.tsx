@@ -1,6 +1,6 @@
 import type { UserPreferences } from "@basalt-ui-playground/schemas";
-import type { HistoryPoint } from "../components/CBBIChart.tsx";
-import type { CBBIDashboardData } from "../queries/market.queries.ts";
+import type { HistoryPoint } from "../../../components/CBBIChart.tsx";
+import type { CBBIDashboardData } from "../../../queries/market.queries.ts";
 import {
   Button,
   ButtonGroup,
@@ -32,26 +32,27 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useAtom } from "jotai";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { sortByAtom, viewModeAtom } from "../atoms/index.ts";
-import { DefaultError } from "../components/DefaultError.tsx";
-import { PageLayout } from "../components/layout/PageLayout.tsx";
-import { EVENTS, track } from "../lib/analytics.ts";
+import { sortByAtom, viewModeAtom } from "../../../atoms/index.ts";
+import { DefaultError } from "../../../components/DefaultError.tsx";
+import { PageLayout } from "../../../components/layout/PageLayout.tsx";
+import { EVENTS, track } from "../../../lib/analytics.ts";
+import { store } from "../../../lib/jotai-store.ts";
 import {
   bitcoinPriceQuery,
   cbbiDashboardQuery,
   fearGreedQuery,
-} from "../queries/market.queries.ts";
-import styles from "./index.module.css";
+} from "../../../queries/market.queries.ts";
+import styles from "../../index.module.css";
 
 const CBBIChart = lazy(() =>
-  import("../components/CBBIChart.tsx").then((m) => ({ default: m.CBBIChart })),
+  import("../../../components/CBBIChart.tsx").then((m) => ({ default: m.CBBIChart })),
 );
 
 // ---------------------------------------------------------------------------
 // Route — ensureQueryData for critical CBBI, prefetchQuery for optional data
 // ---------------------------------------------------------------------------
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_app/dashboard/")({
   loader: async ({ context: { queryClient } }) => {
     // All three must be awaited so their data lands in the SSR HTML.
     // If prefetchQuery data were streamed-only (fire-and-forget), the inline script
@@ -315,8 +316,8 @@ function CBBIDashboard() {
 // ---------------------------------------------------------------------------
 
 function CBBISection({ data: cbbiData }: { data: CBBIDashboardData }) {
-  const [viewMode, setViewMode] = useAtom(viewModeAtom);
-  const [sortBy, setSortBy] = useAtom(sortByAtom);
+  const [viewMode, setViewMode] = useAtom(viewModeAtom, { store });
+  const [sortBy, setSortBy] = useAtom(sortByAtom, { store });
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => setIsMounted(true), []);
 

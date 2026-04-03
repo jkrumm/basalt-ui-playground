@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { getSessionFn } from "~/lib/auth.functions.ts";
 import { identifyUser } from "~/lib/hyperdx.ts";
 
-export const Route = createFileRoute("/_protected")({
+export const Route = createFileRoute("/_app/_protected")({
   beforeLoad: async ({ location }) => {
     try {
       const session = await getSessionFn();

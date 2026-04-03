@@ -23,13 +23,13 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import { lazy, Suspense, useEffect, useState } from "react";
-import { DefaultError } from "../components/DefaultError.tsx";
-import { cbbiIndicatorsQuery } from "../queries/market.queries.ts";
-import styles from "./table.module.css";
+import { DefaultError } from "../../components/DefaultError.tsx";
+import { cbbiIndicatorsQuery } from "../../queries/market.queries.ts";
+import styles from "../table.module.css";
 
 // Blueprint Table — lazy so it never runs on the server
 const BPTableSection = lazy(() =>
-  import("../components/BlueprintTableSection.tsx").then((m) => ({
+  import("../../components/BlueprintTableSection.tsx").then((m) => ({
     default: m.BlueprintTableSection,
   })),
 );
@@ -66,7 +66,7 @@ function intentOf(v: number | null): Intent {
 // Route — SSR pre-fetch via EdenTreaty
 // ---------------------------------------------------------------------------
 
-export const Route = createFileRoute("/table")({
+export const Route = createFileRoute("/_app/table")({
   loader: async ({ context: { queryClient } }) => {
     await queryClient.ensureQueryData(cbbiIndicatorsQuery());
   },

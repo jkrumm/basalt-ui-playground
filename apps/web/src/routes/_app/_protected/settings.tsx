@@ -2,7 +2,7 @@ import { Button, Card, Classes, Elevation, H1, H5, Intent, Tag } from "@blueprin
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { authClient } from "~/lib/auth-client.ts";
 
-export const Route = createFileRoute("/_protected/settings")({
+export const Route = createFileRoute("/_app/_protected/settings")({
   component: SettingsPage,
 });
 
