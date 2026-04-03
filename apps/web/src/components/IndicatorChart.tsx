@@ -101,15 +101,15 @@ function ChartTooltip({
 export function IndicatorChart({ data }: { data: IndicatorHistoryPoint[] }) {
   const [zoom, setZoom] = useState<ZoomKey>("ALL");
 
-  if (data.length === 0) {
-    return <NonIdealState icon={<TimelineAreaChartIcon />} title="No chart data" />;
-  }
-
   const filteredData = useMemo(() => {
     if (zoom === "ALL") return data;
     const cutoff = Date.now() / 1000 - ZOOM_DAYS[zoom] * 86400;
     return data.filter((d) => d.timestamp >= cutoff);
   }, [data, zoom]);
+
+  if (data.length === 0) {
+    return <NonIdealState icon={<TimelineAreaChartIcon />} title="No chart data" />;
+  }
 
   return (
     <div>

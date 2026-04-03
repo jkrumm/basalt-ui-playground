@@ -15,7 +15,8 @@ export function MobileBottomTabs() {
   const { data: session } = authClient.useSession();
 
   const isUserActive = session
-    ? !!matchRoute({ to: "/account", fuzzy: true })
+    ? !!matchRoute({ to: "/account", fuzzy: true }) ||
+      !!matchRoute({ to: "/settings", fuzzy: true })
     : !!matchRoute({ to: "/sign-in", fuzzy: true });
 
   return (
