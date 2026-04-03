@@ -1,10 +1,19 @@
 .shellContainer {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background-color: var(--bp-surface-background-color-default-rest);
 }
 
 :global(.bp6-dark) .shellContainer {
   background-color: var(--bp-palette-dark-gray-2);
+}
+
+.shellBody {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  gap: 8px;
+  padding: 8px 8px 8px 0;
 }

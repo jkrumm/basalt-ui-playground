@@ -23,8 +23,9 @@ export const getSessionFn = createServerFn({ method: "GET" }).handler(async () =
 });
 
 // Reads the theme preference from cookie for SSR-correct dark/light rendering.
+// "system" is returned as-is — the client resolves it via matchMedia.
 export const getThemeFn = createServerFn({ method: "GET" }).handler(async () => {
   const theme = getCookie("theme");
-  if (theme === "light" || theme === "dark") return theme;
-  return "dark" as const;
+  if (theme === "light" || theme === "dark" || theme === "system") return theme;
+  return "system" as const;
 });

@@ -23,7 +23,7 @@
   border-left: 1px solid var(--bp-divider-color);
 }
 
-@media (max-width: 1024px) {
+@media (width <= 1024px) {
   .layout {
     grid-template-columns: 240px 1fr;
   }
@@ -33,7 +33,7 @@
   }
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .layout {
     grid-template-columns: 1fr;
   }

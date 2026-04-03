@@ -8,6 +8,8 @@ export default {
     "@blueprintjs/no-prefix-literal": true,
     // Allow Blueprint class patterns (e.g. .bp6-button)
     "selector-class-pattern": null,
+    // Allow CSS Modules :global() scope escapes
+    "selector-pseudo-class-no-unknown": [true, { ignorePseudoClasses: ["global"] }],
     // Allow CSS custom properties with any naming
     "custom-property-pattern": null,
     // Prevent !important on Blueprint overrides
