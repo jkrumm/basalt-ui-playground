@@ -89,7 +89,9 @@ const COLUMNS: ColumnDef<IndicatorRow>[] = [
     header: "Description",
     enableSorting: false,
     cell: (info) => (
-      <span style={{ color: "#8f99a8", fontSize: 12 }}>{info.getValue<string>()}</span>
+      <span style={{ color: "var(--bp-typography-color-default-disabled)", fontSize: 12 }}>
+        {info.getValue<string>()}
+      </span>
     ),
   },
   {
@@ -111,7 +113,9 @@ const COLUMNS: ColumnDef<IndicatorRow>[] = [
       return ZONE_LABELS.indexOf(a.original.zone) - ZONE_LABELS.indexOf(b.original.zone);
     },
     cell: (info) => (
-      <span style={{ fontSize: 13, color: "#c5cbd3" }}>{info.getValue<string>()}</span>
+      <span style={{ fontSize: 13, color: "var(--bp-palette-gray-5)" }}>
+        {info.getValue<string>()}
+      </span>
     ),
   },
   {

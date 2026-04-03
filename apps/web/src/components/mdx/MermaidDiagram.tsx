@@ -21,10 +21,10 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
           startOnLoad: false,
           theme: "dark",
           themeVariables: {
-            background: "#1c2127",
-            primaryColor: "#2d72d2",
-            primaryTextColor: "#c5cbd3",
-            lineColor: "#5f6b7c",
+            background: "#1c2127", // --bp-palette-dark-gray-1 (Mermaid requires raw hex)
+            primaryColor: "#2d72d2", // --bp-intent-primary-rest
+            primaryTextColor: "#c5cbd3", // --bp-palette-gray-5
+            lineColor: "#5f6b7c", // --bp-palette-gray-1
           },
         });
         return mermaid.render(`mermaid-${id}`, chart);

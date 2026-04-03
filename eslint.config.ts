@@ -32,6 +32,7 @@ export default tseslint.config(
     rules: {
       "@blueprintjs/classes-constants": "error",
       "@blueprintjs/html-components": "error",
+      "@blueprintjs/icon-components": "error",
       "@blueprintjs/no-deprecated-components": "error",
       "@blueprintjs/no-deprecated-type-references": "error",
     },

@@ -132,7 +132,9 @@ function GuidesListingPage() {
           </Flex>
 
           {visibleGuides.length === 0 ? (
-            <p style={{ color: "#8f99a8" }}>No guides match the selected filters.</p>
+            <p style={{ color: "var(--bp-typography-color-default-disabled)" }}>
+              No guides match the selected filters.
+            </p>
           ) : (
             <div className={styles.grid}>
               {visibleGuides.map((guide) => (

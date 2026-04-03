@@ -45,7 +45,10 @@ export function PackageManagerTabs({ command }: PackageManagerTabsProps) {
             id={manager}
             title={manager}
             panel={
-              <CodeBlock className="language-bash" style={{ background: "#1c2127" }}>
+              <CodeBlock
+                className="language-bash"
+                style={{ background: "var(--bp-palette-dark-gray-1)" }}
+              >
                 <Code>{buildCommand(manager, command)}</Code>
               </CodeBlock>
             }

@@ -1,4 +1,6 @@
 import { Button, ButtonGroup, NonIdealState } from "@blueprintjs/core";
+import { TimelineAreaChart as TimelineAreaChartIcon } from "@blueprintjs/icons";
+import { Flex } from "@blueprintjs/labs";
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -33,6 +35,22 @@ const ZOOM_DAYS: Record<ZoomKey, number> = {
   "6Y": 6 * 365,
   ALL: Infinity,
 };
+
+// Chart color constants — aligned with Blueprint v6 design tokens.
+// Recharts SVG props require raw hex (CSS custom properties don't work in SVG attributes).
+const CHART = {
+  tooltipBg: "#252a31", // --bp-palette-dark-gray-2
+  tooltipBorder: "#404854", // --bp-palette-dark-gray-5
+  grid: "#2c3a47", // custom — subtle chart gridline (darker than --bp-palette-dark-gray-3)
+  tickMuted: "#8f99a8", // --bp-palette-gray-3
+  tickPrice: "#e07020", // custom orange — price axis accent
+  priceLine: "#2d6ea0", // custom blue — BTC price stroke
+  priceFill: "#1a3050", // custom dark blue — BTC price area fill
+  priceLabel: "#5b9bd5", // custom blue — tooltip price text
+  halvingLine: "#7c5cbf", // custom violet — halving reference line
+  halvingLabel: "#9b7fdb", // custom violet — halving "H" label
+  cursor: "#404854", // --bp-palette-dark-gray-5
+} as const;
 
 // Bitcoin halving timestamps (Unix seconds)
 const HALVINGS = [
@@ -106,16 +124,18 @@ function ChartTooltip({
   return (
     <div
       style={{
-        background: "#252a31",
-        border: "1px solid #404854",
-        borderRadius: 4,
+        background: "var(--bp-palette-dark-gray-2)",
+        border: "1px solid var(--bp-palette-dark-gray-5)",
+        borderRadius: "var(--bp-surface-border-radius)",
         padding: "8px 12px",
-        fontSize: 12,
+        fontSize: "var(--bp-typography-size-body-small)",
         lineHeight: 1.6,
       }}
     >
-      <div style={{ color: "#8f99a8", marginBottom: 4 }}>{formatDateShort(d.ts)}</div>
-      <div style={{ color: "#5b9bd5" }}>
+      <div style={{ color: "var(--bp-typography-color-default-disabled)", marginBottom: 4 }}>
+        {formatDateShort(d.ts)}
+      </div>
+      <div style={{ color: CHART.priceLabel }}>
         BTC ${d.price.toLocaleString("en-US", { maximumFractionDigits: 0 })}
       </div>
       <div style={{ color: confidenceColor(d.confidence) }}>CBBI {d.confidence.toFixed(1)}%</div>
@@ -131,7 +151,7 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
   const [zoom, setZoom] = useState<ZoomKey>("ALL");
 
   if (data.length === 0) {
-    return <NonIdealState icon="timeline-area-chart" title="No chart data" />;
+    return <NonIdealState icon={<TimelineAreaChartIcon />} title="No chart data" />;
   }
 
   const filteredData = useMemo(() => {
@@ -151,14 +171,7 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
   return (
     <div>
       {/* Zoom controls */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
+      <Flex justifyContent="space-between" alignItems="center" marginBottom={3}>
         <ButtonGroup>
           {(["6M", "1Y", "3Y", "6Y", "ALL"] as ZoomKey[]).map((z) => (
             <Button
@@ -173,14 +186,14 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
             />
           ))}
         </ButtonGroup>
-        <span style={{ fontSize: 11, color: "#5f6b7c" }}>
+        <span style={{ fontSize: 11, color: "var(--bp-typography-color-muted)" }}>
           {filteredData.length} weekly data points · server-fetched, client-rendered
         </span>
-      </div>
+      </Flex>
 
       <ResponsiveContainer width="100%" height={440}>
         <ComposedChart data={filteredData} margin={{ top: 8, right: 64, left: 8, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#2c3a47" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} vertical={false} />
 
           <XAxis
             dataKey="ts"
@@ -188,8 +201,8 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
             type="number"
             domain={["dataMin", "dataMax"]}
             tickFormatter={fmtDateAxis}
-            tick={{ fill: "#8f99a8", fontSize: 11 }}
-            axisLine={{ stroke: "#2c3a47" }}
+            tick={{ fill: CHART.tickMuted, fontSize: 11 }}
+            axisLine={{ stroke: CHART.grid }}
             tickLine={false}
             minTickGap={70}
           />
@@ -198,7 +211,7 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
           <YAxis
             yAxisId="cbbi"
             domain={[0, 100]}
-            tick={{ fill: "#8f99a8", fontSize: 11 }}
+            tick={{ fill: CHART.tickMuted, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             width={28}
@@ -210,7 +223,7 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
             orientation="right"
             scale="log"
             domain={["auto", "auto"]}
-            tick={{ fill: "#e07020", fontSize: 11 }}
+            tick={{ fill: CHART.tickPrice, fontSize: 11 }}
             axisLine={false}
             tickLine={false}
             tickFormatter={fmtPriceAxis}
@@ -223,10 +236,15 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
               key={ts}
               x={ts}
               yAxisId="cbbi"
-              stroke="#7c5cbf"
+              stroke={CHART.halvingLine}
               strokeDasharray="4 4"
               strokeWidth={1}
-              label={{ value: "H", fill: "#9b7fdb", fontSize: 9, position: "insideBottomLeft" }}
+              label={{
+                value: "H",
+                fill: CHART.halvingLabel,
+                fontSize: 9,
+                position: "insideBottomLeft",
+              }}
             />
           ))}
 
@@ -235,9 +253,9 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
             yAxisId="price"
             dataKey="price"
             type="monotone"
-            fill="#1a3050"
+            fill={CHART.priceFill}
             fillOpacity={0.7}
-            stroke="#2d6ea0"
+            stroke={CHART.priceLine}
             strokeWidth={1}
             dot={false}
             activeDot={false}
@@ -268,21 +286,15 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
             isAnimationActive={false}
           />
 
-          <Tooltip content={<ChartTooltip />} cursor={{ stroke: "#404854", strokeWidth: 1 }} />
+          <Tooltip content={<ChartTooltip />} cursor={{ stroke: CHART.cursor, strokeWidth: 1 }} />
         </ComposedChart>
       </ResponsiveContainer>
 
       {/* Color legend */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginTop: 12,
-          gap: 4,
-          alignItems: "center",
-        }}
-      >
-        <span style={{ color: "#5f6b7c", fontSize: 11, marginRight: 6 }}>0</span>
+      <Flex justifyContent="center" marginTop={3} gap={1} alignItems="center">
+        <span style={{ color: "var(--bp-typography-color-muted)", fontSize: 11, marginRight: 6 }}>
+          0
+        </span>
         <div
           style={{
             width: 200,
@@ -293,11 +305,13 @@ export function CBBIChart({ data }: { data: HistoryPoint[] }) {
               .join(", ")})`,
           }}
         />
-        <span style={{ color: "#5f6b7c", fontSize: 11, marginLeft: 6 }}>100</span>
-        <span style={{ color: "#5f6b7c", fontSize: 11, marginLeft: 16 }}>
+        <span style={{ color: "var(--bp-typography-color-muted)", fontSize: 11, marginLeft: 6 }}>
+          100
+        </span>
+        <span style={{ color: "var(--bp-typography-color-muted)", fontSize: 11, marginLeft: 16 }}>
           — CBBI dot color scale
         </span>
-      </div>
+      </Flex>
     </div>
   );
 }

@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@blueprintjs/eslint-plugin": "^6.1.24",
+    "@blueprintjs/stylelint-plugin": "5.2.2",
     "@eslint/js": "^10.0.1",
     "@tanstack/eslint-plugin-router": "^1.161.6",
     "esbuild": "0.27.5",

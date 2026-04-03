@@ -81,7 +81,9 @@ function BlocksGalleryPage() {
           )}
 
           {visibleBlocks.length === 0 ? (
-            <p style={{ color: "#8f99a8" }}>No blocks for this category.</p>
+            <p style={{ color: "var(--bp-typography-color-default-disabled)" }}>
+              No blocks for this category.
+            </p>
           ) : (
             <div className={styles.grid}>
               {visibleBlocks.map((block) => (

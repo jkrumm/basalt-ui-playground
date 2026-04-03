@@ -86,7 +86,9 @@ function BlogListingPage() {
           )}
 
           {visiblePosts.length === 0 ? (
-            <p style={{ color: "#8f99a8" }}>No posts for this tag.</p>
+            <p style={{ color: "var(--bp-typography-color-default-disabled)" }}>
+              No posts for this tag.
+            </p>
           ) : (
             <div className={styles.grid}>
               {visiblePosts.map((post) => (

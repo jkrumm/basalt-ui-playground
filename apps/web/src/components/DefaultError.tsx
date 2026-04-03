@@ -1,4 +1,5 @@
 import { Button, NonIdealState } from "@blueprintjs/core";
+import { Error as ErrorIcon } from "@blueprintjs/icons";
 import type { ErrorInfo } from "react";
 
 interface DefaultErrorProps {
@@ -13,7 +14,7 @@ export function DefaultError({ error, reset }: DefaultErrorProps) {
 
   return (
     <NonIdealState
-      icon="error"
+      icon={<ErrorIcon />}
       title="Something went wrong"
       description={error.message || "An unexpected error occurred."}
       action={<Button intent="primary" text="Try Again" onClick={reset} />}

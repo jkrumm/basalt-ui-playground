@@ -17,6 +17,7 @@ import {
   Tag,
   Tooltip,
 } from "@blueprintjs/core";
+import { WarningSign as WarningSignIcon } from "@blueprintjs/icons";
 import { Box, Flex } from "@blueprintjs/labs";
 import {
   IconAlertTriangle,
@@ -202,9 +203,11 @@ function getSortedIndicators(indicators: Indicator[], sortBy: string): Indicator
 
 function DataUnavailable({ label }: { label: string }) {
   return (
-    <Callout intent={Intent.WARNING} icon="warning-sign" style={{ marginBottom: 16 }}>
-      {label} data is temporarily unavailable. It will retry automatically.
-    </Callout>
+    <Box marginBottom={4}>
+      <Callout intent={Intent.WARNING} icon={<WarningSignIcon />}>
+        {label} data is temporarily unavailable. It will retry automatically.
+      </Callout>
+    </Box>
   );
 }
 
@@ -217,19 +220,21 @@ function BitcoinPriceTicker() {
   if (!bitcoin) return <DataUnavailable label="Bitcoin price" />;
 
   return (
-    <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
-      <Flex justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-        <Flex alignItems="baseline" gap={2}>
-          <H2 style={{ margin: 0 }}>BTC ${fmtPrice(bitcoin.usd)}</H2>
-          <Tag large intent={bitcoin.usd24hChange >= 0 ? Intent.SUCCESS : Intent.DANGER} minimal>
-            {fmtChange(bitcoin.usd24hChange)} 24h
-          </Tag>
+    <Box marginBottom={4}>
+      <Card elevation={Elevation.TWO}>
+        <Flex justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+          <Flex alignItems="baseline" gap={2}>
+            <H2 style={{ margin: 0 }}>BTC ${fmtPrice(bitcoin.usd)}</H2>
+            <Tag large intent={bitcoin.usd24hChange >= 0 ? Intent.SUCCESS : Intent.DANGER} minimal>
+              {fmtChange(bitcoin.usd24hChange)} 24h
+            </Tag>
+          </Flex>
+          <Flex gap={2} flexWrap="wrap">
+            <Tag minimal>Vol: {fmtVolume(bitcoin.usd24hVolume)}</Tag>
+          </Flex>
         </Flex>
-        <Flex gap={2} flexWrap="wrap">
-          <Tag minimal>Vol: {fmtVolume(bitcoin.usd24hVolume)}</Tag>
-        </Flex>
-      </Flex>
-    </Card>
+      </Card>
+    </Box>
   );
 }
 
@@ -244,24 +249,28 @@ function FearGreedWidget() {
   const { current } = fearGreed;
 
   return (
-    <Card elevation={Elevation.ONE} style={{ marginBottom: 16 }}>
-      <Flex justifyContent="space-between" alignItems="center">
-        <Flex alignItems="center" gap={2}>
-          <H5 style={{ margin: 0 }}>Fear & Greed Index</H5>
-          <Tag large intent={fearGreedIntent(current.value)}>
-            {current.value} — {current.classification}
-          </Tag>
+    <Box marginBottom={4}>
+      <Card elevation={Elevation.ONE}>
+        <Flex justifyContent="space-between" alignItems="center">
+          <Flex alignItems="center" gap={2}>
+            <H5 style={{ margin: 0 }}>Fear & Greed Index</H5>
+            <Tag large intent={fearGreedIntent(current.value)}>
+              {current.value} — {current.classification}
+            </Tag>
+          </Flex>
+          <Tag minimal>{current.date}</Tag>
         </Flex>
-        <Tag minimal>{current.date}</Tag>
-      </Flex>
-      <ProgressBar
-        value={current.value / 100}
-        intent={fearGreedIntent(current.value)}
-        animate={false}
-        stripes={false}
-        style={{ height: 8, marginTop: 8 }}
-      />
-    </Card>
+        <Box marginTop={2}>
+          <ProgressBar
+            value={current.value / 100}
+            intent={fearGreedIntent(current.value)}
+            animate={false}
+            stripes={false}
+            style={{ height: 8 }}
+          />
+        </Box>
+      </Card>
+    </Box>
   );
 }
 
@@ -325,41 +334,40 @@ function CBBISection({ data: cbbiData }: { data: CBBIDashboardData }) {
   return (
     <>
       {/* CBBI Confidence card */}
-      <Card elevation={Elevation.TWO} style={{ marginBottom: 16 }}>
-        <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
-          <H2 style={{ margin: 0 }}>CBBI Confidence</H2>
-          <Flex gap={2} alignItems="center">
-            <Tag large>BTC ${fmtPrice(price)}</Tag>
-            <Tag large intent={getIntent(confidence)}>
-              {getZoneLabel(confidence)}
-            </Tag>
-            <Tag large minimal>
-              {fmtPct(confidence)}
-            </Tag>
+      <Box marginBottom={4}>
+        <Card elevation={Elevation.TWO}>
+          <Flex justifyContent="space-between" alignItems="center" marginBottom={4}>
+            <H2 style={{ margin: 0 }}>CBBI Confidence</H2>
+            <Flex gap={2} alignItems="center">
+              <Tag large>BTC ${fmtPrice(price)}</Tag>
+              <Tag large intent={getIntent(confidence)}>
+                {getZoneLabel(confidence)}
+              </Tag>
+              <Tag large minimal>
+                {fmtPct(confidence)}
+              </Tag>
+            </Flex>
           </Flex>
-        </Flex>
-        <ProgressBar
-          value={confidence}
-          intent={getIntent(confidence)}
-          animate={false}
-          stripes={false}
-          style={{ height: 12 }}
-        />
-        <p className="cbbi-meta" style={{ marginTop: 10 }}>
-          Composite of 9 on-chain indicators. Low = accumulation zone &mdash; High = distribution /
-          approaching cycle top.
-        </p>
-      </Card>
+          <ProgressBar
+            value={confidence}
+            intent={getIntent(confidence)}
+            animate={false}
+            stripes={false}
+            style={{ height: 12 }}
+          />
+          <p className="cbbi-meta" style={{ marginTop: 12 }}>
+            Composite of 9 on-chain indicators. Low = accumulation zone &mdash; High = distribution
+            / approaching cycle top.
+          </p>
+        </Card>
+      </Box>
 
       {/* Callout */}
-      <Callout
-        intent={callout.intent}
-        icon={callout.icon}
-        title={callout.title}
-        style={{ marginBottom: 24 }}
-      >
-        {callout.message}
-      </Callout>
+      <Box marginBottom={6}>
+        <Callout intent={callout.intent} icon={callout.icon} title={callout.title}>
+          {callout.message}
+        </Callout>
+      </Box>
 
       {/* Controls */}
       <Flex
@@ -461,7 +469,9 @@ function CBBISection({ data: cbbiData }: { data: CBBIDashboardData }) {
                       {fmtPct(ind.value)}
                     </Tag>
                   </td>
-                  <td style={{ color: "#8f99a8", fontSize: 13 }}>
+                  <td
+                    style={{ color: "var(--bp-typography-color-default-disabled)", fontSize: 13 }}
+                  >
                     {ind.value !== null ? getZoneLabel(ind.value) : "—"}
                   </td>
                   <td>
@@ -480,28 +490,36 @@ function CBBISection({ data: cbbiData }: { data: CBBIDashboardData }) {
       )}
 
       {/* Historical chart — client-only */}
-      <Card elevation={Elevation.TWO} style={{ marginTop: 24, marginBottom: 24 }}>
-        <H2 style={{ margin: "0 0 4px" }}>Historical Chart</H2>
-        <p className="cbbi-meta" style={{ marginBottom: 16 }}>
-          Weekly Bitcoin price (right axis, log scale) with CBBI confidence dots colored by cycle
-          position.
-        </p>
-        {isMounted ? (
-          <Suspense
-            fallback={
-              <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
-                <Spinner size={40} />
-              </Flex>
-            }
-          >
-            <CBBIChart data={chartData} />
-          </Suspense>
-        ) : (
-          <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
-            <Spinner size={40} />
-          </Flex>
-        )}
-      </Card>
+      <Box marginTop={6} marginBottom={6}>
+        <Card elevation={Elevation.TWO}>
+          <H2 style={{ margin: "0 0 4px" }}>Historical Chart</H2>
+          <Box marginBottom={4}>
+            <p className="cbbi-meta">
+              Weekly Bitcoin price (right axis, log scale) with CBBI confidence dots colored by
+              cycle position.
+            </p>
+          </Box>
+          {isMounted ? (
+            <Suspense
+              fallback={
+                <Flex
+                  alignItems="center"
+                  justifyContent="center"
+                  className={styles.spinnerContainer}
+                >
+                  <Spinner size={40} />
+                </Flex>
+              }
+            >
+              <CBBIChart data={chartData} />
+            </Suspense>
+          ) : (
+            <Flex alignItems="center" justifyContent="center" className={styles.spinnerContainer}>
+              <Spinner size={40} />
+            </Flex>
+          )}
+        </Card>
+      </Box>
     </>
   );
 }

@@ -1,4 +1,6 @@
 import { NonIdealState } from "@blueprintjs/core";
+import { Search as SearchIcon } from "@blueprintjs/icons";
+import { Flex } from "@blueprintjs/labs";
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/$")({
@@ -7,19 +9,12 @@ export const Route = createFileRoute("/$")({
 
 function NotFound() {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight: "60vh",
-      }}
-    >
+    <Flex alignItems="center" justifyContent="center" style={{ minHeight: "60vh" }}>
       <NonIdealState
-        icon="search"
+        icon={<SearchIcon />}
         title="Page not found"
         description="The page you're looking for doesn't exist or has been moved."
       />
-    </div>
+    </Flex>
   );
 }

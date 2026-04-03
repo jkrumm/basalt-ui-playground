@@ -160,6 +160,8 @@ Blueprint must be imported before Tailwind so Tailwind utilities can override Bl
 ```css
 @import "@blueprintjs/core/lib/css/blueprint.css";
 @import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+@import "@blueprintjs/table/lib/css/table.css";
+@import "@blueprintjs/labs/lib/css/blueprint-labs.css";
 @import "tailwindcss";
 ```
 

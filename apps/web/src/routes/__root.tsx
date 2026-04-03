@@ -1,8 +1,16 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { Classes, NonIdealState, Button } from "@blueprintjs/core";
+import {
+  Classes,
+  FocusStyleManager,
+  NonIdealState,
+  Button,
+  OverlaysProvider,
+} from "@blueprintjs/core";
+import { Error as ErrorIcon } from "@blueprintjs/icons";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createRootRouteWithContext, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { Provider, useAtom } from "jotai";
+import { useEffect } from "react";
 import { RouteTracker } from "../components/analytics/RouteTracker.tsx";
 import { ContentNav } from "../components/layout/ContentNav.tsx";
 import { SearchModal } from "../components/content/SearchModal.tsx";
@@ -59,6 +67,10 @@ function RootComponent() {
 
   const theme = typeof window === "undefined" ? (ssrTheme ?? "dark") : atomTheme;
 
+  useEffect(() => {
+    FocusStyleManager.onlyShowFocusOnTabs();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={jotaiStore}>
@@ -67,9 +79,11 @@ function RootComponent() {
             <HeadContent />
           </head>
           <body className={theme === "dark" ? Classes.DARK : ""}>
-            <ContentNav />
-            <Outlet />
-            <SearchModalWrapper />
+            <OverlaysProvider>
+              <ContentNav />
+              <Outlet />
+              <SearchModalWrapper />
+            </OverlaysProvider>
             <RouteTracker />
             <Scripts />
           </body>
@@ -98,7 +112,7 @@ function RootErrorComponent({ error, reset }: { error: Error; reset: () => void 
         }}
       >
         <NonIdealState
-          icon="error"
+          icon={<ErrorIcon />}
           title="Application error"
           description={error.message || "An unexpected error occurred."}
           action={<Button intent="primary" text="Try Again" onClick={reset} />}

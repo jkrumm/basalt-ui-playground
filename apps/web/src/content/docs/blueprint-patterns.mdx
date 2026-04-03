@@ -1,0 +1,559 @@
+---
+title: "Blueprint v6 Patterns"
+description: "Canonical reference for using Blueprint v6 in TanStack Start — design tokens, components, layout, icons, overlays, accessibility, and enforcement rules."
+section: "Frontend"
+order: 2
+---
+
+This is the definitive guide for how Blueprint v6 is used in this stack. Every pattern
+described here is enforced by ESLint, stylelint, or both. Follow this guide to keep
+downstream apps consistent and accessible.
+
+---
+
+## CSS Design Tokens
+
+Blueprint v6 defines all visual properties as CSS custom properties (`--bp-*`). These tokens
+auto-switch between light and dark mode — use them instead of hardcoded values.
+
+### Surfaces
+
+| Token                                                   | Purpose                      |
+| ------------------------------------------------------- | ---------------------------- |
+| `--bp-surface-background-color-default-rest`            | Default surface background   |
+| `--bp-surface-background-color-default-hover`           | Surface hover state          |
+| `--bp-surface-border-color-default`                     | Default border (subtle)      |
+| `--bp-surface-border-color-strong`                      | Strong border                |
+| `--bp-surface-border-width`                             | Standard border width (1px)  |
+| `--bp-surface-border-radius`                            | Standard border radius (4px) |
+| `--bp-surface-shadow-0` through `--bp-surface-shadow-4` | Elevation shadows            |
+
+### Typography
+
+| Token                                    | Purpose                                |
+| ---------------------------------------- | -------------------------------------- |
+| `--bp-typography-color-muted`            | Secondary/muted text (#5f6b7c light)   |
+| `--bp-typography-color-default-rest`     | Primary body text                      |
+| `--bp-typography-color-default-disabled` | Disabled/tertiary text (#8f99a8 light) |
+| `--bp-typography-color-primary-rest`     | Link/primary accent text               |
+| `--bp-typography-size-body-small`        | 12px                                   |
+| `--bp-typography-size-body-medium`       | 14px (default)                         |
+| `--bp-typography-size-body-large`        | 16px                                   |
+| `--bp-typography-size-code-medium`       | 13px                                   |
+| `--bp-typography-weight-default`         | 400                                    |
+| `--bp-typography-weight-bold`            | 600                                    |
+| `--bp-typography-line-height-default`    | 1.286                                  |
+| `--bp-typography-line-height-large`      | 1.5                                    |
+
+### Palette
+
+The full color palette is available via `--bp-palette-{color}-{shade}`:
+
+```
+dark-gray-1..5   gray-1..5   light-gray-1..5
+blue-1..5        green-1..5  orange-1..5
+red-1..5         violet-1..5 indigo-1..5
+cerulean-1..5    turquoise-1..5  forest-1..5
+```
+
+**Example:** `color: var(--bp-palette-gray-3)` instead of `color: #8f99a8`.
+
+### Intent Colors
+
+| Token                           | Purpose                          |
+| ------------------------------- | -------------------------------- |
+| `--bp-intent-primary-rest`      | Primary blue (#2d72d2)           |
+| `--bp-intent-success-rest`      | Success green (#238551)          |
+| `--bp-intent-warning-rest`      | Warning orange (#c87619)         |
+| `--bp-intent-danger-rest`       | Danger red (#cd4246)             |
+| `--bp-intent-default-rest`      | Default gray (#5f6b7c)           |
+| `--bp-intent-{name}-foreground` | Text color on intent backgrounds |
+
+Each intent has `-rest`, `-hover`, `-active`, `-disabled`, and `-foreground` variants.
+
+### Anti-pattern: Hardcoded Hex Colors
+
+```tsx
+// BAD — hardcoded hex that matches Blueprint palette
+<span style={{ color: "#8f99a8" }}>muted</span>
+
+// GOOD — uses design token, auto-switches in dark mode
+<span style={{ color: "var(--bp-typography-color-default-disabled)" }}>muted</span>
+```
+
+The `@blueprintjs/no-color-literal` stylelint rule catches this in CSS files.
+For TSX inline styles, use `var(--bp-*)` string values.
+
+---
+
+## Spacing System
+
+Blueprint v6 uses a **4px grid** (`--bp-surface-spacing: 4px`). All spacing should be
+multiples of 4.
+
+### Box and Flex Spacing Props
+
+`Box` and `Flex` from `@blueprintjs/labs` accept numeric spacing props where
+**1 unit = 4px**:
+
+```tsx
+import { Box, Flex } from "@blueprintjs/labs";
+
+<Box marginBottom={4}>       {/* 16px */}
+<Box padding={3}>             {/* 12px */}
+<Flex gap={2}>                {/* 8px */}
+<Box marginTop={6}>           {/* 24px */}
+```
+
+| Value | Pixels |
+| ----- | ------ |
+| 1     | 4px    |
+| 2     | 8px    |
+| 3     | 12px   |
+| 4     | 16px   |
+| 5     | 20px   |
+| 6     | 24px   |
+| 8     | 32px   |
+| 10    | 40px   |
+
+### When to Use Box vs CSS
+
+| Use Box/Flex                       | Use CSS Modules                                    |
+| ---------------------------------- | -------------------------------------------------- |
+| Component-level margin/padding     | Page-level layout (`max-width` + `margin: 0 auto`) |
+| Flex layout within a Card          | Responsive breakpoints (`@media`)                  |
+| Spacing between sibling components | Complex selectors, pseudo-elements                 |
+| Gap between flex items             | Animations, transitions                            |
+
+### Anti-pattern: Inline Style Spacing
+
+```tsx
+// BAD — hardcoded pixels, can't use 4px grid
+<Card style={{ marginBottom: 16 }}>
+
+// GOOD — semantic spacing on the 4px grid
+<Box marginBottom={4}>
+  <Card>
+```
+
+---
+
+## Component Usage Guide
+
+### Card + Elevation
+
+```tsx
+import { Card, Elevation } from "@blueprintjs/core";
+
+<Card elevation={Elevation.TWO}>
+  <H2>Title</H2>
+  <p>Content</p>
+</Card>;
+```
+
+Elevation values: `ZERO` (flat), `ONE` (subtle shadow), `TWO` (raised),
+`THREE` (prominent), `FOUR` (floating).
+
+### Dialog and Drawer
+
+**Must be inside `OverlaysProvider`** (see Overlays section below).
+
+```tsx
+import { Dialog, DialogBody, DialogFooter, Button } from "@blueprintjs/core";
+
+<Dialog isOpen={isOpen} onClose={onClose} title="Confirm">
+  <DialogBody>Are you sure?</DialogBody>
+  <DialogFooter actions={<Button intent="primary" text="OK" onClick={onClose} />} />
+</Dialog>;
+```
+
+### Callout
+
+```tsx
+import { Callout, Intent } from "@blueprintjs/core";
+
+<Callout intent={Intent.WARNING} icon={<WarningSignIcon />} title="Heads up">
+  Something needs attention.
+</Callout>;
+```
+
+### Tag
+
+```tsx
+<Tag minimal>default</Tag>
+<Tag intent={Intent.SUCCESS}>success</Tag>
+<Tag large intent={Intent.PRIMARY}>large primary</Tag>
+```
+
+### ProgressBar
+
+```tsx
+<ProgressBar value={0.65} intent={Intent.SUCCESS} animate={false} stripes={false} />
+```
+
+### HTMLTable
+
+```tsx
+<HTMLTable striped interactive bordered>
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>...</tbody>
+</HTMLTable>
+```
+
+### FormGroup + InputGroup
+
+```tsx
+<FormGroup label="Email" helperText="We'll never share your email" intent={Intent.NONE}>
+  <InputGroup placeholder="Enter email" leftIcon={<EnvelopeIcon />} />
+</FormGroup>
+```
+
+### Tooltip and Popover
+
+```tsx
+<Tooltip content="More info" placement="top">
+  <Button text="Hover me" />
+</Tooltip>
+```
+
+### SegmentedControl
+
+```tsx
+<SegmentedControl
+  options={[
+    { label: "Grid", value: "grid" },
+    { label: "List", value: "list" },
+  ]}
+  value={viewMode}
+  onValueChange={setViewMode}
+/>
+```
+
+### Navbar
+
+```tsx
+<Navbar>
+  <NavbarGroup align={Alignment.LEFT}>
+    <NavbarHeading>App</NavbarHeading>
+    <NavbarDivider />
+    <Button minimal text="Home" />
+  </NavbarGroup>
+</Navbar>
+```
+
+---
+
+## Layout with Box and Flex
+
+`Box` and `Flex` are from `@blueprintjs/labs` — they provide layout primitives that
+integrate with Blueprint's spacing system.
+
+### Box Props
+
+```tsx
+<Box
+  marginTop={2} // 8px
+  marginBottom={4} // 16px
+  paddingX={3} // 12px left + right
+  paddingY={2} // 8px top + bottom
+  display="block" // or "flex", "inline", etc.
+/>
+```
+
+### Flex Props
+
+```tsx
+<Flex
+  gap={2} // 8px between children
+  alignItems="center"
+  justifyContent="space-between"
+  flexWrap="wrap"
+  flexDirection="column"
+/>
+```
+
+### asChild Slot Pattern
+
+Both `Box` and `Flex` support `asChild` to merge props into a single child element
+instead of rendering an extra wrapper `div`:
+
+```tsx
+<Box marginBottom={4} asChild>
+  <Card elevation={Elevation.ONE}>...</Card>
+</Box>
+```
+
+### When CSS Modules Are Still Needed
+
+- **Pseudo-elements** (`:before`, `:after`)
+- **Media queries** (`@media (width <= 1100px)`)
+- **Complex selectors** (`.parent:hover .child`)
+- **Animations** (`@keyframes`, `transition`)
+- **Page-level centering** (`max-width` + `margin: 0 auto`)
+
+---
+
+## Icons
+
+Two icon systems coexist in this stack:
+
+### Blueprint Icons (`@blueprintjs/icons`)
+
+Used with Blueprint components via the `icon` prop. **Always use component references,
+never string literals** — enforced by the `@blueprintjs/icon-components` ESLint rule.
+
+```tsx
+// BAD — string literal (caught by ESLint)
+<NonIdealState icon="error" title="Oops" />;
+
+// GOOD — component reference
+import { Error as ErrorIcon } from "@blueprintjs/icons";
+<NonIdealState icon={<ErrorIcon />} title="Oops" />;
+```
+
+Blueprint icons come in two sizes: `BlueprintIcons_16Id` (default) and `BlueprintIcons_20Id`.
+
+### Tabler Icons (`@tabler/icons-react`)
+
+Used for supplementary icons not available in Blueprint's icon set. Always imported as
+React components:
+
+```tsx
+import { IconFlame, IconCircleCheck } from "@tabler/icons-react";
+
+<IconFlame size={20} />
+<IconCircleCheck size={16} />
+```
+
+### Sizing Convention
+
+- **16px** for standard inline icons
+- **20px** for large/prominent icons
+- Use `size` prop on Blueprint `Icon` component, not the deprecated `iconSize`
+
+---
+
+## Intent System
+
+Blueprint's intent system maps semantic meaning to colors:
+
+| Intent           | Meaning        | Use for                             |
+| ---------------- | -------------- | ----------------------------------- |
+| `Intent.NONE`    | Neutral        | Default state, informational        |
+| `Intent.PRIMARY` | Primary action | Main CTA, active state              |
+| `Intent.SUCCESS` | Positive       | Confirmations, completed actions    |
+| `Intent.WARNING` | Caution        | Non-blocking alerts, degraded state |
+| `Intent.DANGER`  | Destructive    | Errors, destructive actions         |
+
+Components that support `intent`: `Button`, `Tag`, `Callout`, `ProgressBar`,
+`InputGroup`, `FormGroup`, `MenuItem`, `Toast`.
+
+```tsx
+<Button intent={Intent.PRIMARY} text="Save" />
+<Tag intent={Intent.SUCCESS} minimal>Active</Tag>
+<Callout intent={Intent.WARNING}>Data may be stale</Callout>
+```
+
+---
+
+## Dark Mode
+
+### How It Works
+
+Dark mode is applied by adding `Classes.DARK` (`"bp6-dark"`) to the `<body>` element.
+All `--bp-*` CSS custom properties automatically switch values.
+
+```tsx
+// In __root.tsx
+<body className={theme === "dark" ? Classes.DARK : ""}>
+```
+
+### Token Auto-Switching
+
+You don't need separate light/dark styles when using `--bp-*` tokens:
+
+```css
+.my-element {
+  /* Automatically correct in both modes */
+  color: var(--bp-typography-color-muted);
+  background: var(--bp-surface-background-color-default-rest);
+  border: var(--bp-surface-border-width) solid var(--bp-surface-border-color-default);
+}
+```
+
+### Custom Dark Mode Overrides
+
+For elements outside Blueprint's token system, use the `body.bp6-dark` selector:
+
+```css
+.my-custom-element {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+body.bp6-dark .my-custom-element {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+```
+
+---
+
+## Overlays and Portals
+
+### OverlaysProvider (Mandatory in v6)
+
+`OverlaysProvider` is required at the root of your app. Without it, overlay components
+work but lose focus management, scroll locking, and stacking context.
+
+**Current setup in `__root.tsx`:**
+
+```tsx
+import { OverlaysProvider } from "@blueprintjs/core";
+
+<body className={theme === "dark" ? Classes.DARK : ""}>
+  <OverlaysProvider>
+    <ContentNav />
+    <Outlet />
+    <SearchModal />
+  </OverlaysProvider>
+  <RouteTracker />
+  <Scripts />
+</body>;
+```
+
+### Components That Require OverlaysProvider
+
+- `Dialog` / `Drawer`
+- `Popover` / `Tooltip`
+- `ContextMenu`
+- `Toast` / `OverlayToaster`
+- `Select` / `Suggest` / `MultiSelect` (from `@blueprintjs/select`)
+
+### Focus Stacking
+
+Overlays use a focus trap — pressing `Tab` cycles within the overlay. Nested overlays
+stack correctly when inside `OverlaysProvider`.
+
+---
+
+## Accessibility
+
+### FocusStyleManager
+
+Initialized in `__root.tsx` to hide focus outlines during mouse interaction and show
+them only during keyboard navigation:
+
+```tsx
+import { FocusStyleManager } from "@blueprintjs/core";
+import { useEffect } from "react";
+
+useEffect(() => {
+  FocusStyleManager.onlyShowFocusOnTabs();
+}, []);
+```
+
+**API:**
+
+- `FocusStyleManager.onlyShowFocusOnTabs()` — hide focus rings for mouse users
+- `FocusStyleManager.alwaysShowFocus()` — always show focus rings
+- `Classes.FOCUS_STYLE_MANAGER_IGNORE` — opt-out class for specific elements
+
+### Built-In Keyboard Navigation
+
+- **Menu/MenuItem** — arrow keys navigate, Enter selects
+- **Tabs** — arrow keys switch tabs, Home/End jump
+- **Tree** — arrow keys expand/collapse nodes
+- **Dialog/Drawer** — Escape closes, Tab cycles within
+
+### ARIA Attributes
+
+Blueprint components set ARIA attributes automatically. When building custom
+components, ensure:
+
+- Interactive elements have `role` and `aria-label`
+- Disabled states use `aria-disabled` (not just visual dimming)
+- Expandable sections use `aria-expanded`
+
+---
+
+## Deprecated Patterns (v5 to v6)
+
+| v5 Pattern                          | v6 Replacement                                  |
+| ----------------------------------- | ----------------------------------------------- |
+| `bp5-` CSS prefix                   | `bp6-` (enforced by ESLint `classes-constants`) |
+| `@blueprintjs/popover2`             | Merged into `@blueprintjs/core`                 |
+| `@blueprintjs/datetime2`            | Merged into `@blueprintjs/datetime`             |
+| `Navbar.Group` (sub-export)         | `NavbarGroup` (direct import)                   |
+| `Icon.iconSize`                     | `Icon.size`                                     |
+| `TextArea.growVertically`           | `TextArea.autoResize`                           |
+| `Tabs.Expander`                     | `TabsExpander`                                  |
+| String icon names (`icon="search"`) | Component references (`icon={<SearchIcon />}`)  |
+| OverlaysProvider optional           | OverlaysProvider mandatory                      |
+| 10px grid (`$pt-grid-size`)         | 4px grid (`$pt-spacing`)                        |
+
+---
+
+## Blueprint + Tailwind Coexistence
+
+### CSS Import Order
+
+Blueprint must be imported **before** Tailwind so Tailwind utilities can override
+Blueprint defaults:
+
+```css
+/* app.css */
+@import "@blueprintjs/core/lib/css/blueprint.css";
+@import "@blueprintjs/icons/lib/css/blueprint-icons.css";
+@import "@blueprintjs/table/lib/css/table.css";
+@import "@blueprintjs/labs/lib/css/blueprint-labs.css";
+@import "tailwindcss";
+```
+
+### Division of Responsibility
+
+| Blueprint                                     | Tailwind                            |
+| --------------------------------------------- | ----------------------------------- |
+| Interactive components (Button, Card, Dialog) | Page-level layout spacing           |
+| Design tokens (`--bp-*`)                      | Utility classes (`text-sm`, `mt-4`) |
+| Component styling                             | Custom one-off styles               |
+| Theming (dark mode)                           | Responsive utilities                |
+
+### Preflight Conflicts
+
+Tailwind's preflight resets some element styles that Blueprint also sets. The import
+order above resolves this — Tailwind's reset applies first, Blueprint's component
+styles layer on top.
+
+---
+
+## Enforcement Rules
+
+### ESLint (`@blueprintjs/eslint-plugin`)
+
+| Rule                                         | Severity | Purpose                                    |
+| -------------------------------------------- | -------- | ------------------------------------------ |
+| `@blueprintjs/classes-constants`             | error    | Use `Classes.DARK` not `"bp6-dark"`        |
+| `@blueprintjs/html-components`               | error    | Use `<H2>` not `<h2>` in Blueprint context |
+| `@blueprintjs/icon-components`               | error    | Use `<ErrorIcon />` not `icon="error"`     |
+| `@blueprintjs/no-deprecated-components`      | error    | Block deprecated v5 components             |
+| `@blueprintjs/no-deprecated-type-references` | error    | Block deprecated type aliases              |
+
+### Stylelint (`@blueprintjs/stylelint-plugin`)
+
+| Rule                             | Purpose                                            |
+| -------------------------------- | -------------------------------------------------- |
+| `@blueprintjs/no-color-literal`  | No hardcoded hex colors matching Blueprint palette |
+| `@blueprintjs/no-prefix-literal` | Use `var(--bp-ns)` not hardcoded `bp6-`            |
+
+### Validation
+
+All rules run as part of `make check`:
+
+```bash
+make check    # fmt + lint + lint:style + typecheck + build
+bun run lint  # oxlint + eslint (includes Blueprint rules)
+bun run lint:style  # stylelint (includes Blueprint rules)
+```

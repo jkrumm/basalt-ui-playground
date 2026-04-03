@@ -1,7 +1,12 @@
 export default {
   extends: ["stylelint-config-standard"],
+  plugins: ["@blueprintjs/stylelint-plugin"],
   rules: {
-    // Allow Blueprint class patterns (e.g. .bp5-button)
+    // Blueprint — enforce design tokens over hardcoded colors
+    "@blueprintjs/no-color-literal": true,
+    // Blueprint — enforce var(--bp-ns) prefix over hardcoded "bp6-" strings
+    "@blueprintjs/no-prefix-literal": true,
+    // Allow Blueprint class patterns (e.g. .bp6-button)
     "selector-class-pattern": null,
     // Allow CSS custom properties with any naming
     "custom-property-pattern": null,
