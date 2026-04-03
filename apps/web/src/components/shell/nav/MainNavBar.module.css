@@ -1,0 +1,22 @@
+.wrapper {
+  display: none;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: var(--bp-palette-dark-gray-1);
+}
+
+.wrapper :global(.bp6-navbar) {
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+:global(.bp6-dark) .wrapper :global(.bp6-navbar) {
+  background-color: var(--bp-palette-dark-gray-1);
+}
+
+@media (width >= 768px) {
+  .wrapper {
+    display: block;
+  }
+}

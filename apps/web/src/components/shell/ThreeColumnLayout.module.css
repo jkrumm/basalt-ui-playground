@@ -1,24 +1,31 @@
 .layout {
   display: grid;
   grid-template-columns: 240px 1fr 200px;
-  flex: 1;
-  overflow: hidden;
+  max-width: 1500px;
+  margin: 0 auto;
 }
 
 .sidebar {
+  position: sticky;
+  top: 50px;
+  max-height: calc(100vh - 50px);
   overflow-y: auto;
+  align-self: start;
   padding: 16px 12px;
   border-right: 1px solid var(--bp-divider-color);
 }
 
 .center {
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
+  min-width: 0;
+  margin: 15px;
 }
 
 .toc {
+  position: sticky;
+  top: 50px;
+  max-height: calc(100vh - 50px);
   overflow-y: auto;
+  align-self: start;
   padding: 16px 12px;
   border-left: 1px solid var(--bp-divider-color);
 }

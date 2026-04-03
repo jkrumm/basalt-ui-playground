@@ -9,7 +9,6 @@ import { MainNavBar } from "~/components/shell/nav/MainNavBar.tsx";
 import { SearchPopover } from "~/components/shell/nav/SearchPopover.tsx";
 import { SubNavTabs } from "~/components/shell/nav/SubNavTabs.tsx";
 import { UserIsland } from "~/components/shell/nav/UserIsland.tsx";
-import { ShellContainer } from "~/components/shell/ShellContainer.tsx";
 
 export const Route = createFileRoute("/_content")({
   component: ContentShell,
@@ -23,18 +22,16 @@ const CONTENT_NAV_ITEMS: { to: string; label: string; search: Record<string, str
 
 function ContentShell() {
   return (
-    <ShellContainer>
-      <div className="hidden md:block">
-        <MainNavBar>
-          <DynamicIsland fallback={<Search />}>
-            <SearchPopover />
-          </DynamicIsland>
-          <DynamicIsland fallback={<Person />}>
-            <UserIsland />
-          </DynamicIsland>
-        </MainNavBar>
-        <SubNavTabs items={CONTENT_NAV_ITEMS} />
-      </div>
+    <>
+      <MainNavBar>
+        <DynamicIsland fallback={<Search />}>
+          <SearchPopover />
+        </DynamicIsland>
+        <DynamicIsland fallback={<Person />}>
+          <UserIsland />
+        </DynamicIsland>
+      </MainNavBar>
+      <SubNavTabs items={CONTENT_NAV_ITEMS} />
 
       <MobileBottomTabs />
       <MobileDrawer>
@@ -60,9 +57,9 @@ function ContentShell() {
       </MobileDrawer>
 
       <Breadcrumbs />
-      <ContentCard>
+      <ContentCard scrollable={false}>
         <Outlet />
       </ContentCard>
-    </ShellContainer>
+    </>
   );
 }

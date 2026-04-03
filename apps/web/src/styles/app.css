@@ -23,6 +23,20 @@ body.bp6-dark {
   background-color: var(--bp-palette-dark-gray-1);
 }
 
+/* ── Content typography scale ─────────────────────────────────────────
+   Applies to all MDX prose: docs, blog, guides. Larger than default for
+   comfortable reading of long-form content.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.mdx-content {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.mdx-content > :first-child {
+  margin-top: 0 !important;
+}
+
 /* ── Dashboard utilities ──────────────────────────────────────────────── */
 
 .cbbi-meta {

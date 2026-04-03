@@ -1,5 +1,6 @@
-import { Pre } from "@blueprintjs/core";
+import { Button, Pre } from "@blueprintjs/core";
 import { useCallback, useRef, useState } from "react";
+import styles from "./CodeBlock.module.css";
 
 const LANGUAGE_RE = /language-(\w+)/;
 
@@ -29,16 +30,21 @@ export function CodeBlock({
   const lang = extractLanguage(className);
 
   return (
-    <div className="mdx-pre">
-      {filename && <div className="mdx-filename">{filename}</div>}
+    <div className={styles.wrapper}>
+      {filename && <div className={styles.filename}>{filename}</div>}
       <Pre ref={preRef} className={className} style={style} {...props}>
         {children}
       </Pre>
-      {!filename && lang && <span className="mdx-lang-badge">{lang}</span>}
-      {filename && <span className="mdx-lang-badge">{lang ?? filename.split(".").pop()}</span>}
-      <button type="button" className="mdx-copy-btn" onClick={copyToClipboard}>
+      {lang && <span className={styles.langBadge}>{lang}</span>}
+      <Button
+        variant="minimal"
+        size="small"
+        type="button"
+        className={`${styles.copyBtn}${copied ? ` ${styles.copied}` : ""}`}
+        onClick={copyToClipboard}
+      >
         {copied ? "Copied!" : "Copy"}
-      </button>
+      </Button>
     </div>
   );
 }

@@ -1,0 +1,51 @@
+.wrapper {
+  position: relative;
+  margin: 1em 0;
+}
+
+.filename {
+  display: inline-block;
+  font-size: var(--bp-typography-size-body-small);
+  color: var(--bp-typography-color-muted);
+  background-color: var(--bp-palette-dark-gray-3);
+  border-radius: var(--bp-border-radius) var(--bp-border-radius) 0 0;
+  padding: 3px 10px;
+  font-family: var(--bp-font-family-monospace);
+  margin-bottom: -4px;
+}
+
+.langBadge {
+  position: absolute;
+  top: 8px;
+  right: 44px;
+  font-size: 11px;
+  font-family: var(--bp-font-family-monospace);
+  color: var(--bp-typography-color-muted);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.copyBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  font-size: var(--bp-typography-size-body-small) !important;
+  min-height: 24px !important;
+  min-width: unset !important;
+  padding: 2px 8px !important;
+}
+
+.wrapper:hover .copyBtn,
+.wrapper:hover .langBadge {
+  opacity: 1;
+}
+
+.copyBtn.copied {
+  opacity: 1;
+  color: var(--bp-intent-success-default) !important;
+}

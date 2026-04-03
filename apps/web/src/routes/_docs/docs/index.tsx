@@ -1,3 +1,4 @@
+import { Classes } from "@blueprintjs/core";
 import { MDXContent } from "@content-collections/mdx/react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { mdxComponents } from "../../../components/mdx/MDXComponents.tsx";
@@ -26,7 +27,10 @@ function DocsIndexPage() {
   const { doc } = Route.useLoaderData();
 
   return (
-    <div style={{ padding: "1.5rem 2rem" }}>
+    <div
+      className={`${Classes.RUNNING_TEXT} mdx-content`}
+      style={{ padding: "1rem" }}
+    >
       <MDXContent code={doc.body} components={mdxComponents} />
     </div>
   );
