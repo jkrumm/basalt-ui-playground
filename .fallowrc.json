@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.fallow.tools/schema/v2.json",
+  "extends": ["fallow:recommended"],
+  "plugins": ["../claude-local/config/fallow-plugins/"],
+  "entry": [
+    "apps/api/src/index.ts",
+    "apps/web/src/client.tsx",
+    "apps/web/src/router.tsx",
+    "apps/web/server.ts",
+    "apps/web/src/routes/**/*.tsx",
+    "packages/schemas/src/index.ts"
+  ],
+  "ignorePatterns": [
+    "**/*.generated.ts",
+    "**/*.d.ts",
+    "**/drizzle/**",
+    "**/drizzle.config.ts",
+    "dist/**",
+    ".output/**",
+    ".vinxi/**",
+    "**/.venv/**"
+  ],
+  "ignoreDependencies": [
+    "@types/node",
+    "typescript"
+  ],
+  "duplicates": {
+    "mode": "mild",
+    "minTokens": 50,
+    "minLines": 5
+  },
+  "rules": {
+    "unused-files": "warn",
+    "unused-exports": "warn",
+    "unused-types": "warn",
+    "unused-deps": "error",
+    "unresolved-imports": "error",
+    "circular-deps": "warn"
+  }
+}

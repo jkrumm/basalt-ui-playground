@@ -18,6 +18,8 @@
     "lint": "oxlint packages/ apps/ --max-warnings 0 && eslint .",
     "lint:style": "stylelint 'apps/**/*.css'",
     "check": "bun run fmt && bun run lint && bun run lint:style && bun run typecheck",
+    "analyze": "npx fallow",
+    "analyze:changed": "npx fallow dead-code --changed-since main",
     "db:generate": "bun run --filter 'api' db:generate",
     "db:migrate": "bun run --filter 'api' db:migrate",
     "db:seed": "bun run --filter 'api' db:seed",
