@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.fallow.tools/schema/v2.json",
   "extends": ["fallow:recommended"],
-  "plugins": ["../claude-local/config/fallow-plugins/"],
+  "plugins": ["../dotfiles/config/fallow-plugins/"],
   "entry": [
     "apps/api/src/index.ts",
     "apps/web/src/client.tsx",
